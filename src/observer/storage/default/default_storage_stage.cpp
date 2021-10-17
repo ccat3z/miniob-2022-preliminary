@@ -168,12 +168,19 @@ void DefaultStorageStage::handle_event(StageEvent *event)
       std::string result = load_data(dbname, table_name, file_name);
       snprintf(response, sizeof(response), "%s", result.c_str());
     } break;
+    case SCF_DROP_TABLE: {
+      const char *table_name = sql->sstr.drop_table.relation_name;
+      rc = handler_->drop_table(dbname, table_name);
+      snprintf(response, sizeof(response), "%s\n", rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
+    } break;
     default:
       snprintf(response, sizeof(response), "Unsupported sql: %d\n", sql->flag);
       break;
   }
 
-  if (rc == RC::SUCCESS && !session->is_trx_multi_operation_mode()) {
+  if (rc == RC::SUCCESS && !session->is_trx_multi_operation_mode() &&
+      sql->flag != SCF_DROP_TABLE  // TODO: Clear table ops in trx
+  ) {
     rc = current_trx->commit();
     if (rc != RC::SUCCESS) {
       LOG_ERROR("Failed to commit trx. rc=%d:%s", rc, strrc(rc));

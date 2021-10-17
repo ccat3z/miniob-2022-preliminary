@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 #include <limits.h>
 #include <string.h>
 #include <algorithm>
+#include <cstdio>
 
 #include "common/defs.h"
 #include "storage/common/table.h"
@@ -183,6 +184,37 @@ RC Table::open(const char *meta_file, const char *base_dir, CLogManager *clog_ma
     clog_manager_ = clog_manager;
   }
   return rc;
+}
+
+RC Table::drop()
+{
+  // TODO: Recovery io error
+
+  // Remove meta files
+  std::string meta_path = table_meta_file(base_dir_.c_str(), table_meta_.name());
+  if (::remove(meta_path.c_str()) != 0) {
+    LOG_ERROR("Failed to delete table meta file: %s", meta_path.c_str());
+    return RC::IOERR_DELETE;
+  }
+
+  // Close and remove indexes
+  for (int i = 0; i < table_meta_.index_num(); i++) {
+    std::string index_path = table_index_file(base_dir_.c_str(), table_meta_.name(), table_meta_.index(i)->name());
+
+    if (::remove(index_path.c_str()) != 0) {
+      LOG_ERROR("Failed to delete index meta file: %s", index_path.c_str());
+      return RC::IOERR_DELETE;
+    }
+  }
+
+  // Remove table data
+  std::string data_file = base_dir_ + "/" + table_meta_.name() + TABLE_DATA_SUFFIX;
+  if (::remove(data_file.c_str()) != 0) {
+    LOG_ERROR("Failed to delete data file: %s", data_file);
+    return RC::IOERR_DELETE;
+  }
+
+  return RC::SUCCESS;
 }
 
 RC Table::commit_insert(Trx *trx, const RID &rid)

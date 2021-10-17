@@ -226,6 +226,12 @@ public:
   RC open_file(const char *file_name);
 
   /**
+   * 根据文件名删除一个分页文件
+   * @return
+   */
+  RC remove_file(const char *file_name);
+
+  /**
    * 关闭分页文件
    */
   RC close_file();
