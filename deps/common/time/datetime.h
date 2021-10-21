@@ -453,6 +453,9 @@ public:
     DateTime d = now();
     m_date = d.m_date;
   }
+
+  bool parse(const char *date_str);
+  std::string format();
 };
 
 class Now {
