@@ -690,7 +690,11 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
   }
 
   CompositeConditionFilter filter;
-  filter.init(*this, conditions, condition_num);
+  RC rc = filter.init(*this, conditions, condition_num);
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to init filter");
+    return rc;
+  }
 
   const FieldMeta *field = table_meta_.field(attribute_name);
   if (field == nullptr) {
@@ -705,7 +709,7 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
     memcpy(rec.data() + field->offset(), value->data, field->len());
     return RC::SUCCESS;
   };
-  auto rc = scan_record(trx, &filter, -1, [this, &updater, &updated_count](Record *record) -> RC {
+  rc = scan_record(trx, &filter, -1, [this, &updater, &updated_count](Record *record) -> RC {
     *updated_count++;
     return record_handler_->update_record_in_place<>(&record->rid(), updater);
   });
