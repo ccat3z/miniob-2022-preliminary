@@ -456,6 +456,7 @@ public:
 
   bool parse(const char *date_str);
   std::string format();
+  int &julian();
 };
 
 class Now {

@@ -445,4 +445,8 @@ std::string Date::format() {
      << std::setw(2) << day;
   return os.str();
 }
+
+int &Date::julian() {
+  return m_date;
+}
 }  // namespace common
