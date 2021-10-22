@@ -16,6 +16,10 @@ See the Mulan PSL v2 for more details. */
 #define __OBSERVER_SQL_PARSER_PARSE_DEFS_H__
 
 #include <stddef.h>
+#ifdef __cplusplus
+#include <common/time/datetime.h>
+#include <string.h>
+#endif
 
 #define MAX_NUM 20
 #define MAX_REL_NAME 20
@@ -44,8 +48,35 @@ typedef enum { UNDEFINED, CHARS, INTS, FLOATS, DATE } AttrType;
 
 //属性值
 typedef struct _Value {
+#ifdef __cplusplus
+  mutable AttrType type;  // type of value
+  mutable void *data;     // value
+  bool try_cast(const AttrType &type) const
+  {
+    if (this->type == type)
+      return true;
+
+    if (this->type == CHARS && type == DATE) {
+      common::Date date;
+      if (!date.parse((char *)this->data)) {
+        return false;
+      }
+
+      free(this->data);
+
+      this->type = DATE;
+      this->data = malloc(sizeof(int));
+      int julian = date.julian();
+      memcpy(this->data, &julian, sizeof(int));
+      return true;
+    }
+
+    return false;
+  }
+#else
   AttrType type;  // type of value
   void *data;     // value
+#endif
 } Value;
 
 typedef struct _Condition {
