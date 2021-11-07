@@ -59,6 +59,7 @@ ParserContext *get_context(yyscan_t scanner)
         DROP
         TABLE
         TABLES
+		NULL_VALUE
 		NULLABLE
         INDEX
         SELECT
@@ -343,7 +344,10 @@ value_list:
     ;
 
 value:
-    NUMBER{	
+	NULL_VALUE {
+		value_init_null(&$$);
+	}
+    |NUMBER{	
   		value_init_integer(&$$, $1);
 	}
     |FLOAT{

@@ -401,10 +401,19 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
   int record_size = table_meta_.record_size();
   char *record = new char[record_size];
 
+  uint32_t *null_field = (uint32_t *)(record + table_meta_.null_field()->offset());
+  *null_field = 0;
   for (int i = 0; i < value_num; i++) {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
     size_t copy_len = field->len();
+
+    RC rc = field->set_null(record, value.is_null);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to set null on field %s", field->name());
+      return rc;
+    }
+
     if (field->type() == CHARS) {
       const size_t data_len = strlen((const char *)value.data);
       if (copy_len > data_len) {
