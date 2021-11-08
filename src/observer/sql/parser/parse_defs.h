@@ -44,6 +44,8 @@ typedef enum {
   GREAT_THAN,   //">"     5
   OP_LIKE,      //"like"  6
   OP_NOT_LIKE,  //"like"  6
+  IS_NULL,
+  IS_NOT_NULL,
   NO_OP
 } CompOp;
 

@@ -93,28 +93,29 @@ extern int yydebug;
     VALUES = 288,                  /* VALUES  */
     FROM = 289,                    /* FROM  */
     WHERE = 290,                   /* WHERE  */
-    AND = 291,                     /* AND  */
-    SET = 292,                     /* SET  */
-    ON = 293,                      /* ON  */
-    LOAD = 294,                    /* LOAD  */
-    DATA = 295,                    /* DATA  */
-    INFILE = 296,                  /* INFILE  */
-    EQ = 297,                      /* EQ  */
-    LT = 298,                      /* LT  */
-    GT = 299,                      /* GT  */
-    LE = 300,                      /* LE  */
-    GE = 301,                      /* GE  */
-    NE = 302,                      /* NE  */
-    NOT = 303,                     /* NOT  */
-    LIKE = 304,                    /* LIKE  */
-    UNIQUE = 305,                  /* UNIQUE  */
-    NUMBER = 306,                  /* NUMBER  */
-    FLOAT = 307,                   /* FLOAT  */
-    ID = 308,                      /* ID  */
-    PATH = 309,                    /* PATH  */
-    SSS = 310,                     /* SSS  */
-    STAR = 311,                    /* STAR  */
-    STRING_V = 312                 /* STRING_V  */
+    IS = 291,                      /* IS  */
+    AND = 292,                     /* AND  */
+    SET = 293,                     /* SET  */
+    ON = 294,                      /* ON  */
+    LOAD = 295,                    /* LOAD  */
+    DATA = 296,                    /* DATA  */
+    INFILE = 297,                  /* INFILE  */
+    EQ = 298,                      /* EQ  */
+    LT = 299,                      /* LT  */
+    GT = 300,                      /* GT  */
+    LE = 301,                      /* LE  */
+    GE = 302,                      /* GE  */
+    NE = 303,                      /* NE  */
+    NOT = 304,                     /* NOT  */
+    LIKE = 305,                    /* LIKE  */
+    UNIQUE = 306,                  /* UNIQUE  */
+    NUMBER = 307,                  /* NUMBER  */
+    FLOAT = 308,                   /* FLOAT  */
+    ID = 309,                      /* ID  */
+    PATH = 310,                    /* PATH  */
+    SSS = 311,                     /* SSS  */
+    STAR = 312,                    /* STAR  */
+    STRING_V = 313                 /* STRING_V  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -123,7 +124,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 106 "yacc_sql.y"
+#line 107 "yacc_sql.y"
 
   struct _Attr *attr;
   Condition condition;
@@ -137,7 +138,7 @@ union YYSTYPE
   List *list;
   CompOp comp_op;
 
-#line 141 "yacc_sql.tab.h"
+#line 142 "yacc_sql.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

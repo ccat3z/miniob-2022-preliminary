@@ -1621,7 +1621,7 @@ TEST_F(SQLTest, NullCompareWithNullShouldAlwaysFalse)
   ASSERT_EQ(exec_sql("select * from t where 1 = null;"), "a | b\n");
 }
 
-TEST_F(SQLTest, DISABLED_NullIsNullShouldWork)
+TEST_F(SQLTest, NullIsNullShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t(a int, b int nullable);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into t values (1, null);"), "SUCCESS\n");

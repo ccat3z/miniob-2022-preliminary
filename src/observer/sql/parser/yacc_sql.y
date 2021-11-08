@@ -87,6 +87,7 @@ ParserContext *get_context(yyscan_t scanner)
         VALUES
         FROM
         WHERE
+		IS
         AND
         SET
         ON
@@ -484,7 +485,27 @@ condition:
 	expr comOp expr {
 		condition_init(&$$, $2, &$1, &$3);
 	}
-    ;
+	| expr IS NULL_VALUE {
+		Value null;
+		value_init_null(&null);
+
+		UnionExpr null_expr;
+		null_expr.type = EXPR_VALUE;
+		null_expr.value.value = null;
+
+		condition_init(&$$, IS_NULL, &$1, &null_expr);
+	}
+	| expr IS NOT NULL_VALUE {
+		Value null;
+		value_init_null(&null);
+
+		UnionExpr null_expr;
+		null_expr.type = EXPR_VALUE;
+		null_expr.value.value = null;
+
+		condition_init(&$$, IS_NOT_NULL, &$1, &null_expr);
+	}
+	;
 
 comOp:
   	  EQ { $$ = EQUAL_TO; }

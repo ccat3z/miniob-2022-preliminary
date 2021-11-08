@@ -14,6 +14,7 @@ See the Mulan PSL v2 for more details. */
 
 #include "common/log/log.h"
 #include "sql/operator/predicate_operator.h"
+#include "sql/parser/parse_defs.h"
 #include "storage/record/record.h"
 #include "sql/stmt/filter_stmt.h"
 #include "storage/common/field.h"
@@ -77,6 +78,14 @@ bool PredicateOperator::do_predicate(Tuple &tuple)
     TupleCell right_cell;
     left_expr->get_value(tuple, left_cell);
     right_expr->get_value(tuple, right_cell);
+
+    if (comp == IS_NULL) {
+      return left_cell.is_null();
+    }
+
+    if (comp == IS_NOT_NULL) {
+      return !left_cell.is_null();
+    }
 
     if (left_cell.is_null() || right_cell.is_null()) {
       return false;
