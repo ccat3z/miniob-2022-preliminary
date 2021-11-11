@@ -38,6 +38,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/mem/mem_storage_stage.h"
 #include "storage/default/disk_buffer_pool.h"
 #include "storage/default/default_handler.h"
+#include "storage/default/large_block_pool.h"
 
 using namespace common;
 
@@ -265,7 +266,8 @@ int init(ProcessParam *process_param)
 void cleanup_util()
 {
   uninit_global_objects();
-  
+  LargeBlockPool::reset();
+
   if (nullptr != get_properties()) {
     delete get_properties();
     get_properties() = nullptr;
