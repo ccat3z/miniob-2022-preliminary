@@ -710,6 +710,112 @@ TEST_F(SQLTest, DISABLED_UpdateWithInvalidValueShouldFailure)
       "2 | 5\n");
 }
 
+// ########     ###    ######## ########
+// ##     ##   ## ##      ##    ##
+// ##     ##  ##   ##     ##    ##
+// ##     ## ##     ##    ##    ######
+// ##     ## #########    ##    ##
+// ##     ## ##     ##    ##    ##
+// ########  ##     ##    ##    ########
+
+TEST_F(SQLTest, DISABLED_DateCanCreateTable)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, d date);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("desc t;"),
+      "t(\n"
+      "\tfield name=__trx, type=ints, len=4, visible=no, nullable=no\n"
+      "\tfield name=__null, type=ints, len=4, visible=no, nullable=no\n"
+      "\tfield name=a, type=ints, len=4, visible=yes, nullable=no\n"
+      "\tfield name=d, type=date, len=4, visible=yes, nullable=no\n"
+      ")\n");
+}
+
+TEST_F(SQLTest, DateInsertShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, d date);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(1, '2020-10-10');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(1, '2100-2-29');"), "FAILURE\n");
+}
+
+TEST_F(SQLTest, DateSelectShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, d date);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(1, '20-1-10');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(1, '2020-10-10');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(1, '2020-1-1');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(1, '4000-1-1');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t;"),
+      "a | d\n1 | 0020-01-10\n1 | 2020-10-10\n1 | 2020-01-01\n1 | "
+      "4000-01-01\n");
+}
+
+TEST_F(SQLTest, DateSelectWhereShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, d date);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(1, '2020-10-10');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(1, '2021-1-1');"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select d from t where d > '2020-12-1';"), "d\n2021-01-01\n");
+  ASSERT_EQ(exec_sql("select d from t where d = '2021-1-1';"), "d\n2021-01-01\n");
+  ASSERT_EQ(exec_sql("select d from t where d = '2020-1-21';"), "d\n");
+  ASSERT_EQ(exec_sql("select d from t where d < '2020-12-1';"), "d\n2020-10-10\n");
+}
+
+TEST_F(SQLTest, DateSelectWithIndexShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, d date);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create index t_d on t(d);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(1, '2020-10-10');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(1, '2021-1-1');"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select d from t where d > '2020-12-1';"), "d\n2021-01-01\n");
+  ASSERT_EQ(exec_sql("select d from t where d = '2021-1-1';"), "d\n2021-01-01\n");
+  ASSERT_EQ(exec_sql("select d from t where d = '2020-1-21';"), "d\n");
+  ASSERT_EQ(exec_sql("select d from t where d < '2020-12-1';"), "d\n2020-10-10\n");
+}
+
+TEST_F(SQLTest, DateCharsNotBeAffected)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b char(20), d date);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(1, '2020-1-1', '2020-1-1');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t;"),
+      "a | b | d\n"
+      "1 | 2020-1-1 | 2020-01-01\n");
+}
+
+TEST_F(SQLTest, DateUpdateShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, d date);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(1, '2020-10-10');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(1, '2021-1-1');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("update t set d='2022-2-22' where d < '2020-12-31';"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t;"),
+      "a | d\n"
+      "1 | 2022-02-22\n"
+      "1 | 2021-01-01\n");
+}
+
+TEST_F(SQLTest, DISABLED_DateUpdateWithIndexShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, d date);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create index t_d on t(d);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(1, '2020-10-10');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(1, '2021-1-1');"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("update t set d='2022-2-22' where d < '2020-12-31';"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t where d='2022-2-22';"),
+      "a | d\n"
+      "1 | 2022-02-22\n");
+}
+
+TEST_F(SQLTest, DateUpdateInvalidDateShouldFailure)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, d date);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(1, '2020-10-10');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(1, '2021-1-1');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("update t set d='2022-2-30' where d < '2020-12-31';"), "FAILURE\n");
+}
+
 int main(int argc, char **argv)
 {
   srand((unsigned)time(NULL));
