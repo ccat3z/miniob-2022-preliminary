@@ -77,6 +77,7 @@ MESSAGE("Install target dir is " ${CMAKE_INSTALL_PREFIX})
 ADD_SUBDIRECTORY(deps)
 ADD_SUBDIRECTORY(src)
 ADD_SUBDIRECTORY(test/perf)
+ADD_SUBDIRECTORY(test/sql)
 
 OPTION(WITH_UNIT_TESTS "Compile miniob with unit tests" ON)
 
