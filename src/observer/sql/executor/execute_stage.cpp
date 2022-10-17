@@ -143,7 +143,7 @@ void ExecuteStage::handle_request(common::StageEvent *event)
       do_insert(sql_event);
     } break;
     case StmtType::UPDATE: {
-      //do_update((UpdateStmt *)stmt, session_event);
+      do_update(sql_event);
     } break;
     case StmtType::DELETE: {
       do_delete(sql_event);
@@ -568,6 +568,23 @@ RC ExecuteStage::do_insert(SQLStageEvent *sql_event)
   } else {
     session_event->set_response("FAILURE\n");
   }
+  return rc;
+}
+
+RC ExecuteStage::do_update(SQLStageEvent *sql_event)
+{
+
+  auto *stmt = (UpdateStmt *)sql_event->stmt();
+  SessionEvent *session_event = sql_event->session_event();
+  Session *session = session_event->session();
+  auto *table = stmt->table();
+  Trx *trx = session->current_trx();
+
+  int updated;
+  RC rc =
+      table->update_record(trx, stmt->attribute(), stmt->value(), stmt->condition_num(), stmt->conditions(), &updated);
+
+  session_event->set_response(rc == RC::SUCCESS ? "SUCCESS\n" : "FAILURE\n");
   return rc;
 }
 
