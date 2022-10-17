@@ -558,8 +558,9 @@ RC ExecuteStage::do_insert(SQLStageEvent *sql_event)
       if (rc != RC::SUCCESS) {
         session_event->set_response("FAILURE\n");
         return rc;
-      } 
+      }
 
+      trx->commit();
       trx->next_current_id();
       session_event->set_response("SUCCESS\n");
     } else {
