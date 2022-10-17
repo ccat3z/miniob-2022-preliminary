@@ -684,6 +684,7 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
 {
   if (trx != nullptr) {
     // TODO: Support trx update
+    LOG_WARN("Update transaction not supported yet, all changes cannot be rollbacked.");
     // return RC::GENERIC_ERROR;
   }
 
