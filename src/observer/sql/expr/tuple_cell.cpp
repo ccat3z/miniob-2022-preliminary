@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/expr/tuple_cell.h"
 #include "storage/common/field.h"
 #include "common/log/log.h"
+#include "common/time/datetime.h"
 #include "util/comparator.h"
 #include "util/util.h"
 
@@ -36,6 +37,10 @@ void TupleCell::to_string(std::ostream &os) const
       os << data_[i];
     }
   } break;
+  case DATE: {
+    common::Date date(*(int *)data_);
+    os << date.format();
+  } break;
   default: {
     LOG_WARN("unsupported attr type: %d", attr_type_);
   } break;
@@ -44,11 +49,17 @@ void TupleCell::to_string(std::ostream &os) const
 
 int TupleCell::compare(const TupleCell &other) const
 {
+  if (!other.try_cast(attr_type_)) {
+    try_cast(other.attr_type_);
+  }
+
   if (this->attr_type_ == other.attr_type_) {
     switch (this->attr_type_) {
     case INTS: return compare_int(this->data_, other.data_);
     case FLOATS: return compare_float(this->data_, other.data_);
     case CHARS: return compare_string(this->data_, this->length_, other.data_, other.length_);
+    case DATE:
+      return compare_int(this->data_, other.data_);
     default: {
       LOG_WARN("unsupported type: %d", this->attr_type_);
     }
@@ -62,4 +73,26 @@ int TupleCell::compare(const TupleCell &other) const
   }
   LOG_WARN("not supported");
   return -1; // TODO return rc?
+}
+
+bool TupleCell::try_cast(const AttrType &type) const
+{
+  if (this->attr_type_ == type)
+    return true;
+
+  if (this->attr_type_ == CHARS && type == DATE) {
+    common::Date date;
+    if (!date.parse((char *)this->data_)) {
+      return false;
+    }
+
+    this->attr_type_ = DATE;
+    // FIXME: Memory leak
+    this->data_ = (char *)malloc(sizeof(int));
+    int julian = date.julian();
+    memcpy(this->data_, &julian, sizeof(int));
+    return true;
+  }
+
+  return false;
 }

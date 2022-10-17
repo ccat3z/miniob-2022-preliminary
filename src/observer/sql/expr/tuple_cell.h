@@ -51,8 +51,10 @@ public:
     return attr_type_;
   }
 
+  bool try_cast(const AttrType &type) const;
+
 private:
-  AttrType attr_type_ = UNDEFINED;
-  int length_ = -1;
-  char *data_ = nullptr; // real data. no need to move to field_meta.offset
+  mutable AttrType attr_type_ = UNDEFINED;
+  mutable int length_ = -1;
+  mutable char *data_ = nullptr;  // real data. no need to move to field_meta.offset
 };
