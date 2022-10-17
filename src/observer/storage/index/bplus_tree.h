@@ -25,6 +25,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/default/disk_buffer_pool.h"
 #include "sql/parser/parse_defs.h"
 #include "util/comparator.h"
+#include "common/time/datetime.h"
 
 #define EMPTY_RID_PAGE_NUM -1
 #define EMPTY_RID_SLOT_NUM -1
@@ -44,10 +45,10 @@ public:
 
   int operator()(const char *v1, const char *v2) const {
     switch (attr_type_) {
-    case INTS: {
-      return compare_int((void *)v1, (void *)v2);
-    }
-      break;
+      case INTS:
+      case DATE: {
+        return compare_int((void *)v1, (void *)v2);
+      } break;
     case FLOATS: {
       return compare_float((void *)v1, (void *)v2);
     }
@@ -123,6 +124,10 @@ public:
 	str.push_back(v[i]);
       }
       return str;
+    }
+    case DATE: {
+      common::Date date(*(int *)v);
+      return date.format();
     }
     default:{
       LOG_ERROR("unknown attr type. %d", attr_type_);
