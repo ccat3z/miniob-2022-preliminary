@@ -403,6 +403,192 @@ TEST_F(SQLTest, BasicExtConditionBetweenDifferentType)
   ASSERT_EQ(exec_sql("select * from t where 1.2 < a;"), "a | b\n3 | 1.23\n");
 }
 
+//  ######  ######## ##       ########  ######  ########
+// ##    ## ##       ##       ##       ##    ##    ##
+// ##       ##       ##       ##       ##          ##
+//  ######  ######   ##       ######   ##          ##
+//       ## ##       ##       ##       ##          ##
+// ##    ## ##       ##       ##       ##    ##    ##
+//  ######  ######## ######## ########  ######     ##
+
+// ##     ## ######## ########    ###
+// ###   ### ##          ##      ## ##
+// #### #### ##          ##     ##   ##
+// ## ### ## ######      ##    ##     ##
+// ##     ## ##          ##    #########
+// ##     ## ##          ##    ##     ##
+// ##     ## ########    ##    ##     ##
+
+TEST_F(SQLTest, SelectMetaShouldResponseHeadWhenNoData)
+{
+  ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t;"), "a\n");
+}
+
+TEST_F(SQLTest, SelectMetaInvalidTableShouldFailure)
+{
+  ASSERT_EQ(exec_sql("select * from t2;"), "FAILURE\n");
+}
+
+TEST_F(SQLTest, SelectMetaInvalidTableShouldFailureInMultiTables)
+{
+  ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t2, t;"), "FAILURE\n");
+}
+
+TEST_F(SQLTest, DISABLED_SelectMetaSameTableShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
+  // TODO: Undefined behavior
+  ASSERT_EQ(exec_sql("select * from t, t;"), "t.a\n");
+}
+
+TEST_F(SQLTest, SelectMetaSelectInvalidColumnShouldFailure)
+{
+  ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select b from t;"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select t2.a from t;"), "FAILURE\n");
+}
+
+TEST_F(SQLTest, SelectMetaSelectInvalidColumnInMultiTablesShouldFailure)
+{
+  ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table t2(b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select t.b from t, t2;"), "FAILURE\n");
+}
+
+TEST_F(SQLTest, SelectMetaSelectIndeterminableColumnInMultiTablesShouldFailure)
+{
+  ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table t2(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select a from t, t2;"), "FAILURE\n");
+}
+
+TEST_F(SQLTest, SelectMetaSelectInvalidConditionShouldFailure)
+{
+  ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t where a > 0;"), "a\n");
+
+  ASSERT_EQ(exec_sql("select * from t where b > a;"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select * from t where b > 1;"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select * from t where 1 > b;"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select * from t where b = 1;"), "FAILURE\n");
+
+  ASSERT_EQ(exec_sql("select * from t where b < c;"), "FAILURE\n");
+
+  ASSERT_EQ(exec_sql("select * from t where t.b > 1;"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select * from t where t2.b > 1;"), "FAILURE\n");
+
+  // ASSERT_EQ(exec_sql("select * from t where a > '1';"), "FAILURE\n");
+  // ASSERT_EQ(exec_sql("select * from t where a = 'a';"), "FAILURE\n");
+  // ASSERT_EQ(exec_sql("select * from t where 1 = 'a';"), "FAILURE\n");
+  // ASSERT_EQ(exec_sql("select * from t where 1.1 > '10';"), "FAILURE\n");
+}
+
+TEST_F(SQLTest, DISABLED_SelectMetaSelectValidConditionInMultiTablesShouldSuccess)
+{
+  ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table t2(b int);"), "SUCCESS\n");
+  ASSERT_NE(exec_sql("select * from t, t2 where a > b;"), "FAILURE\n");
+  ASSERT_NE(exec_sql("select * from t, t2 where t.a > t2.b;"), "FAILURE\n");
+  ASSERT_NE(exec_sql("select * from t, t2 where a > 1 and b > 1 and t.a > t2.b;"), "FAILURE\n");
+}
+
+TEST_F(SQLTest, DISABLED_SelectMetaSelectInvalidConditionInMultiTablesShouldFailure)
+{
+  ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table t2(b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t, t2 where a > c;"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select * from t, t2 where t.a > t3.b;"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select * from t, t2 where a > 1 and b > 1 and t.a > t3.b;"), "FAILURE\n");
+
+  ASSERT_EQ(exec_sql("create table t3(c char);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t, t3 where a > c;"), "FAILURE\n");
+}
+
+TEST_F(SQLTest, DISABLED_SelectMetaSelectIndeterminableConditionInMultiTablesShouldFailure)
+{
+  ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table t2(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t, t2 where a > 0;"), "FAILURE\n");
+}
+
+// ########  ########   #######  ########
+// ##     ## ##     ## ##     ## ##     ##
+// ##     ## ##     ## ##     ## ##     ##
+// ##     ## ########  ##     ## ########
+// ##     ## ##   ##   ##     ## ##
+// ##     ## ##    ##  ##     ## ##
+// ########  ##     ##  #######  ##
+
+// ########    ###    ########  ##       ########
+//    ##      ## ##   ##     ## ##       ##
+//    ##     ##   ##  ##     ## ##       ##
+//    ##    ##     ## ########  ##       ######
+//    ##    ######### ##     ## ##       ##
+//    ##    ##     ## ##     ## ##       ##
+//    ##    ##     ## ########  ######## ########
+
+TEST_F(SQLTest, DropTableShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("show tables;"), "t\n");
+  ASSERT_EQ(exec_sql("drop table t;"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("show tables;"), "No table\n");
+  ASSERT_EQ(exec_sql("select * from t;"), "FAILURE\n");
+}
+
+TEST_F(SQLTest, DropTableWithIndexShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create index t_a_idx on t(a);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("show tables;"), "t\n");
+  ASSERT_EQ(exec_sql("drop table t;"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("show tables;"), "No table\n");
+}
+
+TEST_F(SQLTest, DropTableWithDataShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t;"), "a\n1\n");
+  exec_sql("sync;");
+
+  ASSERT_EQ(exec_sql("drop table t;"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t;"), "a\n");
+}
+
+TEST_F(SQLTest, DropTableFailureIfNotExist)
+{
+  ASSERT_EQ(exec_sql("drop table t2;"), "FAILURE\n");
+}
+
+TEST_F(SQLTest, DropTableCanCreateAgain)
+{
+  ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("show tables;"), "t\n");
+  ASSERT_EQ(exec_sql("drop table t;"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("show tables;"), "t\n");
+}
+
+TEST_F(SQLTest, DropTableWithIndexCreateAgain)
+{
+  ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create index t_a_idx on t(a);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("show tables;"), "t\n");
+
+  ASSERT_EQ(exec_sql("drop table t;"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("show tables;"), "No table\n");
+
+  ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create index t_a_idx on t(a);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("show tables;"), "t\n");
+}
+
 int main(int argc, char **argv)
 {
   srand((unsigned)time(NULL));
