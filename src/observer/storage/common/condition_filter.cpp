@@ -41,7 +41,7 @@ DefaultConditionFilter::~DefaultConditionFilter()
 
 RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrType attr_type, CompOp comp_op)
 {
-  if (attr_type < CHARS || attr_type > FLOATS) {
+  if (attr_type < CHARS || attr_type > DATE) {
     LOG_ERROR("Invalid condition with unsupported attribute type: %d", attr_type);
     return RC::INVALID_ARGUMENT;
   }
@@ -67,6 +67,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
   AttrType type_left = UNDEFINED;
   AttrType type_right = UNDEFINED;
 
+  // Prepare attr first, because value_cast is based on attrs
   if (1 == condition.left_is_attr) {
     left.is_attr = true;
     const FieldMeta *field_left = table_meta.field(condition.left_attr.attribute_name);
@@ -80,13 +81,6 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
     left.value = nullptr;
 
     type_left = field_left->type();
-  } else {
-    left.is_attr = false;
-    left.value = condition.left_value.data;  // 校验type 或者转换类型
-    type_left = condition.left_value.type;
-
-    left.attr_length = 0;
-    left.attr_offset = 0;
   }
 
   if (1 == condition.right_is_attr) {
@@ -101,7 +95,28 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
     type_right = field_right->type();
 
     right.value = nullptr;
-  } else {
+  }
+
+  if (1 != condition.left_is_attr) {
+    // Detect value's type by another attr
+    if (condition.right_is_attr) {
+      condition.left_value.try_cast(type_right);
+    }
+
+    left.is_attr = false;
+    left.value = condition.left_value.data;  // 校验type 或者转换类型
+    type_left = condition.left_value.type;
+
+    left.attr_length = 0;
+    left.attr_offset = 0;
+  }
+
+  if (1 != condition.right_is_attr) {
+    // Detect value's type by another attr
+    if (condition.left_is_attr) {
+      condition.right_value.try_cast(type_left);
+    }
+
     right.is_attr = false;
     right.value = condition.right_value.data;
     type_right = condition.right_value.type;
