@@ -52,6 +52,7 @@ RC InsertStmt::create(Db *db, const Inserts &inserts, Stmt *&stmt)
   for (int i = 0; i < value_num; i++) {
     const FieldMeta *field_meta = table_meta.field(i + sys_field_num);
     const AttrType field_type = field_meta->type();
+    values[i].try_cast(field_type);
     const AttrType value_type = values[i].type;
     if (field_type != value_type) { // TODO try to convert the value type to field type
       LOG_WARN("field type mismatch. table=%s, field=%s, field type=%d, value_type=%d", 
