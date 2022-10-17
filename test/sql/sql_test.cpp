@@ -631,7 +631,7 @@ TEST_F(SQLTest, UpdateWithConditionsShouldWork)
       "2 | 5\n");
 }
 
-TEST_F(SQLTest, DISABLED_UpdateWithIndexShouldWork)
+TEST_F(SQLTest, UpdateWithIndexShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("create index t_a on t(a);"), "SUCCESS\n");
@@ -676,7 +676,7 @@ TEST_F(SQLTest, UpdateWithInvalidColumnShouldFailure)
       "2 | 5\n");
 }
 
-TEST_F(SQLTest, DISABLED_UpdateWithInvalidConditionShouldFailure)
+TEST_F(SQLTest, UpdateWithInvalidConditionShouldFailure)
 {
   ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
@@ -693,7 +693,7 @@ TEST_F(SQLTest, DISABLED_UpdateWithInvalidConditionShouldFailure)
       "2 | 5\n");
 }
 
-TEST_F(SQLTest, DISABLED_UpdateWithInvalidValueShouldFailure)
+TEST_F(SQLTest, UpdateWithInvalidValueShouldFailure)
 {
   ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
@@ -795,7 +795,7 @@ TEST_F(SQLTest, DateUpdateShouldWork)
       "1 | 2021-01-01\n");
 }
 
-TEST_F(SQLTest, DISABLED_DateUpdateWithIndexShouldWork)
+TEST_F(SQLTest, DateUpdateWithIndexShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t(a int, d date);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("create index t_d on t(d);"), "SUCCESS\n");
