@@ -446,8 +446,13 @@ TEST_F(SQLTest, DISABLED_SelectMetaSameTableShouldWork)
 TEST_F(SQLTest, SelectMetaSelectInvalidColumnShouldFailure)
 {
   ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table t3(a int,b int);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("select b from t;"), "FAILURE\n");
   ASSERT_EQ(exec_sql("select t2.a from t;"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select b,* from t3;"), "b | a | b\n");
+  ASSERT_EQ(exec_sql("select a,b, * from t3;"), "a | b | a | b\n");
+  ASSERT_EQ(exec_sql("select a,b from t3;"), "a | b\n");
+  ASSERT_EQ(exec_sql("select *,b from t3;"), "a | b | b\n");
 }
 
 TEST_F(SQLTest, SelectMetaSelectInvalidColumnInMultiTablesShouldFailure)
@@ -455,6 +460,7 @@ TEST_F(SQLTest, SelectMetaSelectInvalidColumnInMultiTablesShouldFailure)
   ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("create table t2(b int);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("select t.b from t, t2;"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select *,a from t, t2;"), "FAILURE\n");
 }
 
 TEST_F(SQLTest, SelectMetaSelectIndeterminableColumnInMultiTablesShouldFailure)
