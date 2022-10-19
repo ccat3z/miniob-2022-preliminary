@@ -18,7 +18,9 @@ See the Mulan PSL v2 for more details. */
 #include <stddef.h>
 #ifdef __cplusplus
 #include <common/time/datetime.h>
-#include <string.h>
+#include <cstring>
+#include <cstdlib>
+#include <string>
 #endif
 
 #define MAX_NUM 20
@@ -51,27 +53,92 @@ typedef struct _Value {
 #ifdef __cplusplus
   mutable AttrType type;  // type of value
   mutable void *data;     // value
+
+  // Cast value to type, precision may be lost.
   bool try_cast(const AttrType &type) const
   {
     if (this->type == type)
       return true;
 
-    if (this->type == CHARS && type == DATE) {
-      common::Date date;
-      if (!date.parse((char *)this->data)) {
+    switch (this->type) {
+      case INTS: {
+        const auto &val = *(int *)data;
+        switch (type) {
+          case FLOATS:
+            replace(float(val));
+            break;
+          case CHARS:
+            replace(std::to_string(val));
+            break;
+          default:
+            return false;
+        }
+      } break;
+      case FLOATS: {
+        const auto &val = *(float *)data;
+        switch (type) {
+          case INTS:
+            replace(int(val));
+            break;
+          case CHARS: {
+            char str[6];
+            std::snprintf(str, 6, "%.2g", val);
+            replace((const char *)str);
+            break;
+          }
+          default:
+            return false;
+        }
+      } break;
+      case CHARS: {
+        const auto val = (char *)data;
+        switch (type) {
+          case INTS:
+            replace(std::atoi(val));
+            break;
+          case FLOATS:
+            replace((float)std::atof(val));
+            break;
+          case DATE: {
+            common::Date date;
+            if (!date.parse((char *)this->data))
+              return false;
+
+            replace(date.julian());
+          } break;
+          default:
+            return false;
+        }
+      } break;
+      default:
         return false;
-      }
-
-      free(this->data);
-
-      this->type = DATE;
-      this->data = malloc(sizeof(int));
-      int julian = date.julian();
-      memcpy(this->data, &julian, sizeof(int));
-      return true;
     }
 
-    return false;
+    this->type = type;
+    return true;
+  }
+
+private:
+  template <typename T>
+  void replace(const T &v) const
+  {
+    free(data);
+    T *new_data = (T *)malloc(sizeof(T));
+    *new_data = v;
+    data = new_data;
+  }
+
+  void replace(const char *v) const
+  {
+    free(data);
+    size_t size = std::strlen(v) + 1;
+    data = malloc(size);
+    memcpy(data, v, size);
+  }
+
+  void replace(const std::string &v) const
+  {
+    replace(v.c_str());
   }
 #else
   AttrType type;  // type of value

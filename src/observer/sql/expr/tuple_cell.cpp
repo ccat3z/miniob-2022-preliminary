@@ -18,6 +18,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/time/datetime.h"
 #include "util/comparator.h"
 #include "util/util.h"
+#include <cstdlib>
 
 void TupleCell::to_string(std::ostream &os) const
 {
@@ -70,9 +71,11 @@ int TupleCell::compare(const TupleCell &other) const
   } else if (this->attr_type_ == FLOATS && other.attr_type_ == INTS) {
     float other_data = *(int *)other.data_;
     return compare_float(data_, &other_data);
+  } else {
+    auto a = as_float();
+    auto b = other.as_float();
+    return compare_float(&a, &b);
   }
-  LOG_WARN("not supported");
-  return -1; // TODO return rc?
 }
 
 bool TupleCell::try_cast(const AttrType &type) const
@@ -95,4 +98,20 @@ bool TupleCell::try_cast(const AttrType &type) const
   }
 
   return false;
+}
+
+float TupleCell::as_float() const
+{
+  /// as float
+  switch (this->attr_type_) {
+    case INTS:
+    case DATE:
+      return float(*(int *)data_);
+    case FLOATS:
+      return *(float *)data_;
+    case CHARS:
+      return std::atof(data_);
+    default:
+      return 0;
+  }
 }

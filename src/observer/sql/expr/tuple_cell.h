@@ -53,6 +53,9 @@ public:
 
   bool try_cast(const AttrType &type) const;
 
+  // Force convert to float
+  float as_float() const;
+
 private:
   mutable AttrType attr_type_ = UNDEFINED;
   mutable int length_ = -1;

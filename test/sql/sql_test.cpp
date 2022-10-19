@@ -22,6 +22,8 @@
 #include <pthread.h>
 #include <sys/un.h>
 #include <thread>
+#include <vector>
+#include <tuple>
 
 #define MAX_MEM_BUFFER_SIZE 8192
 #define SERVER_START_STOP_TIMEOUT 1s
@@ -314,7 +316,8 @@ TEST_F(SQLTest, BasicInsertShouldWork)
 TEST_F(SQLTest, BasicInsertWithWrongValueShouldFailure)
 {
   ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
-  ASSERT_EQ(exec_sql("insert into t values (1, \"A\");"), "FAILURE\n");
+  // typecast is enabled
+  // ASSERT_EQ(exec_sql("insert into t values (1, \"A\");"), "FAILURE\n");
   ASSERT_EQ(exec_sql("insert into t values (1);"), "FAILURE\n");
   ASSERT_EQ(exec_sql("select * from t;"), "a | b\n");
 }
@@ -694,7 +697,8 @@ TEST_F(SQLTest, UpdateWithInvalidConditionShouldFailure)
       "2 | 5\n");
 }
 
-TEST_F(SQLTest, UpdateWithInvalidValueShouldFailure)
+// all value is valid if typecast is enabled
+TEST_F(SQLTest, DISABLED_UpdateWithInvalidValueShouldFailure)
 {
   ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
@@ -815,6 +819,104 @@ TEST_F(SQLTest, DateUpdateInvalidDateShouldFailure)
   ASSERT_EQ(exec_sql("insert into t values(1, '2020-10-10');"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into t values(1, '2021-1-1');"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("update t set d='2022-2-30' where d < '2020-12-31';"), "FAILURE\n");
+}
+
+// ######## ##    ## ########  ########  ######     ###     ######  ########
+//    ##     ##  ##  ##     ## ##       ##    ##   ## ##   ##    ##    ##
+//    ##      ####   ##     ## ##       ##        ##   ##  ##          ##
+//    ##       ##    ########  ######   ##       ##     ##  ######     ##
+//    ##       ##    ##        ##       ##       #########       ##    ##
+//    ##       ##    ##        ##       ##    ## ##     ## ##    ##    ##
+//    ##       ##    ##        ########  ######  ##     ##  ######     ##
+
+TEST_F(SQLTest, TypeCastInsertShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(i int, f float, d date, s char);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values('1', '1.0', '2020-10-10', 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values('2a', '1.6', '2021-1-1', 1.1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t;"),
+      "i | f | d | s\n"
+      "1 | 1 | 2020-10-10 | 1\n"
+      "2 | 1.6 | 2021-01-01 | 1.1\n");
+}
+
+TEST_F(SQLTest, TypeCastConditionShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(i int, f float, d date, s char);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(1, 1.0, '2020-10-10', '1a');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(2, 1.6, '2021-1-1', '1.1');"), "SUCCESS\n");
+
+  // Both CHAR
+  ASSERT_EQ(exec_sql("select s from t where s >= '1a';"), "s\n1a\n");
+
+  // Both INT
+  ASSERT_EQ(exec_sql("select i from t where i > 1;"), "i\n2\n");
+
+  // INT OP CHAR
+  ASSERT_EQ(exec_sql("select i from t where i > '1';"), "i\n2\n");
+  ASSERT_EQ(exec_sql("select i from t where i > '1.5';"), "i\n2\n");
+  ASSERT_EQ(exec_sql("select i from t where i > '1a';"), "i\n2\n");
+  ASSERT_EQ(exec_sql("select i from t where i > 'aa';"), "i\n1\n2\n");  // 'aa' cast as 0
+
+  // FLOAT OP CHAR
+  ASSERT_EQ(exec_sql("select f from t where f > '1';"), "f\n1.6\n");
+  ASSERT_EQ(exec_sql("select f from t where f > '1.5';"), "f\n1.6\n");
+  ASSERT_EQ(exec_sql("select f from t where f > '1a';"), "f\n1.6\n");
+  ASSERT_EQ(exec_sql("select f from t where f > 'aa';"), "f\n1\n1.6\n");  // 'aa' cast as 0
+}
+
+TEST_F(SQLTest, TypeCastWithConditionIndexShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(i int, f float, d date, s char);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create index t_i on t(i);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create index t_f on t(f);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create index t_d on t(d);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create index t_s on t(s);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("insert into t values(1, 1.0, '2020-10-10', '1a');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(2, 1.6, '2021-1-1', '1.1');"), "SUCCESS\n");
+
+  // Both CHAR
+  ASSERT_EQ(exec_sql("select s from t where s >= '1a';"), "s\n1a\n");
+
+  // Both INT
+  ASSERT_EQ(exec_sql("select i from t where i > 1;"), "i\n2\n");
+
+  // INT OP CHAR
+  ASSERT_EQ(exec_sql("select i from t where i > '1';"), "i\n2\n");
+  ASSERT_EQ(exec_sql("select i from t where i > '1.5';"), "i\n2\n");
+  ASSERT_EQ(exec_sql("select i from t where i > '1a';"), "i\n2\n");
+  ASSERT_EQ(exec_sql("select i from t where i > 'aa';"), "i\n1\n2\n");  // 'aa' cast as 0
+
+  // FLOAT OP CHAR
+  ASSERT_EQ(exec_sql("select f from t where f > '1';"), "f\n1.6\n");
+  ASSERT_EQ(exec_sql("select f from t where f > '1.5';"), "f\n1.6\n");
+  ASSERT_EQ(exec_sql("select f from t where f > '1a';"), "f\n1.6\n");
+  ASSERT_EQ(exec_sql("select f from t where f > 'aa';"), "f\n1\n1.6\n");  // 'aa' cast as 0
+}
+
+TEST_F(SQLTest, TypeCastUpdateShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(i int, f float, c char);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(1, 1.0, 'a');"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("update t set i = '2.0';"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select i from t;"), "i\n2\n");
+
+  ASSERT_EQ(exec_sql("update t set i = 3.0;"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select i from t;"), "i\n3\n");
+
+  ASSERT_EQ(exec_sql("update t set f = 4;"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select f from t;"), "f\n4\n");
+
+  ASSERT_EQ(exec_sql("update t set f = '5.5';"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select f from t;"), "f\n5.5\n");
+
+  ASSERT_EQ(exec_sql("update t set c = 1;"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select c from t;"), "c\n1\n");
+
+  ASSERT_EQ(exec_sql("update t set c = 1.5;"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select c from t;"), "c\n1.5\n");
 }
 
 int main(int argc, char **argv)
