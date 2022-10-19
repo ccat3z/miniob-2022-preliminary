@@ -822,6 +822,16 @@ TEST_F(SQLTest, DateUpdateInvalidDateShouldFailure)
   ASSERT_EQ(exec_sql("update t set d='2022-2-30' where d < '2020-12-31';"), "FAILURE\n");
 }
 
+TEST_F(SQLTest, DateSelectWhereInvalidDateShouldFailure)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, d date);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(1, '2020-10-10');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(1, '2021-1-1');"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select d from t where d > '2020-13-1';"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select d from t where d = '2017-2-29';"), "FAILURE\n");
+}
+
 // ######## ##    ## ########  ########  ######     ###     ######  ########
 //    ##     ##  ##  ##     ## ##       ##    ##   ## ##   ##    ##    ##
 //    ##      ####   ##     ## ##       ##        ##   ##  ##          ##
