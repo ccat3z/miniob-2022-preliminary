@@ -17,6 +17,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/record/record.h"
 #include "sql/stmt/filter_stmt.h"
 #include "storage/common/field.h"
+#include <regex>
 
 RC PredicateOperator::open()
 {
@@ -73,6 +74,45 @@ bool PredicateOperator::do_predicate(RowTuple &tuple)
     TupleCell right_cell;
     left_expr->get_value(tuple, left_cell);
     right_expr->get_value(tuple, right_cell);
+
+    if (comp == OP_LIKE) {
+      if (left_cell.attr_type() != CHARS || right_cell.attr_type() != CHARS) {
+        LOG_WARN("like support CHARS only");
+        return false;
+      }
+
+      std::string target;
+      std::string like_expr;
+
+      // TODO: Check invalid like op
+      if (left_expr->type() == ExprType::FIELD) {
+        target = left_cell.data();
+        like_expr = right_cell.data();
+      } else {
+        target = right_cell.data();
+        like_expr = left_cell.data();
+      }
+
+      std::string regex_expr = "^";
+      regex_expr.reserve(7);
+      for (const auto c : like_expr) {
+        switch (c) {
+          case '%':
+            regex_expr.append(".*");
+            break;
+          case '_':
+            regex_expr.push_back('.');
+            break;
+          default:
+            regex_expr.push_back(c);
+            break;
+        }
+      }
+      regex_expr.push_back('$');
+
+      std::regex regex(regex_expr);
+      return std::regex_match(target.begin(), target.end(), regex);
+    }
 
     const int compare = left_cell.compare(right_cell);
     bool filter_result = false;

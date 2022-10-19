@@ -29,6 +29,7 @@
 #define SERVER_START_STOP_TIMEOUT 1s
 
 namespace fs = ghc::filesystem;
+using namespace std::string_literals;
 using namespace std::chrono_literals;
 std::string conf_path = "../etc/observer.ini";
 std::string observer_binary = "./bin/observer";
@@ -930,6 +931,36 @@ TEST_F(SQLTest, TypeCastUpdateShouldWork)
 
   ASSERT_EQ(exec_sql("update t set c = 1.5;"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("select c from t;"), "c\n1.5\n");
+}
+
+// ##       #### ##    ## ########
+// ##        ##  ##   ##  ##
+// ##        ##  ##  ##   ##
+// ##        ##  #####    ######
+// ##        ##  ##  ##   ##
+// ##        ##  ##   ##  ##
+// ######## #### ##    ## ########
+
+TEST_F(SQLTest, TypeCastLikeShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(s char);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values('adc');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values('eagh');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values('dddd');"), "SUCCESS\n");
+
+  std::vector<std::tuple<std::string, std::string>> cases = {
+      {"___", "adc\n"},
+      {"____", "eagh\ndddd\n"},
+      {"%d%", "adc\ndddd\n"},
+      {"%a__", "adc\neagh\n"},
+  };
+
+  for (auto &test_case : cases) {
+    auto &like_expr = std::get<0>(test_case);
+    auto &res = std::get<1>(test_case);
+
+    ASSERT_EQ(exec_sql("select s from t where s like '"s + like_expr + "';"), "s\n"s + res);
+  }
 }
 
 int main(int argc, char **argv)
