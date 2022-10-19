@@ -442,29 +442,36 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
     return rc;
   }
 
-  std::stringstream ss;
-  print_tuple_header(ss, project_oper);
-  while ((rc = project_oper.next()) == RC::SUCCESS) {
-    // get current record
-    // write to response
-    Tuple * tuple = project_oper.current_tuple();
-    if (nullptr == tuple) {
-      rc = RC::INTERNAL;
-      LOG_WARN("failed to get current record. rc=%s", strrc(rc));
-      break;
+  // For convenience, the operator is not exception-free.
+  try {
+    std::stringstream ss;
+    print_tuple_header(ss, project_oper);
+    while ((rc = project_oper.next()) == RC::SUCCESS) {
+      // get current record
+      // write to response
+      Tuple *tuple = project_oper.current_tuple();
+      if (nullptr == tuple) {
+        rc = RC::INTERNAL;
+        LOG_WARN("failed to get current record. rc=%s", strrc(rc));
+        break;
+      }
+
+      tuple_to_string(ss, *tuple);
+      ss << std::endl;
     }
 
-    tuple_to_string(ss, *tuple);
-    ss << std::endl;
+    if (rc != RC::RECORD_EOF) {
+      LOG_WARN("something wrong while iterate operator. rc=%s", strrc(rc));
+      project_oper.close();
+    } else {
+      rc = project_oper.close();
+    }
+    session_event->set_response(ss.str());
+  } catch (const std::exception &e) {
+    LOG_ERROR("operator throw exception: %s", e.what());
+    session_event->set_response("FAILURE\n");
   }
 
-  if (rc != RC::RECORD_EOF) {
-    LOG_WARN("something wrong while iterate operator. rc=%s", strrc(rc));
-    project_oper.close();
-  } else {
-    rc = project_oper.close();
-  }
-  session_event->set_response(ss.str());
   return rc;
 }
 
