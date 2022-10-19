@@ -387,6 +387,23 @@ IndexScanOperator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
   } break;
   }
 
+  // Avoid using index if type mismatch
+  if (left_cell && !left_cell->try_cast(index->field_meta().type())) {
+    LOG_ERROR("field type mismatch. field=%s, field type=%d, value_type=%d",
+        index->field_meta().name(),
+        index->field_meta().type(),
+        left_cell->attr_type());
+    return nullptr;
+  }
+
+  if (right_cell && !right_cell->try_cast(index->field_meta().type())) {
+    LOG_ERROR("field type mismatch. field=%s, field type=%d, value_type=%d",
+        index->field_meta().name(),
+        index->field_meta().type(),
+        right_cell->attr_type());
+    return nullptr;
+  }
+
   IndexScanOperator *oper = new IndexScanOperator(table, index,
        left_cell, left_inclusive, right_cell, right_inclusive);
 

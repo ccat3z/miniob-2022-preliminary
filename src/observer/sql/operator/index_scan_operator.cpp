@@ -35,21 +35,6 @@ RC IndexScanOperator::open()
     return RC::INTERNAL;
   }
 
-  if (left_cell_.attr_type() != UNDEFINED && !left_cell_.try_cast(index_->field_meta().type())) {
-    LOG_ERROR("field type mismatch. field=%s, field type=%d, value_type=%d",
-        index_->field_meta().name(),
-        index_->field_meta().type(),
-        left_cell_.attr_type());
-    return RC::SCHEMA_FIELD_TYPE_MISMATCH;
-  }
-  if (right_cell_.attr_type() != UNDEFINED && !right_cell_.try_cast(index_->field_meta().type())) {
-    LOG_ERROR("field type mismatch. field=%s, field type=%d, value_type=%d",
-        index_->field_meta().name(),
-        index_->field_meta().type(),
-        right_cell_.attr_type());
-    return RC::SCHEMA_FIELD_TYPE_MISMATCH;
-  }
-
   IndexScanner *index_scanner = index_->create_scanner(left_cell_.data(), left_cell_.length(), left_inclusive_,
                                                        right_cell_.data(), right_cell_.length(), right_inclusive_);
   if (nullptr == index_scanner) {
