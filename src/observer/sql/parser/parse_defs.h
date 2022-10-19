@@ -82,8 +82,8 @@ typedef struct _Value {
             replace(int(std::round(val)));
             break;
           case CHARS: {
-            char str[6];
-            std::snprintf(str, 6, "%.2g", val);
+            char str[10];
+            std::snprintf(str, 10, "%.2g", val);
             replace((const char *)str);
             break;
           }
