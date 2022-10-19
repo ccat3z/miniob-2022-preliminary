@@ -941,7 +941,7 @@ TEST_F(SQLTest, TypeCastUpdateShouldWork)
 // ##        ##  ##   ##  ##
 // ######## #### ##    ## ########
 
-TEST_F(SQLTest, TypeCastLikeShouldWork)
+TEST_F(SQLTest, LikeShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t(s char);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into t values('adc');"), "SUCCESS\n");
@@ -963,7 +963,7 @@ TEST_F(SQLTest, TypeCastLikeShouldWork)
   }
 }
 
-TEST_F(SQLTest, TypeCastNotLikeShouldWork)
+TEST_F(SQLTest, NotLikeShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t(s char);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into t values('adc');"), "SUCCESS\n");
