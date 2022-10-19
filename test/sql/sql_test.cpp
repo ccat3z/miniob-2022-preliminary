@@ -985,6 +985,15 @@ TEST_F(SQLTest, NotLikeShouldWork)
   }
 }
 
+TEST_F(SQLTest, MultiLikeShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(s char);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values('adc');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values('ccc');"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select s from t where s not like 'a%' and s not like 'c%';"), "s\n");
+}
+
 TEST_F(SQLTest, LikeShouldBeCaseInsensitivity)
 {
   ASSERT_EQ(exec_sql("create table t(s char);"), "SUCCESS\n");

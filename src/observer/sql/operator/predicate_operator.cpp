@@ -112,7 +112,13 @@ bool PredicateOperator::do_predicate(RowTuple &tuple)
 
       std::regex regex(regex_expr, std::regex_constants::icase);
       auto res = std::regex_match(target.begin(), target.end(), regex);
-      return comp == OP_LIKE ? res : !res;
+
+      if (comp == OP_LIKE && !res)
+        return false;
+      else if (comp == OP_NOT_LIKE && res)
+        return false;
+
+      continue;
     }
 
     const int compare = left_cell.compare(right_cell);
