@@ -294,7 +294,10 @@ IndexScanOperator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
     FieldExpr &left_field_expr = *(FieldExpr *)left;
     const Field &field = left_field_expr.field();
     const Table *table = field.table();
-    Index *index = table->find_index_by_field(field.field_name());
+    Index *index = nullptr;
+    if (left->type() != ExprType::VALUE) {
+      table->find_index_by_field(field.field_name());
+    }
     if (index != nullptr) {
       if (better_filter == nullptr) {
         better_filter = filter_unit;
