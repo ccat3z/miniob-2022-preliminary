@@ -21,6 +21,7 @@ See the Mulan PSL v2 for more details. */
 #include <cstring>
 #include <cstdlib>
 #include <string>
+#include <cmath>
 #endif
 
 #define MAX_NUM 20
@@ -78,7 +79,7 @@ typedef struct _Value {
         const auto &val = *(float *)data;
         switch (type) {
           case INTS:
-            replace(int(val));
+            replace(int(std::round(val)));
             break;
           case CHARS: {
             char str[6];

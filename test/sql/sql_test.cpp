@@ -840,6 +840,19 @@ TEST_F(SQLTest, TypeCastInsertShouldWork)
       "2 | 1.6 | 2021-01-01 | 1.1\n");
 }
 
+TEST_F(SQLTest, TypeCastInsertFloatShouldBeRound)
+{
+  ASSERT_EQ(exec_sql("create table t(i int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(0.4);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(0.5);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(0.6);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t;"),
+      "i\n"
+      "0\n"
+      "1\n"
+      "1\n");
+}
+
 TEST_F(SQLTest, TypeCastConditionShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t(i int, f float, d date, s char);"), "SUCCESS\n");
