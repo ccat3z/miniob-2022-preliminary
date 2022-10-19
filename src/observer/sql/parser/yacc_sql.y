@@ -104,6 +104,7 @@ ParserContext *get_context(yyscan_t scanner)
         LE
         GE
         NE
+		NOT
 		LIKE
 
 %union {
@@ -570,6 +571,7 @@ comOp:
     | GE { CONTEXT->comp = GREAT_EQUAL; }
     | NE { CONTEXT->comp = NOT_EQUAL; }
 	| LIKE { CONTEXT->comp = OP_LIKE; }
+	| NOT LIKE { CONTEXT->comp = OP_NOT_LIKE; }
     ;
 
 load_data:

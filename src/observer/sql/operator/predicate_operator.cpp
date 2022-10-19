@@ -75,7 +75,7 @@ bool PredicateOperator::do_predicate(RowTuple &tuple)
     left_expr->get_value(tuple, left_cell);
     right_expr->get_value(tuple, right_cell);
 
-    if (comp == OP_LIKE) {
+    if (comp == OP_LIKE || comp == OP_NOT_LIKE) {
       if (left_cell.attr_type() != CHARS || right_cell.attr_type() != CHARS) {
         LOG_WARN("like support CHARS only");
         return false;
@@ -111,7 +111,8 @@ bool PredicateOperator::do_predicate(RowTuple &tuple)
       regex_expr.push_back('$');
 
       std::regex regex(regex_expr);
-      return std::regex_match(target.begin(), target.end(), regex);
+      auto res = std::regex_match(target.begin(), target.end(), regex);
+      return comp == OP_LIKE ? res : !res;
     }
 
     const int compare = left_cell.compare(right_cell);

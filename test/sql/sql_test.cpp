@@ -963,6 +963,28 @@ TEST_F(SQLTest, TypeCastLikeShouldWork)
   }
 }
 
+TEST_F(SQLTest, TypeCastNotLikeShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(s char);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values('adc');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values('eagh');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values('dddd');"), "SUCCESS\n");
+
+  std::vector<std::tuple<std::string, std::string>> cases = {
+      {"___", "eagh\ndddd\n"},
+      {"____", "adc\n"},
+      {"%d%", "eagh\n"},
+      {"%a__", "dddd\n"},
+  };
+
+  for (auto &test_case : cases) {
+    auto &like_expr = std::get<0>(test_case);
+    auto &res = std::get<1>(test_case);
+
+    ASSERT_EQ(exec_sql("select s from t where s not like '"s + like_expr + "';"), "s\n"s + res);
+  }
+}
+
 int main(int argc, char **argv)
 {
   srand((unsigned)time(NULL));
