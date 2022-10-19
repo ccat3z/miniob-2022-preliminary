@@ -985,6 +985,25 @@ TEST_F(SQLTest, NotLikeShouldWork)
   }
 }
 
+TEST_F(SQLTest, LikeShouldBeCaseInsensitivity)
+{
+  ASSERT_EQ(exec_sql("create table t(s char);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values('aaa');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values('AAA');"), "SUCCESS\n");
+
+  std::vector<std::tuple<std::string, std::string>> cases = {
+      {"%a%", "aaa\nAAA\n"},
+      {"%A%", "aaa\nAAA\n"},
+  };
+
+  for (auto &test_case : cases) {
+    auto &like_expr = std::get<0>(test_case);
+    auto &res = std::get<1>(test_case);
+
+    ASSERT_EQ(exec_sql("select s from t where s like '"s + like_expr + "';"), "s\n"s + res);
+  }
+}
+
 int main(int argc, char **argv)
 {
   srand((unsigned)time(NULL));

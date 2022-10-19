@@ -110,7 +110,7 @@ bool PredicateOperator::do_predicate(RowTuple &tuple)
       }
       regex_expr.push_back('$');
 
-      std::regex regex(regex_expr);
+      std::regex regex(regex_expr, std::regex_constants::icase);
       auto res = std::regex_match(target.begin(), target.end(), regex);
       return comp == OP_LIKE ? res : !res;
     }
