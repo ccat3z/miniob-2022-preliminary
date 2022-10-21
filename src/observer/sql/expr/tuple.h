@@ -71,11 +71,91 @@ public:
 
   virtual RC  cell_spec_at(int index, const TupleCellSpec *&spec) const = 0;
 };
+class ComplextTuple : public Tuple {
+  //  一个tuple 可以关于多个表。 表信息在specs_中，数据信息在tuplecell 中
+  Complext()
+  {}
+  ComplextTuple(RowTuple *tuple)
+  {
+    // 将record 里面的信息拆解到tuple cell 中。
+    int nums = tuple.cell_num();
+    for (int i = 0; i < nums; i++) {
+      TupleCell cell;
+      TupleCellSpec *spec;
+      tuple.cell_at(i, cell);
+      tuple.tuple_cell_spec_at(i, spec);
+      tuple_.push_back(cell);
+      speces_.push_back(spec);
+    }
+  }
+  virtual ~ComplexTuple()
+  {
+    for (TupleCellSpec *spec : speces_) {
+      delete spec;
+    }
+    speces_.clear();
+    tuple_.clear();
+  }
+  int cell_num() const override
+  {
+    return speces_.size();
+  }
+  RC cell_at(int index, TupleCell &cell) override
+  {
+    if (index < 0 || index >= static_cast<int>(speces_.size())) {
+      LOG_WARN("invalid argument. index=%d", index);
+      return RC::INVALID_ARGUMENT;
+    }
+    cell = tuple_[index];
+    return RC::SUCCESS;
+  }
+  RC find_cell(const Field &field, TupleCell &cell) override
+  {
+    const char *field_name = field.field_name();
+    const char *table_name = field.table_name();
+    for (size_t i = 0; i < speces_.size(); ++i) {
+      const FieldExpr *field_expr = (const FieldExpr *)speces_[i]->expression();
+      const Field &field = field_expr->field();
+      if (0 == strcmp(field_name, field.field_name()&&(0 == strcmp(table_name, field._name())) {
+        return cell_at(i, cell);
+      }
+    }
+    return RC::NOTFOUND;
+  }
+  RC cell_spec_at(int index, const TupleCellSpec *&spec) override
+  {
+    if (index < 0 || index >= static_cast<int>(speces_.size())) {
+      LOG_WARN("invalid argument. index=%d", index);
+      return RC::INVALID_ARGUMENT;
+    }
+    spec = speces_[index];
+    return RC::SUCCESS;
+  }
+  RC add_tuple_cell(TupleCell tuplecell, TupleCellSpec spec)
+  {
+    tuple_.push_back(tuple_cell);
+    speces_.push_back(spec);
+    return RC::SUCCESS;
+  }
 
-class RowTuple : public Tuple
-{
+private:
+  std::vector<TupleCellSpec *> speces_;
+  std::vector<TupleCell *> tuple_;  // TupleCell自定义不需要偏移量，直接取用其data
+}
+
+class RowTuple : public Tuple {
 public:
-  RowTuple() = default;
+  RowTuple()
+  {}
+  RowTuple(RowTuple *tuple)
+  {
+    this->table_ = tuple->table_;
+    this->record = tuple->record_;
+    for (auto spec : tuple->speces_) {
+      this->speces_.push_back(sepc);
+    }
+  }
+
   virtual ~RowTuple()
   {
     for (TupleCellSpec *spec : speces_) {
@@ -83,7 +163,7 @@ public:
     }
     speces_.clear();
   }
-  
+
   void set_record(Record *record)
   {
     this->record_ = record;
@@ -131,7 +211,7 @@ public:
       const FieldExpr * field_expr = (const FieldExpr *)speces_[i]->expression();
       const Field &field = field_expr->field();
       if (0 == strcmp(field_name, field.field_name())) {
-	return cell_at(i, cell);
+        return cell_at(i, cell);
       }
     }
     return RC::NOTFOUND;
