@@ -229,7 +229,8 @@ private:
   Tuple *tuple_ = nullptr;
 };
 class ComplexTuple : public Tuple {
-  //  一个tuple 可以关于多个表。 表信息在specs_中，数据信息在tuple_cell 中
+  //  一个tuple 可以关于多个表。 表信息在specs_中，数据信息在tuple_cell 中.
+  // complex tuple 的基本由RowTuple 进行构造。
 public:
   ComplexTuple() = default;
   ComplexTuple(RowTuple *tuple)

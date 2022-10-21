@@ -40,5 +40,6 @@ public:
 
   Tuple * current_tuple() override;
 private:
+  std::set<const char *> table_names_;
   ProjectTuple tuple_;
 };
