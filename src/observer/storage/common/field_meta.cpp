@@ -24,11 +24,11 @@ const static Json::StaticString FIELD_OFFSET("offset");
 const static Json::StaticString FIELD_LEN("len");
 const static Json::StaticString FIELD_VISIBLE("visible");
 
-const char *ATTR_TYPE_NAME[] = {"undefined", "chars", "ints", "floats", "date"};
+const char *ATTR_TYPE_NAME[] = {"undefined", "chars", "ints", "floats", "date", "text"};
 
 const char *attr_type_to_string(AttrType type)
 {
-  if (type >= UNDEFINED && type <= DATE) {
+  if (type >= UNDEFINED && type <= TEXT) {
     return ATTR_TYPE_NAME[type];
   }
   return "unknown";

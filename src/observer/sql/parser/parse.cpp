@@ -21,6 +21,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/parser/parse.h"
 #include "rc.h"
 #include "common/log/log.h"
+#include "storage/default/large_block_pool.h"
 
 RC parse(char *st, Query *sqln);
 
@@ -78,6 +79,13 @@ bool Value::try_cast(const AttrType &type) const
             return false;
 
           replace(date.julian());
+        } break;
+        case TEXT: {
+          auto &lbp = LargeBlockPool::instance();
+          auto id = lbp->find_next_free();
+          if (lbp->set(id, val, strlen(val) + 1) != RC::SUCCESS)
+            return false;
+          replace(id);
         } break;
         default:
           return false;

@@ -1079,6 +1079,63 @@ TEST_F(SQLTest, UniqueIndexUpdateConflictRecordShouldFailure)
       "2 | 3\n");
 }
 
+// ######## ######## ##     ## ########
+//    ##    ##        ##   ##     ##
+//    ##    ##         ## ##      ##
+//    ##    ######      ###       ##
+//    ##    ##         ## ##      ##
+//    ##    ##        ##   ##     ##
+//    ##    ######## ##     ##    ##
+
+TEST_F(SQLTest, DISABLED_TextCreateTableShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t (a text);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("desc t;"),
+      "t(\n"
+      "\tfield name=__trx, type=ints, len=4, visible=no, nullable=no\n"
+      "\tfield name=__null, type=ints, len=4, visible=no, nullable=no\n"
+      "\tfield name=a, type=text, len=4, visible=yes, nullable=no\n"
+      ")\n");
+}
+
+TEST_F(SQLTest, TextInsertSelectShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t (a text);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values ('aa');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t;"),
+      "a\n"
+      "aa\n");
+}
+
+TEST_F(SQLTest, TextUpdateShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t (a text);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values ('aa');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t;"),
+      "a\n"
+      "aa\n");
+  ASSERT_EQ(exec_sql("update t set a = 'bb';"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t;"),
+      "a\n"
+      "bb\n");
+}
+
+TEST_F(SQLTest, TextInsertSelectVeryLongTextShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t (a text);"), "SUCCESS\n");
+  std::string long_text = random_string(4096);
+  ASSERT_EQ(exec_sql(std::string() + "insert into t values ('" + long_text + "');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t;"), std::string() + "a\n" + long_text + "\n");
+}
+
+TEST_F(SQLTest, TextInsertSelectOverTextShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t (a text);"), "SUCCESS\n");
+  std::string long_text = random_string(4097);
+  ASSERT_EQ(exec_sql(std::string() + "insert into t values ('" + long_text + "');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t;"), std::string() + "a\n" + long_text.substr(0, 4096) + "\n");
+}
+
 int main(int argc, char **argv)
 {
   srand((unsigned)time(NULL));

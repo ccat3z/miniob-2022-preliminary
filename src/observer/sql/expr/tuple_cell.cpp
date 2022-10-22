@@ -14,6 +14,7 @@ See the Mulan PSL v2 for more details. */
 
 #include "sql/expr/tuple_cell.h"
 #include "storage/common/field.h"
+#include "storage/default/large_block_pool.h"
 #include "common/log/log.h"
 #include "common/time/datetime.h"
 #include "util/comparator.h"
@@ -44,6 +45,11 @@ void TupleCell::to_string(std::ostream &os) const
   case DATE: {
     common::Date date(*(int *)data_);
     os << date.format();
+  } break;
+  case TEXT: {
+    auto &lbp = LargeBlockPool::instance();
+    auto blk = lbp->get(*(uint32_t *)data_);
+    os << blk->data;
   } break;
   default: {
     LOG_WARN("unsupported attr type: %d", attr_type_);
