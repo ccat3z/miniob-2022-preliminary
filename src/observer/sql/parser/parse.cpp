@@ -13,6 +13,11 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include <mutex>
+#include <common/time/datetime.h>
+#include <cstring>
+#include <cstdlib>
+#include <string>
+#include <cmath>
 #include "sql/parser/parse.h"
 #include "rc.h"
 #include "common/log/log.h"
@@ -22,6 +27,70 @@ RC parse(char *st, Query *sqln);
 #ifdef __cplusplus
 extern "C" {
 #endif  // __cplusplus
+
+bool Value::try_cast(const AttrType &type) const
+{
+  if (this->type == type)
+    return true;
+
+  switch (this->type) {
+    case INTS: {
+      const auto &val = *(int *)data;
+      switch (type) {
+        case FLOATS:
+          replace(float(val));
+          break;
+        case CHARS:
+          replace(std::to_string(val));
+          break;
+        default:
+          return false;
+      }
+    } break;
+    case FLOATS: {
+      const auto &val = *(float *)data;
+      switch (type) {
+        case INTS:
+          replace(int(std::round(val)));
+          break;
+        case CHARS: {
+          char str[10];
+          std::snprintf(str, 10, "%.2g", val);
+          replace((const char *)str);
+          break;
+        }
+        default:
+          return false;
+      }
+    } break;
+    case CHARS: {
+      const auto val = (char *)data;
+      switch (type) {
+        case INTS:
+          replace(std::atoi(val));
+          break;
+        case FLOATS:
+          replace((float)std::atof(val));
+          break;
+        case DATE: {
+          common::Date date;
+          if (!date.parse((char *)this->data))
+            return false;
+
+          replace(date.julian());
+        } break;
+        default:
+          return false;
+      }
+    } break;
+    default:
+      return false;
+  }
+
+  this->type = type;
+  return true;
+}
+
 void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const char *attribute_name)
 {
   if (relation_name != nullptr) {

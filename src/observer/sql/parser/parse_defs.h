@@ -18,11 +18,9 @@ See the Mulan PSL v2 for more details. */
 #include <stdbool.h>
 #include <stddef.h>
 #ifdef __cplusplus
-#include <common/time/datetime.h>
 #include <cstring>
 #include <cstdlib>
 #include <string>
-#include <cmath>
 #endif
 
 #define MAX_NUM 20
@@ -59,68 +57,7 @@ typedef struct _Value {
   mutable void *data;     // value
 
   // Cast value to type, precision may be lost.
-  bool try_cast(const AttrType &type) const
-  {
-    if (this->type == type)
-      return true;
-
-    switch (this->type) {
-      case INTS: {
-        const auto &val = *(int *)data;
-        switch (type) {
-          case FLOATS:
-            replace(float(val));
-            break;
-          case CHARS:
-            replace(std::to_string(val));
-            break;
-          default:
-            return false;
-        }
-      } break;
-      case FLOATS: {
-        const auto &val = *(float *)data;
-        switch (type) {
-          case INTS:
-            replace(int(std::round(val)));
-            break;
-          case CHARS: {
-            char str[10];
-            std::snprintf(str, 10, "%.2g", val);
-            replace((const char *)str);
-            break;
-          }
-          default:
-            return false;
-        }
-      } break;
-      case CHARS: {
-        const auto val = (char *)data;
-        switch (type) {
-          case INTS:
-            replace(std::atoi(val));
-            break;
-          case FLOATS:
-            replace((float)std::atof(val));
-            break;
-          case DATE: {
-            common::Date date;
-            if (!date.parse((char *)this->data))
-              return false;
-
-            replace(date.julian());
-          } break;
-          default:
-            return false;
-        }
-      } break;
-      default:
-        return false;
-    }
-
-    this->type = type;
-    return true;
-  }
+  bool try_cast(const AttrType &type) const;
 
 private:
   template <typename T>
