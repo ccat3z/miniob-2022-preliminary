@@ -240,25 +240,40 @@ public:
   void SetUp() override
   {
     data_dir = fs::temp_directory_path() / ("miniob-sql-test-" + random_string(6));
-    fs::path socket_path = data_dir / ".sock";
+    socket_path = data_dir / ".sock";
 
     fs::create_directory(data_dir);
     fs::current_path(data_dir);
     server->start(data_dir, socket_path);
 
-    sockfd = init_unix_sock(socket_path.c_str());
+    sockfd[0] = init_unix_sock(socket_path.c_str());
+    sockfd[1] = init_unix_sock(socket_path.c_str());
   }
 
   void TearDown() override
   {
+    close(sockfd[0]);
+    close(sockfd[1]);
     server->stop();
     fs::remove_all(data_dir);
   }
 
-  std::string exec_sql(std::string sql)
+  void restart()
+  {
+    close(sockfd[0]);
+    close(sockfd[1]);
+    server->stop();
+
+    server->start(data_dir, socket_path);
+
+    sockfd[0] = init_unix_sock(socket_path.c_str());
+    sockfd[1] = init_unix_sock(socket_path.c_str());
+  }
+
+  std::string exec_sql(std::string sql, int client = 0)
   {
     char send_bytes;
-    if ((send_bytes = write(sockfd, sql.c_str(), sql.length() + 1)) == -1) {
+    if ((send_bytes = write(sockfd[client], sql.c_str(), sql.length() + 1)) == -1) {
       fprintf(stderr, "send error: %d:%s \n", errno, strerror(errno));
       return "FAILURE";
     }
@@ -266,7 +281,7 @@ public:
     memset(recv_buf, 0, MAX_MEM_BUFFER_SIZE);
     int len = 0;
     std::string resp;
-    while ((len = recv(sockfd, recv_buf, MAX_MEM_BUFFER_SIZE, 0)) > 0) {
+    while ((len = recv(sockfd[client], recv_buf, MAX_MEM_BUFFER_SIZE, 0)) > 0) {
       bool msg_end = false;
       int last_char;
       for (last_char = 0; last_char < len; last_char++) {
@@ -288,9 +303,10 @@ public:
 
 private:
   fs::path data_dir;
+  fs::path socket_path;
   TestServer *server;
 
-  int sockfd;
+  int sockfd[2];
   char recv_buf[MAX_MEM_BUFFER_SIZE];
 };
 
