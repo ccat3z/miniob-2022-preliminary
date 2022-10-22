@@ -1103,6 +1103,21 @@ TEST_F(SQLTest, UniqueIndexUpdateConflictRecordShouldFailure)
       "2 | 3\n");
 }
 
+TEST_F(SQLTest, UniqueMultiIndexInsertConflictRecordShouldFailure)
+{
+  ASSERT_EQ(exec_sql("create table t (a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create unique index t_a on t(a, b);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 3);"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select * from t;"),
+      "a | b\n"
+      "1 | 2\n"
+      "2 | 2\n"
+      "1 | 3\n");
+}
+
 // ######## ######## ##     ## ########
 //    ##    ##        ##   ##     ##
 //    ##    ##         ## ##      ##
@@ -1222,6 +1237,46 @@ TEST_F(SQLTest, CLogShouldWork)
   ASSERT_EQ(exec_sql("select * from t;", 0),
       "id\n"
       "1\n5\n");
+}
+
+// ##     ## ##     ## ##       ######## ####
+// ###   ### ##     ## ##          ##     ##
+// #### #### ##     ## ##          ##     ##
+// ## ### ## ##     ## ##          ##     ##
+// ##     ## ##     ## ##          ##     ##
+// ##     ## ##     ## ##          ##     ##
+// ##     ##  #######  ########    ##    ####
+// #### ##    ## ########  ######## ##     ##
+//  ##  ###   ## ##     ## ##        ##   ##
+//  ##  ####  ## ##     ## ##         ## ##
+//  ##  ## ## ## ##     ## ######      ###
+//  ##  ##  #### ##     ## ##         ## ##
+//  ##  ##   ### ##     ## ##        ##   ##
+// #### ##    ## ########  ######## ##     ##
+
+TEST_F(SQLTest, MultiIndexCanCreate)
+{
+  ASSERT_EQ(exec_sql("create table t (a int, b float, c int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create index t1 on t(a, b);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create index t2 on t(b, c);"), "SUCCESS\n");
+}
+
+TEST_F(SQLTest, MultiIndexInvalidAttributeShouldFailure)
+{
+  ASSERT_EQ(exec_sql("create table t (a int, b float, c int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create index t1 on t(d);"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("create index t1 on t(a, d);"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("create index t1 on t(d, a);"), "FAILURE\n");
+}
+
+TEST_F(SQLTest, MultiIndexDuplicateShouldFailure)
+{
+  ASSERT_EQ(exec_sql("create table t (a int, b float, c int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create index t0 on t(a);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create index t1 on t(a);"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("create index t2 on t(a, b);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create index t3 on t(a, b);"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("create index t4 on t(b, a);"), "SUCCESS\n");
 }
 
 int main(int argc, char **argv)
