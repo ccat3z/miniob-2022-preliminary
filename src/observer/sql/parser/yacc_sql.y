@@ -138,6 +138,7 @@ ParserContext *get_context(yyscan_t scanner)
 %type <value1> value;
 %type <number> number;
 %type <boolean> create_index_unique;
+%type <list> create_index_attr_list;
 
 %%
 
@@ -220,16 +221,28 @@ desc_table:
     ;
 
 create_index:		/*create index 语句的语法解析树*/
-    CREATE create_index_unique INDEX ID ON ID LBRACE ID RBRACE SEMICOLON 
+    CREATE create_index_unique INDEX ID ON ID LBRACE create_index_attr_list RBRACE SEMICOLON 
 		{
 			CONTEXT->ssql->flag = SCF_CREATE_INDEX;//"create_index";
-			create_index_init(&CONTEXT->ssql->sstr.create_index, $4, $6, $8, $2);
+			create_index_init(&CONTEXT->ssql->sstr.create_index, $4, $6, (const char **)$8->values, $8->len, $2);
+			list_free($8);
 		}
     ;
 
 create_index_unique:
 	{ $$ = false; }
 	| UNIQUE { $$ = true; }
+	;
+
+create_index_attr_list:
+	ID {
+		$$ = list_create(sizeof(char *), MAX_NUM);
+		list_append($$, &$1);
+	}
+	| ID COMMA create_index_attr_list {
+		$$ = $3;
+		list_append($$, &$1);
+	}
 	;
 
 drop_index:			/*drop index 语句的语法解析树*/

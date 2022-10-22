@@ -582,26 +582,30 @@ static RC insert_index_record_reader_adapter(Record *record, void *context)
   return inserter.insert_index(record);
 }
 
-RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_name, bool unique)
+RC Table::create_index(Trx *trx, const char *index_name, const char **attribute_name, int attribute_num, bool unique)
 {
-  if (common::is_blank(index_name) || common::is_blank(attribute_name)) {
-    LOG_INFO("Invalid input arguments, table name is %s, index_name is blank or attribute_name is blank", name());
+  if (common::is_blank(index_name) || attribute_num == 0) {
+    LOG_INFO("Invalid input arguments, table name is %s, index_name is blank or attribute_num is 0", name());
     return RC::INVALID_ARGUMENT;
   }
-  if (table_meta_.index(index_name) != nullptr || table_meta_.find_index_by_field((attribute_name))) {
+  if (table_meta_.index(index_name) != nullptr || table_meta_.find_index_by_field(attribute_name, attribute_num)) {
     LOG_INFO("Invalid input arguments, table name is %s, index %s exist or attribute %s exist index",
              name(), index_name, attribute_name);
     return RC::SCHEMA_INDEX_EXIST;
   }
 
-  const FieldMeta *field_meta = table_meta_.field(attribute_name);
-  if (!field_meta) {
-    LOG_INFO("Invalid input arguments, there is no field of %s in table:%s.", attribute_name, name());
-    return RC::SCHEMA_FIELD_MISSING;
+  std::vector<FieldMeta> field_metas;
+  for (int i = 0; i < attribute_num; i++) {
+    const FieldMeta *field_meta = table_meta_.field(attribute_name[i]);
+    if (!field_meta) {
+      LOG_INFO("Invalid input arguments, there is no field of %s in table:%s.", attribute_name, name());
+      return RC::SCHEMA_FIELD_MISSING;
+    }
+    field_metas.emplace_back(*field_meta);
   }
 
   IndexMeta new_index_meta;
-  RC rc = new_index_meta.init(index_name, *field_meta, unique);
+  RC rc = new_index_meta.init(index_name, field_metas, unique);
   if (rc != RC::SUCCESS) {
     LOG_INFO("Failed to init IndexMeta in table:%s, index_name:%s, field_name:%s",
              name(), index_name, attribute_name);
