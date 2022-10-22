@@ -466,6 +466,32 @@ void query_destroy(Query *query)
   query_reset(query);
   free(query);
 }
+
+List *list_create(size_t size, size_t max)
+{
+  List *l = (List *)malloc(sizeof(List));
+  l->values = (uint8_t *)malloc(size * max);
+  l->size = size;
+  l->len = 0;
+  return l;
+}
+
+void list_append(List *list, void *value)
+{
+  memcpy(list->values + (list->size * list->len++), value, list->size);
+}
+
+void list_append_list(List *list, List *append)
+{
+  memcpy(list->values + (list->size * list->len), append->values, append->size * append->len);
+  list->len += append->len;
+}
+
+void list_free(List *list)
+{
+  free(list->values);
+  free(list);
+}
 #ifdef __cplusplus
 }  // extern "C"
 #endif  // __cplusplus

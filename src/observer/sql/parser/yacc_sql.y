@@ -121,6 +121,7 @@ ParserContext *get_context(yyscan_t scanner)
   float floats;
 	char *position;
   bool boolean;
+  List *list;
 }
 
 %token <number> NUMBER

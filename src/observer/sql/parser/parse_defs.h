@@ -87,6 +87,12 @@ private:
 #endif
 } Value;
 
+typedef struct {
+  void *values;
+  size_t size;
+  size_t len;
+} List;
+
 typedef struct _Condition {
   int left_is_attr;    // TRUE if left-hand side is an attribute
                        // 1时，操作符左边是属性名，0时，是属性值
@@ -276,6 +282,10 @@ Query *query_create();  // create and init
 void query_reset(Query *query);
 void query_destroy(Query *query);  // reset and delete
 
+List *list_create(size_t size, size_t max);
+void list_append(List *list, void *value);
+void list_append_list(List *list, List *append);
+void list_free(List *list);
 #ifdef __cplusplus
 }
 #endif  // __cplusplus

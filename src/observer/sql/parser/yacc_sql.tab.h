@@ -131,8 +131,9 @@ union YYSTYPE
   float floats;
 	char *position;
   bool boolean;
+  List *list;
 
-#line 136 "yacc_sql.tab.h"
+#line 137 "yacc_sql.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
