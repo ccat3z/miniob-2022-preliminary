@@ -17,8 +17,8 @@ See the Mulan PSL v2 for more details. */
 #include "storage/common/db.h"
 #include "storage/common/table.h"
 
-InsertStmt::InsertStmt(Table *table, const Value *values, int value_amount)
-  : table_ (table), values_(values), value_amount_(value_amount)
+InsertStmt::InsertStmt(Table *table, const Value *values, int value_amount, int tuple_amount)
+    : table_(table), values_(values), value_amount_(value_amount), tuple_amount_(tuple_amount)
 {}
 
 RC InsertStmt::create(Db *db, const Inserts &inserts, Stmt *&stmt)
@@ -40,17 +40,19 @@ RC InsertStmt::create(Db *db, const Inserts &inserts, Stmt *&stmt)
   // check the fields number
   const Value *values = inserts.values;
   const int value_num = inserts.value_num;
+  // FIXME: Check tuple_size. e.g. (1),(1,1,1) is invalid.
+  const int tuple_size = value_num / inserts.tuple_num;
   const TableMeta &table_meta = table->table_meta();
   const int field_num = table_meta.field_num() - table_meta.sys_field_num();
-  if (field_num != value_num) {
-    LOG_WARN("schema mismatch. value num=%d, field num in schema=%d", value_num, field_num);
+  if (field_num != tuple_size) {
+    LOG_WARN("schema mismatch. value num=%d, field num in schema=%d", tuple_size, field_num);
     return RC::SCHEMA_FIELD_MISSING;
   }
 
   // check fields type
   const int sys_field_num = table_meta.sys_field_num();
   for (int i = 0; i < value_num; i++) {
-    const FieldMeta *field_meta = table_meta.field(i + sys_field_num);
+    const FieldMeta *field_meta = table_meta.field(i % tuple_size + sys_field_num);
     const AttrType field_type = field_meta->type();
     values[i].try_cast(field_type);
     const AttrType value_type = values[i].type;
@@ -62,6 +64,6 @@ RC InsertStmt::create(Db *db, const Inserts &inserts, Stmt *&stmt)
   }
 
   // everything alright
-  stmt = new InsertStmt(table, values, value_num);
+  stmt = new InsertStmt(table, values, value_num, inserts.tuple_num);
   return RC::SUCCESS;
 }

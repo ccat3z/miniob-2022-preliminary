@@ -571,7 +571,12 @@ RC ExecuteStage::do_insert(SQLStageEvent *sql_event)
   InsertStmt *insert_stmt = (InsertStmt *)stmt;
   Table *table = insert_stmt->table();
 
-  RC rc = table->insert_record(trx, insert_stmt->value_amount(), insert_stmt->values());
+  RC rc = RC::SUCCESS;
+  auto tuple_size = insert_stmt->tuple_size();
+  auto *tuple_values = insert_stmt->values();
+  for (int i = 0; rc == RC::SUCCESS && i < insert_stmt->tuple_amount(); i++, tuple_values += tuple_size) {
+    rc = table->insert_record(trx, tuple_size, tuple_values);
+  }
   if (rc == RC::SUCCESS) {
     if (!session->is_trx_multi_operation_mode()) {
       CLogRecord *clog_record = nullptr;
