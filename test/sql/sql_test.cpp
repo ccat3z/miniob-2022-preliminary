@@ -1179,6 +1179,43 @@ TEST_F(SQLTest, InsertInvalidTupleShouldInsertNothing)
   ASSERT_EQ(exec_sql("select * from t;"), "a | b\n");
 }
 
+//  ######  ##        #######   ######
+// ##    ## ##       ##     ## ##    ##
+// ##       ##       ##     ## ##
+// ##       ##       ##     ## ##   ####
+// ##       ##       ##     ## ##    ##
+// ##    ## ##       ##     ## ##    ##
+//  ######  ########  #######   ######
+
+TEST_F(SQLTest, CLogShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(id int);"), "SUCCESS\n");
+
+  // client 0
+  ASSERT_EQ(exec_sql("begin;", 0), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(1);", 0), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(2);", 0), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("update t set id = 5 where id = 2;", 0), "SUCCESS\n");
+
+  // client 1
+  ASSERT_EQ(exec_sql("begin;", 1), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values(3);", 1), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("update t set id = 4 where id = 5;", 1), "SUCCESS\n");
+
+  // client 0
+  ASSERT_EQ(exec_sql("select * from t;", 0),
+      "id\n"
+      "1\n4\n3\n");
+  ASSERT_EQ(exec_sql("commit;", 0), "SUCCESS\n");
+
+  restart();
+
+  // client 0
+  ASSERT_EQ(exec_sql("select * from t;", 0),
+      "id\n"
+      "1\n5\n");
+}
+
 int main(int argc, char **argv)
 {
   srand((unsigned)time(NULL));

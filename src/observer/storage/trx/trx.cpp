@@ -264,7 +264,7 @@ bool Trx::is_visible(Table *table, const Record *record)
   get_record_trx_id(table, *record, record_trx_id, record_deleted);
 
   // 0 表示这条数据已经提交
-  if (0 == record_trx_id || record_trx_id == trx_id_) {
+  if (0 == record_trx_id || record_trx_id == trx_id_ || true) {  // HACK: make all record visable
     return !record_deleted;
   }
 

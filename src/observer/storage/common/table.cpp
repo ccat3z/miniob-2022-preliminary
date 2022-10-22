@@ -742,7 +742,21 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
     auto updater = [&](Record &record) {
       memcpy(old_value.get(), record.data() + field->offset(), field->len());
       memcpy(record.data() + field->offset(), value->data, field->len());
-      return RC::SUCCESS;
+
+      CLogRecord *clog_record = nullptr;
+      // HACK: There is no difference between updating a record and inserting
+      RC rc = clog_manager_->clog_gen_record(
+          CLogType::REDO_INSERT, trx->get_current_id(), clog_record, name(), table_meta_.record_size(), &record);
+      if (rc != RC::SUCCESS) {
+        LOG_ERROR("Failed to create a clog record. rc=%d:%s", rc, strrc(rc));
+        return rc;
+      }
+      rc = clog_manager_->clog_append_record(clog_record);
+      if (rc != RC::SUCCESS) {
+        return rc;
+      }
+      // FIXME: Cannot recovery if failed to insert index
+      return rc;
     };
     auto recovery = [&](Record &record) {
       memcpy(record.data() + field->offset(), old_value.get(), field->len());
