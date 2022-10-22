@@ -170,6 +170,18 @@ const IndexMeta *TableMeta::find_index_by_field(const char *field) const
   return nullptr;
 }
 
+const IndexMeta *TableMeta::find_index_by_field(const char **fields, int size) const
+{
+  std::string field;
+  for (int i = 0; i < size; i++) {
+    field += fields[i];
+    field += "+";
+  }
+  field.pop_back();
+
+  return find_index_by_field(field.c_str());
+}
+
 const IndexMeta *TableMeta::index(int i) const
 {
   return &indexes_[i];

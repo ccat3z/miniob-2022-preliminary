@@ -55,6 +55,14 @@ public:
     case CHARS: {
       return compare_string((void *)v1, attr_length_, (void *)v2, attr_length_);
     }
+    case MIXED: {
+      for (int i = 0; i < attr_length_; i++) {
+        int res = v1[i] - v2[i];
+        if (res != 0)
+          return res;
+      }
+      return 0;
+    }
     default:{
       LOG_ERROR("unknown attr type. %d", attr_type_);
       abort();
