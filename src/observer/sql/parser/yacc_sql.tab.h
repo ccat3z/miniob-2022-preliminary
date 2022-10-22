@@ -44,6 +44,12 @@
 #if YYDEBUG
 extern int yydebug;
 #endif
+/* "%code requires" blocks.  */
+#line 1 "yacc_sql.y"
+
+#include "sql/parser/parse_defs.h"
+
+#line 53 "yacc_sql.tab.h"
 
 /* Token kinds.  */
 #ifndef YYTOKENTYPE
@@ -98,13 +104,14 @@ extern int yydebug;
     NE = 299,                      /* NE  */
     NOT = 300,                     /* NOT  */
     LIKE = 301,                    /* LIKE  */
-    NUMBER = 302,                  /* NUMBER  */
-    FLOAT = 303,                   /* FLOAT  */
-    ID = 304,                      /* ID  */
-    PATH = 305,                    /* PATH  */
-    SSS = 306,                     /* SSS  */
-    STAR = 307,                    /* STAR  */
-    STRING_V = 308                 /* STRING_V  */
+    UNIQUE = 302,                  /* UNIQUE  */
+    NUMBER = 303,                  /* NUMBER  */
+    FLOAT = 304,                   /* FLOAT  */
+    ID = 305,                      /* ID  */
+    PATH = 306,                    /* PATH  */
+    SSS = 307,                     /* SSS  */
+    STAR = 308,                    /* STAR  */
+    STRING_V = 309                 /* STRING_V  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -113,7 +120,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 110 "yacc_sql.y"
+#line 114 "yacc_sql.y"
 
   struct _Attr *attr;
   struct _Condition *condition1;
@@ -122,8 +129,9 @@ union YYSTYPE
   int number;
   float floats;
 	char *position;
+  bool boolean;
 
-#line 127 "yacc_sql.tab.h"
+#line 135 "yacc_sql.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
