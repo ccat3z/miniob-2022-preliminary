@@ -90,6 +90,22 @@ RC BplusTreeIndex::close()
 
 RC BplusTreeIndex::insert_entry(const char *record, const RID *rid)
 {
+  if (this->index_meta_.unique()) {
+    std::list<RID> rids;
+    RC rc;
+    switch (rc = index_handler_.get_entry(record + field_meta_.offset(), field_meta_.len(), rids)) {
+      case RC::RECORD_INVALID_KEY:
+        break;
+      case RC::SUCCESS:
+        if (rids.size() > 0) {
+          LOG_ERROR("Conflict index key");
+          return RC::INVALID_ARGUMENT;
+        }
+        break;
+      default:
+        break;
+    }
+  }
   return index_handler_.insert_entry(record + field_meta_.offset(), rid);
 }
 

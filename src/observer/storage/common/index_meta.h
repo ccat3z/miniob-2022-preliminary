@@ -36,6 +36,10 @@ public:
   const char *field() const;
 
   void desc(std::ostream &os) const;
+  bool unique() const
+  {
+    return unique_;
+  }
 
 public:
   void to_json(Json::Value &json_value) const;
