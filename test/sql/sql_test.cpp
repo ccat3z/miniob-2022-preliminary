@@ -399,6 +399,14 @@ TEST_F(SQLTest, BasicSelectWithIndexEqualToMinValue)
   ASSERT_EQ(exec_sql("select * from t where a = -1;"), "a | b\n");
 }
 
+TEST_F(SQLTest, BasicInvalidIndex)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create index t1 on t(a);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create index t2 on t(b);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create index t3 on t(c);"), "FAILURE\n");
+}
+
 TEST_F(SQLTest, BasicExtFloatFormat)
 {
   ASSERT_EQ(exec_sql("create table t(a float);"), "SUCCESS\n");
