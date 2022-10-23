@@ -1312,6 +1312,12 @@ TEST_F(SQLTest, MultiIndexDuplicateShouldFailure)
 //  ##  ##   ### ##     ## ##        ##   ##
 // #### ##    ## ########  ######## ##     ##
 
+TEST_F(SQLTest, ShowIndexNonIndex)
+{
+  ASSERT_EQ(exec_sql("create table t (a int, b float, c int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("show index from t;"), "TABLE | NON_UNIQUE | KEY_NAME | SEQ_IN_INDEX | COLUMN_NAME\n");
+}
+
 TEST_F(SQLTest, ShowIndexSingleIndex)
 {
   ASSERT_EQ(exec_sql("create table t (a int, b float, c int);"), "SUCCESS\n");
@@ -1334,6 +1340,11 @@ TEST_F(SQLTest, ShowIndexMultiIndex)
       "t | 1 | t1 | 2 | b\n"
       "t | 0 | t2 | 1 | b\n"
       "t | 0 | t2 | 2 | a\n");
+}
+
+TEST_F(SQLTest, ShowIndexNonExists)
+{
+  ASSERT_EQ(exec_sql("show index from t;"), "FAILURE\n");
 }
 
 int main(int argc, char **argv)

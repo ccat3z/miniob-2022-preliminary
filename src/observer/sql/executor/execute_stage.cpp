@@ -488,6 +488,10 @@ RC ExecuteStage::do_show_index(SQLStageEvent *sql_event)
   Db *db = session_event->session()->get_current_db();
   const char *table_name = query->sstr.desc_table.relation_name;
   Table *table = db->find_table(table_name);
+  if (nullptr == table) {
+    session_event->set_response("FAILURE\n");
+    return RC::SCHEMA_TABLE_NOT_EXIST;
+  }
 
   std::stringstream ss;
   ss << "TABLE | NON_UNIQUE | KEY_NAME | SEQ_IN_INDEX | COLUMN_NAME" << std::endl;
