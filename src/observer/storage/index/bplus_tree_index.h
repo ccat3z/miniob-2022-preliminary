@@ -27,6 +27,7 @@ public:
   RC open(const char *file_name, const IndexMeta &index_meta);
   RC close();
 
+  RC can_insert_entry(const char *record, const RID *rid) override;
   RC insert_entry(const char *record, const RID *rid) override;
   RC delete_entry(const char *record, const RID *rid) override;
 

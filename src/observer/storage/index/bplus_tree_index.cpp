@@ -89,7 +89,7 @@ RC BplusTreeIndex::close()
   return RC::SUCCESS;
 }
 
-RC BplusTreeIndex::insert_entry(const char *record, const RID *rid)
+RC BplusTreeIndex::can_insert_entry(const char *record, const RID *rid)
 {
   auto key = index_meta_.extract_key(record);
   if (this->index_meta_.unique()) {
@@ -99,15 +99,24 @@ RC BplusTreeIndex::insert_entry(const char *record, const RID *rid)
       case RC::RECORD_INVALID_KEY:
         break;
       case RC::SUCCESS:
-        if (rids.size() > 0) {
-          LOG_ERROR("Conflict index key");
-          return RC::INVALID_ARGUMENT;
-        }
+        if (rids.size() > 0)
+          return RC::CONFLICT_KEY;
         break;
       default:
         break;
     }
   }
+  return RC::SUCCESS;
+}
+
+RC BplusTreeIndex::insert_entry(const char *record, const RID *rid)
+{
+  RC rc = can_insert_entry(record, rid);
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Cannot insert entry: %s", strrc(rc));
+    return rc;
+  }
+  auto key = index_meta_.extract_key(record);
   return index_handler_.insert_entry(key.c_str(), rid);
 }
 

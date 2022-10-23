@@ -111,6 +111,7 @@ private:
   friend class RecordUpdater;
   friend class RecordDeleter;
 
+  RC assert_insert_entry_of_indexes(const char *record, const RID &rid);
   RC insert_entry_of_indexes(const char *record, const RID &rid);
   RC delete_entry_of_indexes(const char *record, const RID &rid, bool error_on_not_exists);
 

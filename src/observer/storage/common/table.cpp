@@ -258,6 +258,20 @@ RC Table::insert_record(Trx *trx, Record *record)
     return rc;
   }
 
+  rc = assert_insert_entry_of_indexes(record->data(), record->rid());
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Cannot insert entry: error=%s", strrc(rc));
+
+    RC rc2 = record_handler_->delete_record(&record->rid());
+    if (rc2 != RC::SUCCESS) {
+      LOG_ERROR("Failed to rollback record data when insert index entries failed. table name=%s, rc=%d:%s",
+          name(),
+          rc2,
+          strrc(rc2));
+    }
+    return rc;
+  }
+
   if (trx != nullptr) {
     rc = trx->insert_record(this, record);
     if (rc != RC::SUCCESS) {
@@ -906,6 +920,19 @@ RC Table::rollback_delete(Trx *trx, const RID &rid)
   }
 
   return trx->rollback_delete(this, record);  // update record in place
+}
+
+RC Table::assert_insert_entry_of_indexes(const char *record, const RID &rid)
+{
+  RC rc = RC::SUCCESS;
+  for (Index *index : indexes_) {
+    rc = index->can_insert_entry(record, &rid);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Cannot insert entry on index %s: %s", index->index_meta().name(), strrc(rc));
+      break;
+    }
+  }
+  return rc;
 }
 
 RC Table::insert_entry_of_indexes(const char *record, const RID &rid)
