@@ -1191,7 +1191,7 @@ TEST_F(SQLTest, UniqueIndexManyIndexsInsert)
   ASSERT_EQ(exec_sql("insert into t values (3, 2, 2, 4);"), "SUCCESS\n");
 }
 
-TEST_F(SQLTest, DISABLED_UniqueIndexManyIndexsUpdate)
+TEST_F(SQLTest, UniqueIndexManyIndexsUpdate)
 {
   ASSERT_EQ(exec_sql("create table t (a int, b int, c int, d int);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("create unique index i1 on t(b, c);"), "SUCCESS\n");

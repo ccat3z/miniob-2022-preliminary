@@ -12,18 +12,23 @@ See the Mulan PSL v2 for more details. */
 // Created by Meiyi & Wangyunlai on 2021/5/13.
 //
 
+#include <functional>
 #include <limits.h>
+#include <map>
+#include <memory>
 #include <string.h>
 #include <algorithm>
 #include <cstdio>
 #include <vector>
 
 #include "common/defs.h"
+#include "rc.h"
 #include "storage/common/table.h"
 #include "storage/common/table_meta.h"
 #include "common/log/log.h"
 #include "common/lang/string.h"
 #include "storage/default/disk_buffer_pool.h"
+#include "storage/record/record.h"
 #include "storage/record/record_manager.h"
 #include "storage/common/condition_filter.h"
 #include "storage/common/meta_util.h"
@@ -727,77 +732,86 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
     return rc;
   }
 
-  // Do update
-  Record record;
-  for (auto rid_it = matched_rids.begin(); rid_it != matched_rids.end(); rid_it++) {
-    rc = record_handler_->get_record(&(*rid_it), &record);
-    if (rc != RC::SUCCESS) {
-      LOG_ERROR("Failed to get record (rid=%d.%d). rc=%d:%s",
-                record.rid().page_num, record.rid().slot_num, rc, strrc(rc));
-      return rc;
-    }
-
-    // Delete index
-    rc = delete_entry_of_indexes(record.data(), record.rid(), false);
-    if (rc != RC::SUCCESS) {
-      LOG_ERROR("Failed to delete indexes of record for update (rid=%d.%d). rc=%d:%s",
-                record.rid().page_num, record.rid().slot_num, rc, strrc(rc));
-      return rc;
-    }
-
-    // Update record
+  // Update date
+  std::map<RID, std::unique_ptr<char, decltype(free) *>> recoveries;
+  for (const auto &rid : matched_rids) {
     auto old_value = std::unique_ptr<char, decltype(free) *>((char *)malloc(field->len()), free);
-    auto updater = [&](Record &record) {
+
+    rc = record_handler_->update_record_in_place(&rid, [&](Record &record) {
+      // Delete indexes
+      RC rc = delete_entry_of_indexes(record.data(), record.rid(), false);
+      if (rc != RC::SUCCESS) {
+        LOG_ERROR("Failed to delete indexes of record for update (rid=%d.%d). rc=%d:%s",
+            record.rid().page_num,
+            record.rid().slot_num,
+            rc,
+            strrc(rc));
+        return rc;
+      }
+
+      // Update record
       memcpy(old_value.get(), record.data() + field->offset(), field->len());
       memcpy(record.data() + field->offset(), value->data, field->len());
+      recoveries.emplace(rid, std::move(old_value));
 
-      CLogRecord *clog_record = nullptr;
-      // HACK: There is no difference between updating a record and inserting
-      RC rc = clog_manager_->clog_gen_record(
-          CLogType::REDO_INSERT, trx->get_current_id(), clog_record, name(), table_meta_.record_size(), &record);
+      // Update index
+      rc = assert_insert_entry_of_indexes(record.data(), rid);
       if (rc != RC::SUCCESS) {
-        LOG_ERROR("Failed to create a clog record. rc=%d:%s", rc, strrc(rc));
+        LOG_ERROR("Cannot insert index");
         return rc;
       }
-      rc = clog_manager_->clog_append_record(clog_record);
+      rc = insert_entry_of_indexes(record.data(), rid);
       if (rc != RC::SUCCESS) {
+        LOG_ERROR("Failed to insert index");
         return rc;
       }
-      // FIXME: Cannot recovery if failed to insert index
+
       return rc;
-    };
-    auto recovery = [&](Record &record) {
-      memcpy(record.data() + field->offset(), old_value.get(), field->len());
-      return RC::SUCCESS;
-    };
-    rc = record_handler_->update_record_in_place(&record.rid(), updater);
+    });
+
     if (rc != RC::SUCCESS) {
-      LOG_ERROR("Failed to update record (rid=%d.%d). rc=%d:%s",
-                record.rid().page_num, record.rid().slot_num, rc, strrc(rc));
-      return rc;
-    }
-
-    // Recreate index
-    rc = insert_entry_of_indexes(record.data(), record.rid());
-    if (rc != RC::SUCCESS) {
-      LOG_ERROR("Failed to insert indexes of record for update (rid=%d.%d). rc=%d:%s",
-                record.rid().page_num, record.rid().slot_num, rc, strrc(rc));
-
-      rc = record_handler_->update_record_in_place(&record.rid(), recovery);
-      if (rc != RC::SUCCESS) {
-        LOG_ERROR("Failed to recovery value");
-        return rc;
-      }
-
-      rc = insert_entry_of_indexes(record.data(), record.rid());
-      if (rc != RC::SUCCESS) {
-        LOG_ERROR("Failed to recovery index");
-        return rc;
-      }
-
-      return RC::INVALID_ARGUMENT;
+      LOG_ERROR("Failed to update record (rid=%d.%d). rc=%d:%s", rid.page_num, rid.slot_num, rc, strrc(rc));
+      break;
     }
   }
+
+  if (rc != RC::SUCCESS) {
+    for (auto &recovery : recoveries) {
+      auto &rid = recovery.first;
+      auto &old_value = recovery.second;
+      RC rc2 = record_handler_->update_record_in_place(&rid, [&](Record &record) {
+        delete_entry_of_indexes(record.data(), record.rid(), false);
+        memcpy(record.data() + field->offset(), old_value.get(), field->len());
+        RC rc = insert_entry_of_indexes(record.data(), record.rid());
+        return rc;
+      });
+      if (rc2 != RC::SUCCESS) {
+        LOG_ERROR("Failed to recovery record (rid=%d.%d): %s", rid.page_num, rid.slot_num, strrc(rc2));
+      }
+    }
+    return rc;
+  }
+
+  // Append CLog
+  for (const auto &rid : matched_rids) {
+    Record record;
+    record_handler_->get_record(&rid, &record);
+
+    CLogRecord *clog_record = nullptr;
+    // HACK: There is no difference between updating a record and inserting
+    rc = clog_manager_->clog_gen_record(
+        CLogType::REDO_INSERT, trx->get_current_id(), clog_record, name(), table_meta_.record_size(), &record);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to create a clog record. rc=%d:%s", rc, strrc(rc));
+      break;
+    }
+    rc = clog_manager_->clog_append_record(clog_record);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to append a clog record. rc=%d:%s", rc, strrc(rc));
+      break;
+    }
+  }
+  // FIXME: Cannot recovery if failed to insert log
 
   return rc;
 }
