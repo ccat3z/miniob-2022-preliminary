@@ -1102,6 +1102,19 @@ TEST_F(SQLTest, UniqueIndexInsertConflictRecordShouldFailure)
       "2 | 2\n");
 }
 
+TEST_F(SQLTest, UniqueIndexOnExistsData)
+{
+  ASSERT_EQ(exec_sql("create table t (a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create unique index t_a on t(a);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 3);"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select * from t;"),
+      "a | b\n"
+      "1 | 2\n"
+      "2 | 2\n");
+}
+
 TEST_F(SQLTest, UniqueIndexUpdateConflictRecordShouldFailure)
 {
   ASSERT_EQ(exec_sql("create table t (a int, b int);"), "SUCCESS\n");
@@ -1134,6 +1147,60 @@ TEST_F(SQLTest, UniqueMultiIndexInsertConflictRecordShouldFailure)
       "1 | 2\n"
       "2 | 2\n"
       "1 | 3\n");
+}
+
+TEST_F(SQLTest, UniqueMultiIndexUpdateConflictRecordShouldFailure)
+{
+  ASSERT_EQ(exec_sql("create table t (a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create unique index t_a on t(a, b);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("update t set a = 1 where a = 2"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select * from t;"),
+      "a | b\n"
+      "1 | 2\n"
+      "2 | 2\n"
+      "1 | 3\n");
+}
+
+TEST_F(SQLTest, UniqueIndexMultiIndexOnExistsData)
+{
+  ASSERT_EQ(exec_sql("create table t (a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create unique index t_a on t(a, b);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 3);"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select * from t;"),
+      "a | b\n"
+      "1 | 2\n"
+      "2 | 2\n"
+      "1 | 3\n");
+}
+
+TEST_F(SQLTest, UniqueIndexManyIndexsInsert)
+{
+  ASSERT_EQ(exec_sql("create table t (a int, b int, c int, d int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create unique index i1 on t(b, c);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create unique index i2 on t(c, d);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 1, 2, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 2, 3, 3);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("insert into t values (3, 2, 2, 3);"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("insert into t values (3, 2, 2, 4);"), "SUCCESS\n");
+}
+
+TEST_F(SQLTest, DISABLED_UniqueIndexManyIndexsUpdate)
+{
+  ASSERT_EQ(exec_sql("create table t (a int, b int, c int, d int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create unique index i1 on t(b, c);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create unique index i2 on t(c, d);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 1, 2, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 2, 3, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("update t set c = 2 where a = 2;"), "FAILURE\n");
+
+  ASSERT_EQ(exec_sql("insert into t values (3, 2, 2, 4);"), "SUCCESS\n");
 }
 
 // ######## ######## ##     ## ########
