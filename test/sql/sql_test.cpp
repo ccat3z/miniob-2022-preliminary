@@ -431,6 +431,24 @@ TEST_F(SQLTest, BasicExtConditionBetweenDifferentType)
   ASSERT_EQ(exec_sql("select * from t where 1.2 < a;"), "a | b\n3 | 1.23\n");
 }
 
+TEST_F(SQLTest, BasicIndexShouldBeValidAfterRestart)
+{
+  ASSERT_EQ(exec_sql("create table t_basic(id int, age int, name char, score float);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create index t_id on t_basic(id);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t_basic values(1, 1, 'a', 1.0);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t_basic values(2, 2, 'b', 2.0);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t_basic values(4, 4, 'c', 3.0);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t_basic values(3, 3, 'd', 4.0);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t_basic values(5, 5, 'e', 5.5);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t_basic values(6, 6, 'f', 6.6);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t_basic values(7, 7, 'g', 7.7);"), "SUCCESS\n");
+  restart();
+  ASSERT_EQ(exec_sql("select id from t_basic where id > 5;"),
+      "id\n"
+      "6\n7\n");
+  ASSERT_EQ(exec_sql("delete from t_basic where id = 1;"), "SUCCESS\n");
+}
+
 //  ######  ######## ##       ########  ######  ########
 // ##    ## ##       ##       ##       ##    ##    ##
 // ##       ##       ##       ##       ##          ##
