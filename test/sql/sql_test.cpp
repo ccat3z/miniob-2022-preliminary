@@ -1297,6 +1297,45 @@ TEST_F(SQLTest, MultiIndexDuplicateShouldFailure)
   ASSERT_EQ(exec_sql("create index t4 on t(b, a);"), "SUCCESS\n");
 }
 
+//  ######  ##     ##  #######  ##      ##
+// ##    ## ##     ## ##     ## ##  ##  ##
+// ##       ##     ## ##     ## ##  ##  ##
+//  ######  ######### ##     ## ##  ##  ##
+//       ## ##     ## ##     ## ##  ##  ##
+// ##    ## ##     ## ##     ## ##  ##  ##
+//  ######  ##     ##  #######   ###  ###
+// #### ##    ## ########  ######## ##     ##
+//  ##  ###   ## ##     ## ##        ##   ##
+//  ##  ####  ## ##     ## ##         ## ##
+//  ##  ## ## ## ##     ## ######      ###
+//  ##  ##  #### ##     ## ##         ## ##
+//  ##  ##   ### ##     ## ##        ##   ##
+// #### ##    ## ########  ######## ##     ##
+
+TEST_F(SQLTest, ShowIndexSingleIndex)
+{
+  ASSERT_EQ(exec_sql("create table t (a int, b float, c int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create index t1 on t(a);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create unique index t2 on t(b);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("show index from t;"),
+      "TABLE | NON_UNIQUE | KEY_NAME | SEQ_IN_INDEX | COLUMN_NAME\n"
+      "t | 1 | t1 | 1 | a\n"
+      "t | 0 | t2 | 1 | b\n");
+}
+
+TEST_F(SQLTest, ShowIndexMultiIndex)
+{
+  ASSERT_EQ(exec_sql("create table t (a int, b float, c int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create index t1 on t(a, b);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create unique index t2 on t(b, a);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("show index from t;"),
+      "TABLE | NON_UNIQUE | KEY_NAME | SEQ_IN_INDEX | COLUMN_NAME\n"
+      "t | 1 | t1 | 1 | a\n"
+      "t | 1 | t1 | 2 | b\n"
+      "t | 0 | t2 | 1 | b\n"
+      "t | 0 | t2 | 2 | a\n");
+}
+
 int main(int argc, char **argv)
 {
   srand((unsigned)time(NULL));

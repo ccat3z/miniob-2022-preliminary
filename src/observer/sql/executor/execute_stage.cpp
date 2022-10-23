@@ -12,6 +12,8 @@ See the Mulan PSL v2 for more details. */
 // Created by Meiyi & Longda on 2021/4/13.
 //
 
+#include <algorithm>
+#include <ostream>
 #include <string>
 #include <sstream>
 
@@ -32,6 +34,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/operator/predicate_operator.h"
 #include "sql/operator/delete_operator.h"
 #include "sql/operator/project_operator.h"
+#include "sql/parser/parse_defs.h"
 #include "sql/stmt/stmt.h"
 #include "sql/stmt/select_stmt.h"
 #include "sql/stmt/update_stmt.h"
@@ -162,6 +165,9 @@ void ExecuteStage::handle_request(common::StageEvent *event)
     } break;
     case SCF_CREATE_INDEX: {
       do_create_index(sql_event);
+    } break;
+    case SCF_SHOW_INDEX: {
+      do_show_index(sql_event);
     } break;
     case SCF_SHOW_TABLES: {
       do_show_tables(sql_event);
@@ -473,6 +479,35 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
   }
 
   return rc;
+}
+
+RC ExecuteStage::do_show_index(SQLStageEvent *sql_event)
+{
+  Query *query = sql_event->query();
+  SessionEvent *session_event = sql_event->session_event();
+  Db *db = session_event->session()->get_current_db();
+  const char *table_name = query->sstr.desc_table.relation_name;
+  Table *table = db->find_table(table_name);
+
+  std::stringstream ss;
+  ss << "TABLE | NON_UNIQUE | KEY_NAME | SEQ_IN_INDEX | COLUMN_NAME" << std::endl;
+
+  for (int i = 0; i < table->table_meta().index_num(); i++) {
+    auto index_meta = table->table_meta().index(i);
+
+    int col_idx = 1;
+    for (auto &field : index_meta->fields()) {
+      ss << table_name << " | ";
+      ss << (index_meta->unique() ? "0" : "1") << " | ";
+      ss << index_meta->name() << " | ";
+      ss << (col_idx++) << " | ";
+      ss << field.name();
+      ss << std::endl;
+    }
+  }
+
+  session_event->set_response(ss.str());
+  return RC::SUCCESS;
 }
 
 RC ExecuteStage::do_help(SQLStageEvent *sql_event)

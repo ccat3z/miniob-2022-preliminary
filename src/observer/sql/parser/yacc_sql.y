@@ -158,6 +158,7 @@ command:
 	| desc_table
 	| create_index	
 	| drop_index
+	| show_index
 	| sync
 	| begin
 	| commit
@@ -217,6 +218,13 @@ desc_table:
     DESC ID SEMICOLON {
       CONTEXT->ssql->flag = SCF_DESC_TABLE;
       desc_table_init(&CONTEXT->ssql->sstr.desc_table, $2);
+    }
+    ;
+
+show_index:
+    SHOW INDEX FROM ID SEMICOLON {
+      CONTEXT->ssql->flag = SCF_SHOW_INDEX;
+      desc_table_init(&CONTEXT->ssql->sstr.desc_table, $4);
     }
     ;
 

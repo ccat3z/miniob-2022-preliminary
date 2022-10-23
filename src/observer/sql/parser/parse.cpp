@@ -21,6 +21,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/parser/parse.h"
 #include "rc.h"
 #include "common/log/log.h"
+#include "sql/parser/parse_defs.h"
 #include "storage/default/large_block_pool.h"
 
 RC parse(char *st, Query *sqln);
@@ -449,6 +450,7 @@ void query_reset(Query *query)
     case SCF_SHOW_TABLES:
       break;
 
+    case SCF_SHOW_INDEX:
     case SCF_DESC_TABLE: {
       desc_table_destroy(&query->sstr.desc_table);
     } break;
