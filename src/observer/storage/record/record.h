@@ -55,6 +55,11 @@ struct RID {
     return !(*this == other);
   }
 
+  bool operator<(const RID &other) const
+  {
+    return compare(this, &other) < 0;
+  }
+
   static int compare(const RID *rid1, const RID *rid2)
   {
     int page_diff = rid1->page_num - rid2->page_num;
