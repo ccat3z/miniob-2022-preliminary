@@ -15,7 +15,6 @@
 
 typedef struct ParserContext {
   Query * ssql;
-  size_t select_length;
   size_t condition_length;
   Condition conditions[MAX_NUM];
   CompOp comp;
@@ -40,7 +39,6 @@ void yyerror(yyscan_t scanner, const char *str)
   query_reset(context->ssql);
   context->ssql->flag = SCF_ERROR;
   context->condition_length = 0;
-  context->select_length = 0;
   context->ssql->sstr.insertion.value_num = 0;
   context->ssql->sstr.errors = str;
   printf("parse sql failed. error=%s", str);
@@ -375,11 +373,9 @@ select:				/*  select 语句的语法解析树*/
 			selects_append_conditions(&CONTEXT->ssql->sstr.selection, CONTEXT->conditions, CONTEXT->condition_length);
 
 			CONTEXT->ssql->flag=SCF_SELECT;//"select";
-			// CONTEXT->ssql->sstr.selection.attr_num = CONTEXT->select_length;
 
 			//临时变量清零
 			CONTEXT->condition_length=0;
-			CONTEXT->select_length=0;
 	}
 	;
 
@@ -411,15 +407,11 @@ attr_list:
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $2);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-     	  // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].relation_name = NULL;
-        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].attribute_name=$2;
       }
     | COMMA ID DOT ID attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, $2, $4);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
-        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
   	  }
   	;
 
