@@ -17,7 +17,6 @@ typedef struct ParserContext {
   Query * ssql;
   size_t select_length;
   size_t condition_length;
-  size_t from_length;
   Condition conditions[MAX_NUM];
   CompOp comp;
 	char id[MAX_NUM];
@@ -41,7 +40,6 @@ void yyerror(yyscan_t scanner, const char *str)
   query_reset(context->ssql);
   context->ssql->flag = SCF_ERROR;
   context->condition_length = 0;
-  context->from_length = 0;
   context->select_length = 0;
   context->ssql->sstr.insertion.value_num = 0;
   context->ssql->sstr.errors = str;
@@ -372,7 +370,6 @@ update:			/*  update 语句的语法解析树*/
 select:				/*  select 语句的语法解析树*/
     SELECT select_attr FROM ID rel_list where SEMICOLON
 		{
-			// CONTEXT->ssql->sstr.selection.relations[CONTEXT->from_length++]=$4;
 			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
 
 			selects_append_conditions(&CONTEXT->ssql->sstr.selection, CONTEXT->conditions, CONTEXT->condition_length);
@@ -382,7 +379,6 @@ select:				/*  select 语句的语法解析树*/
 
 			//临时变量清零
 			CONTEXT->condition_length=0;
-			CONTEXT->from_length=0;
 			CONTEXT->select_length=0;
 	}
 	;
