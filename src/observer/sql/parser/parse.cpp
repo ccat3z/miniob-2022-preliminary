@@ -12,6 +12,7 @@ See the Mulan PSL v2 for more details. */
 // Created by Meiyi 
 //
 
+#include <algorithm>
 #include <mutex>
 #include <common/time/datetime.h>
 #include <cstring>
@@ -229,6 +230,7 @@ void inserts_init(Inserts *inserts, const char *relation_name, Value values[], s
   assert(value_num <= sizeof(inserts->values) / sizeof(inserts->values[0]));
 
   inserts->relation_name = strdup(relation_name);
+  std::reverse(values, values + value_num);
   for (size_t i = 0; i < value_num; i++) {
     inserts->values[i] = values[i];
   }
