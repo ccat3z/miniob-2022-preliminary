@@ -15,8 +15,6 @@
 
 typedef struct ParserContext {
   Query * ssql;
-  size_t condition_length;
-  Condition conditions[MAX_NUM];
 	char id[MAX_NUM];
 } ParserContext;
 
@@ -37,7 +35,6 @@ void yyerror(yyscan_t scanner, const char *str)
   ParserContext *context = (ParserContext *)(yyget_extra(scanner));
   query_reset(context->ssql);
   context->ssql->flag = SCF_ERROR;
-  context->condition_length = 0;
   context->ssql->sstr.insertion.value_num = 0;
   context->ssql->sstr.errors = str;
   printf("parse sql failed. error=%s", str);
@@ -106,7 +103,7 @@ ParserContext *get_context(yyscan_t scanner)
 
 %union {
   struct _Attr *attr;
-  struct _Condition *condition1;
+  Condition condition;
   Value value;
   char *string;
   int number;
@@ -127,13 +124,15 @@ ParserContext *get_context(yyscan_t scanner)
 //非终结符
 
 %type <number> type;
-%type <condition1> condition;
+%type <condition> condition;
 %type <value> value;
 %type <number> number;
 %type <boolean> create_index_unique;
 %type <list> create_index_attr_list;
 %type <list> value_list;
 %type <list> value_lists;
+%type <list> where;
+%type <list> condition_list;
 %type <comp_op> comOp;
 
 %%
@@ -353,8 +352,7 @@ delete:		/*  delete 语句的语法解析树*/
 			CONTEXT->ssql->flag = SCF_DELETE;//"delete";
 			deletes_init_relation(&CONTEXT->ssql->sstr.deletion, $3);
 			deletes_set_conditions(&CONTEXT->ssql->sstr.deletion, 
-					CONTEXT->conditions, CONTEXT->condition_length);
-			CONTEXT->condition_length = 0;	
+					(Condition *) $4->values, $4->len);
     }
     ;
 update:			/*  update 语句的语法解析树*/
@@ -362,8 +360,7 @@ update:			/*  update 语句的语法解析树*/
 		{
 			CONTEXT->ssql->flag = SCF_UPDATE;//"update";
 			updates_init(&CONTEXT->ssql->sstr.update, $2, $4, &$6, 
-					CONTEXT->conditions, CONTEXT->condition_length);
-			CONTEXT->condition_length = 0;
+					(Condition *) $7->values, $7->len);
 		}
     ;
 select:				/*  select 语句的语法解析树*/
@@ -371,12 +368,9 @@ select:				/*  select 语句的语法解析树*/
 		{
 			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
 
-			selects_append_conditions(&CONTEXT->ssql->sstr.selection, CONTEXT->conditions, CONTEXT->condition_length);
+			selects_append_conditions(&CONTEXT->ssql->sstr.selection, (Condition *) $6->values, $6->len);
 
 			CONTEXT->ssql->flag=SCF_SELECT;//"select";
-
-			//临时变量清零
-			CONTEXT->condition_length=0;
 	}
 	;
 
@@ -423,16 +417,20 @@ rel_list:
 		  }
     ;
 where:
-    /* empty */ 
-    | WHERE condition condition_list {	
-				// CONTEXT->conditions[CONTEXT->condition_length++]=*$2;
-			}
+    /* empty */ { $$ = list_create(sizeof(Condition), MAX_NUM); } 
+    | WHERE condition_list {	
+		$$ = $2;
+	}
     ;
 condition_list:
-    /* empty */
-    | AND condition condition_list {
-				// CONTEXT->conditions[CONTEXT->condition_length++]=*$2;
-			}
+	condition {
+		$$ = list_create(sizeof(Condition), MAX_NUM);
+		list_append($$, &$1);
+	}
+    | condition AND condition_list {
+		$$ = $3;
+		list_append($$, &$1);
+	}
     ;
 condition:
     ID comOp value 
@@ -442,18 +440,14 @@ condition:
 
 			Value *right_value = &$3;
 
-			Condition condition;
-			condition_init(&condition, $2, 1, &left_attr, NULL, 0, NULL, right_value);
-			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+			condition_init(&$$, $2, 1, &left_attr, NULL, 0, NULL, right_value);
 		}
 		|value comOp value 
 		{
 			Value *left_value = &$1;
 			Value *right_value = &$3;
 
-			Condition condition;
-			condition_init(&condition, $2, 0, NULL, left_value, 0, NULL, right_value);
-			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+			condition_init(&$$, $2, 0, NULL, left_value, 0, NULL, right_value);
 		}
 		|ID comOp ID 
 		{
@@ -462,9 +456,7 @@ condition:
 			RelAttr right_attr;
 			relation_attr_init(&right_attr, NULL, $3);
 
-			Condition condition;
-			condition_init(&condition, $2, 1, &left_attr, NULL, 1, &right_attr, NULL);
-			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+			condition_init(&$$, $2, 1, &left_attr, NULL, 1, &right_attr, NULL);
 		}
     |value comOp ID
 		{
@@ -472,9 +464,7 @@ condition:
 			RelAttr right_attr;
 			relation_attr_init(&right_attr, NULL, $3);
 
-			Condition condition;
-			condition_init(&condition, $2, 0, NULL, left_value, 1, &right_attr, NULL);
-			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+			condition_init(&$$, $2, 0, NULL, left_value, 1, &right_attr, NULL);
 		}
     |ID DOT ID comOp value
 		{
@@ -482,9 +472,7 @@ condition:
 			relation_attr_init(&left_attr, $1, $3);
 			Value *right_value = &$5;
 
-			Condition condition;
-			condition_init(&condition, $4, 1, &left_attr, NULL, 0, NULL, right_value);
-			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+			condition_init(&$$, $4, 1, &left_attr, NULL, 0, NULL, right_value);
 							
     }
     |value comOp ID DOT ID
@@ -494,10 +482,7 @@ condition:
 			RelAttr right_attr;
 			relation_attr_init(&right_attr, $3, $5);
 
-			Condition condition;
-			condition_init(&condition, $2, 0, NULL, left_value, 1, &right_attr, NULL);
-			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
-									
+			condition_init(&$$, $2, 0, NULL, left_value, 1, &right_attr, NULL);
     }
     |ID DOT ID comOp ID DOT ID
 		{
@@ -506,9 +491,7 @@ condition:
 			RelAttr right_attr;
 			relation_attr_init(&right_attr, $5, $7);
 
-			Condition condition;
-			condition_init(&condition, $4, 1, &left_attr, NULL, 1, &right_attr, NULL);
-			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+			condition_init(&$$, $4, 1, &left_attr, NULL, 1, &right_attr, NULL);
     }
     ;
 
