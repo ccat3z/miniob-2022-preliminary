@@ -657,8 +657,7 @@ RC ExecuteStage::do_update(SQLStageEvent *sql_event)
   Trx *trx = session->current_trx();
 
   int updated;
-  RC rc =
-      table->update_record(trx, stmt->attribute(), stmt->value(), stmt->condition_num(), stmt->conditions(), &updated);
+  RC rc = table->update_record(trx, stmt->kvs(), stmt->condition_num(), stmt->conditions(), &updated);
 
   session_event->set_response(rc == RC::SUCCESS ? "SUCCESS\n" : "FAILURE\n");
   return rc;

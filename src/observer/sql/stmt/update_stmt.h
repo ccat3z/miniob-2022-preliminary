@@ -15,7 +15,9 @@ See the Mulan PSL v2 for more details. */
 #pragma once
 
 #include "rc.h"
+#include "sql/parser/parse_defs.h"
 #include "sql/stmt/stmt.h"
+#include <vector>
 
 class Table;
 
@@ -34,13 +36,9 @@ public:
 
 public:
   Table *table() const {return table_;}
-  const Value *value() const
+  const std::vector<KeyValue *> &kvs() const
   {
-    return value_;
-  }
-  const char *attribute() const
-  {
-    return attribute_name;
+    return kvs_;
   }
   const int condition_num() const
   {
@@ -53,8 +51,7 @@ public:
 
 private:
   Table *table_ = nullptr;
-  const char *attribute_name;
-  const Value *value_ = nullptr;
+  std::vector<KeyValue *> kvs_;
   int condition_num_ = 0;
   const Condition *conditions_ = nullptr;
 };

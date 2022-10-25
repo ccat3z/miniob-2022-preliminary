@@ -12,6 +12,7 @@ See the Mulan PSL v2 for more details. */
 // Created by Meiyi & Wangyunlai on 2021/5/13.
 //
 
+#include <cstddef>
 #include <functional>
 #include <limits.h>
 #include <map>
@@ -695,8 +696,8 @@ RC Table::create_index(Trx *trx, const char *index_name, const char **attribute_
   return rc;
 }
 
-RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value, int condition_num,
-    const Condition conditions[], int *updated_count)
+RC Table::update_record(
+    Trx *trx, const std::vector<KeyValue *> &kvs, int condition_num, const Condition conditions[], int *updated_count)
 {
   if (trx != nullptr) {
     // TODO: Support trx update
@@ -714,13 +715,13 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
 
   // Check meta
   std::vector<const FieldMeta *> fields;
-  {
-    const FieldMeta *field = table_meta_.field(attribute_name);
+  for (auto &kv : kvs) {
+    const FieldMeta *field = table_meta_.field(kv->name);
     if (field == nullptr) {
       return RC::SCHEMA_FIELD_MISSING;
     }
-    if (!value->try_cast(field->type())) {
-      LOG_ERROR("Got invaild value type: %d, expected: %d", value->type, field->type());
+    if (!kv->value.try_cast(field->type())) {
+      LOG_ERROR("Got invaild value type: %d, expected: %d", kv->value.type, field->type());
       return RC::SCHEMA_FIELD_TYPE_MISMATCH;
     }
     fields.emplace_back(field);
@@ -758,8 +759,8 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
       memcpy(old_record.get(), record.data(), table_meta_.record_size());
       recoveries.emplace(rid, std::move(old_record));
 
-      for (auto &field : fields) {
-        memcpy(record.data() + field->offset(), value->data, field->len());
+      for (size_t i = 0; i < fields.size(); i++) {
+        memcpy(record.data() + fields[i]->offset(), kvs[i]->value.data, fields[i]->len());
       }
 
       // Update index

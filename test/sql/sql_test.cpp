@@ -740,6 +740,23 @@ TEST_F(SQLTest, UpdateWithInvalidConditionShouldFailure)
       "2 | 5\n");
 }
 
+TEST_F(SQLTest, UpdateMultiValueShouldSuccess)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 10);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 5);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("update t set a = 100, b = 100 where a = 1;"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t;"),
+      "a | b\n"
+      "100 | 100\n"
+      "100 | 100\n"
+      "2 | 3\n"
+      "2 | 5\n");
+}
+
 // all value is valid if typecast is enabled
 TEST_F(SQLTest, DISABLED_UpdateWithInvalidValueShouldFailure)
 {
@@ -1156,12 +1173,25 @@ TEST_F(SQLTest, UniqueMultiIndexUpdateConflictRecordShouldFailure)
   ASSERT_EQ(exec_sql("insert into t values (1, 2);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into t values (2, 2);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into t values (1, 3);"), "SUCCESS\n");
-  ASSERT_EQ(exec_sql("update t set a = 1 where a = 2"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("update t set a = 1 where a = 2;"), "FAILURE\n");
   ASSERT_EQ(exec_sql("select * from t;"),
       "a | b\n"
       "1 | 2\n"
       "2 | 2\n"
       "1 | 3\n");
+
+  ASSERT_EQ(exec_sql("create table t2 (a int, b int, c int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create unique index t2_a on t2(b, c);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (1, 1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (2, 1, 2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (3, 2, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("update t2 set b = 2, c = 2 where a = 1;"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("update t2 set b = 1, c = 2 where a = 3;"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select * from t2;"),
+      "a | b | c\n"
+      "1 | 2 | 2\n"
+      "2 | 1 | 2\n"
+      "3 | 2 | 3\n");
 }
 
 TEST_F(SQLTest, UniqueIndexMultiIndexOnExistsData)
