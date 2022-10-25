@@ -17,6 +17,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 
 #include "json/json.h"
+#include <cstdint>
 
 const static Json::StaticString FIELD_NAME("name");
 const static Json::StaticString FIELD_TYPE("type");
@@ -168,4 +169,43 @@ RC FieldMeta::from_json(const Json::Value &json_value, FieldMeta &field)
   bool visible = visible_value.asBool();
   bool nullable = nullable_value.asBool();
   return field.init(name, type, offset, len, visible, nullable);
+}
+
+bool FieldMeta::is_null(const char *record) const
+{
+  if (field_idx_ < 0)
+    return true;
+
+  if (!nullable_)
+    return false;
+
+  uint32_t null = *(uint32_t *)((char *)record + null_offset_);
+  uint32_t flag = (uint32_t)1 << field_idx_;
+  return (null & flag) == flag;
+}
+
+RC FieldMeta::set_null(char *record, bool null) const
+{
+  if (!nullable_) {
+    if (!null)
+      return RC::SUCCESS;
+
+    LOG_ERROR("Field %s is not nullable", name_.c_str());
+    return RC::GENERIC_ERROR;
+  }
+
+  if (field_idx_ < 0) {
+    LOG_PANIC("Cannot set null, null offset is not inited");
+    return RC::GENERIC_ERROR;
+  }
+
+  uint32_t *null_field = (uint32_t *)((char *)record + null_offset_);
+  uint32_t flag = (uint32_t)1 << field_idx_;
+
+  if (null)
+    *null_field |= flag;
+  else
+    *null_field &= ~(flag);
+
+  return RC::SUCCESS;
 }
