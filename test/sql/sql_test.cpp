@@ -145,12 +145,12 @@ public:
   {
     server = init_server(socket_path, data_dir);
     pthread_create(&pid, nullptr, ThreadTestServer::start_server_func, server);
-    std::this_thread::sleep_for(SERVER_START_STOP_TIMEOUT);
+    std::this_thread::sleep_for(50ms);
   }
   void stop()
   {
     server->shutdown();
-    std::this_thread::sleep_for(SERVER_START_STOP_TIMEOUT);
+    pthread_join(pid, nullptr);
     cleanup();
     common::cleanup_seda();
     delete server;
@@ -255,6 +255,7 @@ public:
     close(sockfd[0]);
     close(sockfd[1]);
     server->stop();
+    // FIXME: Randomly abort
     fs::remove_all(data_dir);
   }
 
