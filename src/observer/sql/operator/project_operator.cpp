@@ -46,16 +46,28 @@ RC ProjectOperator::close()
 }
 Tuple *ProjectOperator::current_tuple()
 {
-  tuple_.set_tuple(children_[0]->current_tuple());
+  Tuple *new_tuple = children_[0]->current_tuple();
+  tuple_.set_tuple(new_tuple);
+  LOG_DEBUG("ProjectOperator::current_tuple():%d", new_tuple->cell_num());
+  LOG_DEBUG("ProjectOperator::current_tuple() after projection:%d", tuple_.cell_num());
+  ComplexTuple *debug_tuple = dynamic_cast<ComplexTuple *>(new_tuple);
+  if (debug_tuple)
+    debug_tuple->print();
   return &tuple_;
 }
 
-void ProjectOperator::add_projection(const Table *table, const FieldMeta *field_meta)
+void ProjectOperator::add_projection(const Table *table, const FieldMeta *field_meta, bool multi_table)
 {
   // 对单表来说，展示的(alias) 字段总是字段名称，
   // 对多表查询来说，展示的alias 需要带表名字
   TupleCellSpec *spec = new TupleCellSpec(new FieldExpr(table, field_meta));
-  spec->set_alias(field_meta->name());
+  if (multi_table) {
+    std::string alia1 = std::string(table->name()) + "." + std::string(field_meta->name());
+    std::string *alia2 = new std::string(alia1);
+    spec->set_alias(alia2->c_str());
+  } else {
+    spec->set_alias(field_meta->name());
+  }
   tuple_.add_cell_spec(spec);
 }
 

@@ -33,7 +33,7 @@ RC PredicateOperator::next()
 {
   RC rc = RC::SUCCESS;
   Operator *oper = children_[0];
-  
+  // next（）获取当前的tuple，如果符合predicate的条件则返回rc，如果不符合，则继续获取下一个tuple然后继续查找。
   while (RC::SUCCESS == (rc = oper->next())) {
     Tuple *tuple = oper->current_tuple();
     if (nullptr == tuple) {
@@ -41,8 +41,11 @@ RC PredicateOperator::next()
       LOG_WARN("failed to get tuple from operator");
       break;
     }
-
-    if (do_predicate(static_cast<RowTuple &>(*tuple))) {
+    LOG_DEBUG("PredicateOperator::current_tuple():tuple->cell_num():%d", tuple->cell_num());
+    ComplexTuple *debug_tuple = dynamic_cast<ComplexTuple *>(tuple);
+    if (debug_tuple)
+      debug_tuple->print();
+    if (do_predicate(static_cast<Tuple &>(*tuple))) {
       return rc;
     }
   }
@@ -60,7 +63,7 @@ Tuple * PredicateOperator::current_tuple()
   return children_[0]->current_tuple();
 }
 
-bool PredicateOperator::do_predicate(RowTuple &tuple)
+bool PredicateOperator::do_predicate(Tuple &tuple)
 {
   if (filter_stmt_ == nullptr || filter_stmt_->filter_units().empty()) {
     return true;
