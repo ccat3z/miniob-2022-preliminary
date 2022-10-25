@@ -801,7 +801,7 @@ TEST_F(SQLTest, DISABLED_UpdateWithInvalidValueShouldFailure)
 // ##     ## ##     ##    ##    ##
 // ########  ##     ##    ##    ########
 
-TEST_F(SQLTest, DISABLED_DateCanCreateTable)
+TEST_F(SQLTest, DateCanCreateTable)
 {
   ASSERT_EQ(exec_sql("create table t(a int, d date);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("desc t;"),
@@ -1108,7 +1108,7 @@ TEST_F(SQLTest, LikeShouldBeCaseInsensitivity)
 // ##     ## ##   ###  ##  ##    ##  ##     ## ##
 //  #######  ##    ## ####  ##### ##  #######  ########
 
-TEST_F(SQLTest, DISABLED_UniqueIndexMetaShouldWork)
+TEST_F(SQLTest, UniqueIndexMetaShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t (a int, b int);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("create unique index t_a on t(a);"), "SUCCESS\n");
@@ -1119,8 +1119,8 @@ TEST_F(SQLTest, DISABLED_UniqueIndexMetaShouldWork)
       "\tfield name=__null, type=ints, len=4, visible=no, nullable=no\n"
       "\tfield name=a, type=ints, len=4, visible=yes, nullable=no\n"
       "\tfield name=b, type=ints, len=4, visible=yes, nullable=no\n"
-      "\tindex name=t_a, fields=a, unique=yes\n"
-      "\tindex name=t_b, fields=b, unique=no\n"
+      "\tindex name=t_a, field=a, unique=yes\n"
+      "\tindex name=t_b, field=b, unique=no\n"
       ")\n");
 }
 
@@ -1259,7 +1259,7 @@ TEST_F(SQLTest, UniqueIndexManyIndexsUpdate)
 //    ##    ##        ##   ##     ##
 //    ##    ######## ##     ##    ##
 
-TEST_F(SQLTest, DISABLED_TextCreateTableShouldWork)
+TEST_F(SQLTest, TextCreateTableShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t (a text);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("desc t;"),
@@ -1566,7 +1566,7 @@ TEST_F(SQLTest, DISABLED_JoinTablesShouldWork)
 // ##   ### ##     ## ##       ##
 // ##    ##  #######  ######## ########
 
-TEST_F(SQLTest, DISABLED_NullCreateTableShouldWork)
+TEST_F(SQLTest, NullCreateTableShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t(a float not null, b int nullable);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("desc t;"),
