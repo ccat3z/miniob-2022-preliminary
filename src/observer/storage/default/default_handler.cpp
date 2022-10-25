@@ -207,12 +207,7 @@ RC DefaultHandler::delete_record(Trx *trx, const char *dbname, const char *relat
 RC DefaultHandler::update_record(Trx *trx, const char *dbname, const char *relation_name, const char *attribute_name,
     const Value *value, int condition_num, const Condition *conditions, int *updated_count)
 {
-  Table *table = find_table(dbname, relation_name);
-  if (nullptr == table) {
-    return RC::SCHEMA_TABLE_NOT_EXIST;
-  }
-
-  return table->update_record(trx, attribute_name, value, condition_num, conditions, updated_count);
+  return RC::GENERIC_ERROR;
 }
 
 Db *DefaultHandler::find_db(const char *dbname) const
