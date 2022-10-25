@@ -13,6 +13,7 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include <algorithm>
+#include <cstddef>
 #include <mutex>
 #include <common/time/datetime.h>
 #include <cstring>
@@ -266,12 +267,13 @@ void deletes_destroy(Deletes *deletes)
   deletes->relation_name = nullptr;
 }
 
-void updates_init(Updates *updates, const char *relation_name, const char *attribute_name, Value *value,
-    Condition conditions[], size_t condition_num)
+void updates_init(Updates *updates, const char *relation_name, KeyValue *kvs, int kv_num, Condition conditions[],
+    size_t condition_num)
 {
   updates->relation_name = strdup(relation_name);
-  updates->attribute_name = strdup(attribute_name);
-  updates->value = *value;
+  updates->kvs = (KeyValue *)malloc(sizeof(KeyValue) * kv_num);
+  memcpy(updates->kvs, kvs, sizeof(KeyValue) * kv_num);
+  updates->kv_num = kv_num;
 
   assert(condition_num <= sizeof(updates->conditions) / sizeof(updates->conditions[0]));
   for (size_t i = 0; i < condition_num; i++) {
@@ -283,11 +285,14 @@ void updates_init(Updates *updates, const char *relation_name, const char *attri
 void updates_destroy(Updates *updates)
 {
   free(updates->relation_name);
-  free(updates->attribute_name);
   updates->relation_name = nullptr;
-  updates->attribute_name = nullptr;
 
-  value_destroy(&updates->value);
+  for (int i = 0; i < updates->kv_num; i++) {
+    free(updates->kvs[i].name);
+    value_destroy(&updates->kvs[i].value);
+  }
+  free(updates->kvs);
+  updates->kvs = nullptr;
 
   for (size_t i = 0; i < updates->condition_num; i++) {
     condition_destroy(&updates->conditions[i]);

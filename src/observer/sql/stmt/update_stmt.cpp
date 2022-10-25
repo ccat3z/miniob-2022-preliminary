@@ -34,8 +34,8 @@ RC UpdateStmt::create(Db *db, const Updates &update, Stmt *&stmt)
 
   auto update_stmt = new UpdateStmt();
   update_stmt->table_ = table;
-  update_stmt->attribute_name = update.attribute_name;
-  update_stmt->value_ = &update.value;
+  update_stmt->attribute_name = update.kvs[0].name;
+  update_stmt->value_ = &update.kvs[0].value;
   update_stmt->conditions_ = update.conditions;
   update_stmt->condition_num_ = update.condition_num;
 

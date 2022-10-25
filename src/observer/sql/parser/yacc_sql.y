@@ -136,6 +136,7 @@ ParserContext *get_context(yyscan_t scanner)
 %type <list> condition_list;
 %type <comp_op> comOp;
 %type <expr> expr;
+%type <list> update_set_list;
 
 %%
 
@@ -359,14 +360,35 @@ delete:		/*  delete 语句的语法解析树*/
     }
     ;
 update:			/*  update 语句的语法解析树*/
-    UPDATE ID SET ID EQ value where SEMICOLON
+    UPDATE ID SET update_set_list where SEMICOLON
 		{
 			CONTEXT->ssql->flag = SCF_UPDATE;//"update";
-			updates_init(&CONTEXT->ssql->sstr.update, $2, $4, &$6, 
-					(Condition *) $7->values, $7->len);
-			list_free($7);
+			updates_init(&CONTEXT->ssql->sstr.update, $2, (KeyValue *) $4->values, $4->len, 
+					(Condition *) $5->values, $5->len);
+			list_free($4);
+			list_free($5);
 		}
     ;
+
+update_set_list:
+	ID EQ value
+	{
+		$$ = list_create(sizeof(KeyValue), MAX_NUM);
+		KeyValue kv;
+		kv.name = $1;
+		kv.value = $3;
+		list_prepend($$, &kv);
+	}
+	| ID EQ value COMMA update_set_list
+	{
+		$$ = $5;
+		KeyValue kv;
+		kv.name = $1;
+		kv.value = $3;
+		list_prepend($$, &kv);
+	}
+	;
+
 select:				/*  select 语句的语法解析树*/
     SELECT select_attr FROM ID rel_list where SEMICOLON
 		{
