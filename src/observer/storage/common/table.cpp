@@ -23,6 +23,7 @@ See the Mulan PSL v2 for more details. */
 
 #include "common/defs.h"
 #include "rc.h"
+#include "storage/common/field_meta.h"
 #include "storage/common/table.h"
 #include "storage/common/table_meta.h"
 #include "common/log/log.h"
@@ -712,13 +713,17 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
   }
 
   // Check meta
-  const FieldMeta *field = table_meta_.field(attribute_name);
-  if (field == nullptr) {
-    return RC::SCHEMA_FIELD_MISSING;
-  }
-  if (!value->try_cast(field->type())) {
-    LOG_ERROR("Got invaild value type: %d, expected: %d", value->type, field->type());
-    return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+  std::vector<const FieldMeta *> fields;
+  {
+    const FieldMeta *field = table_meta_.field(attribute_name);
+    if (field == nullptr) {
+      return RC::SCHEMA_FIELD_MISSING;
+    }
+    if (!value->try_cast(field->type())) {
+      LOG_ERROR("Got invaild value type: %d, expected: %d", value->type, field->type());
+      return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+    }
+    fields.emplace_back(field);
   }
 
   // Find matched rids
@@ -735,7 +740,7 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
   // Update date
   std::map<RID, std::unique_ptr<char, decltype(free) *>> recoveries;
   for (const auto &rid : matched_rids) {
-    auto old_value = std::unique_ptr<char, decltype(free) *>((char *)malloc(field->len()), free);
+    auto old_record = std::unique_ptr<char, decltype(free) *>((char *)malloc(table_meta_.record_size()), free);
 
     rc = record_handler_->update_record_in_place(&rid, [&](Record &record) {
       // Delete indexes
@@ -750,9 +755,12 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
       }
 
       // Update record
-      memcpy(old_value.get(), record.data() + field->offset(), field->len());
-      memcpy(record.data() + field->offset(), value->data, field->len());
-      recoveries.emplace(rid, std::move(old_value));
+      memcpy(old_record.get(), record.data(), table_meta_.record_size());
+      recoveries.emplace(rid, std::move(old_record));
+
+      for (auto &field : fields) {
+        memcpy(record.data() + field->offset(), value->data, field->len());
+      }
 
       // Update index
       rc = assert_insert_entry_of_indexes(record.data(), rid);
@@ -778,10 +786,10 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
   if (rc != RC::SUCCESS) {
     for (auto &recovery : recoveries) {
       auto &rid = recovery.first;
-      auto &old_value = recovery.second;
+      auto &old_record = recovery.second;
       RC rc2 = record_handler_->update_record_in_place(&rid, [&](Record &record) {
         delete_entry_of_indexes(record.data(), record.rid(), false);
-        memcpy(record.data() + field->offset(), old_value.get(), field->len());
+        memcpy(record.data(), old_record.get(), table_meta_.record_size());
         RC rc = insert_entry_of_indexes(record.data(), record.rid());
         return rc;
       });
