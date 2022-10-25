@@ -1596,6 +1596,26 @@ TEST_F(SQLTest, NullInsertNullOnNotNullableShouldFailure)
   ASSERT_EQ(exec_sql("insert into t values (null, 1);"), "FAILURE\n");
 }
 
+TEST_F(SQLTest, NullUpdateShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int nullable);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, null);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (3, 1);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("update t set a = null where a = 1;"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("update t set a = 200 where b is null;"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("update t set b = null where a = 1;"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("update t set a = 300 where b is not null;"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("update t set a = 0 where b = null;"), "SUCCESS\n");  // no effect, b = null is always false
+
+  ASSERT_EQ(exec_sql("select * from t;"),
+      "a | b\n"
+      "1 | NULL\n"
+      "200 | NULL\n"
+      "300 | 1\n");
+}
+
 TEST_F(SQLTest, NullInsertWithIndexShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t(a int, b int nullable);"), "SUCCESS\n");

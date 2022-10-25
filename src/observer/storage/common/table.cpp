@@ -770,6 +770,11 @@ RC Table::update_record(
 
       for (size_t i = 0; i < fields.size(); i++) {
         memcpy(record.data() + fields[i]->offset(), kvs[i]->value.data, fields[i]->len());
+        rc = fields[i]->set_null(record.data(), kvs[i]->value.is_null);
+        if (rc != RC::SUCCESS) {
+          LOG_ERROR("Cannot set null for field %s", fields[i]->name());
+          return rc;
+        }
       }
 
       // Update index
