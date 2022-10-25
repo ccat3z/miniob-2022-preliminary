@@ -302,16 +302,6 @@ public:
     spec = speces_[index];
     return RC::SUCCESS;
   }
-  RC add_tuple_cell(TupleCell tuple_cell, const TupleCellSpec *spec)
-  {
-    TupleCell *new_tuple_cell = new TupleCell();
-    new_tuple_cell->set_data(tuple_cell.data());
-    new_tuple_cell->set_type(tuple_cell.attr_type());
-    new_tuple_cell->set_length(tuple_cell.length());
-    tuple_.push_back(new_tuple_cell);
-    speces_.push_back(spec);
-    return RC::SUCCESS;
-  }
   RC find_cell(const Field &field, TupleCell &cell) const override
   {
     const char *field_name = field.field_name();
