@@ -597,6 +597,18 @@ TEST_F(SQLTest, DropTableWithIndexCreateAgain)
   ASSERT_EQ(exec_sql("create index t_a_idx on t(a);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("show tables;"), "t\n");
 }
+TEST_F(SQLTest, DropTableRealExample)
+{
+  ASSERT_EQ(exec_sql("CREATE table Drop_table_6(ID int ,NAME char,AGE int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("INSERT INTO Drop_table_6 VALUES (1,'OB',12);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("INSERT INTO Drop_table_6 VALUES (2,'ODC',12);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("DELETE FROM Drop_table_6 WHERE ID = 2;"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("SELECT * FROM Drop_table_6;"),
+      "ID | NAME | AGE\n"
+      "1 | OB | 12\n");
+  ASSERT_EQ(exec_sql("DROP TABLE Drop_table_6;"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("SELECT * FROM Drop_table_6;"), "FAILURE\n");
+}
 
 // ##     ## ########  ########     ###    ######## ########
 // ##     ## ##     ## ##     ##   ## ##      ##    ##
@@ -1053,10 +1065,10 @@ TEST_F(SQLTest, SelectMutilTablesShouldWork)
 
   ASSERT_NE(exec_sql("select * from t2,t;"), "FAILURE\n");
   ASSERT_NE(exec_sql("select  t2.*, t3.a from t2,t3;"), "FAILURE\n");
-  // ASSERT_NE(exec_sql("select * from t2,t3 where a>b;"), "FAILURE\n");
   ASSERT_NE(exec_sql("select * from t2,t3 where t2.b>=t2.d;"), "FAILURE\n");
   ASSERT_NE(exec_sql("select * from t2,t3 where t2.b > 10; "), "FAILURE\n");
   ASSERT_NE(exec_sql("select t2.b,t3.a from t3,t2; "), "FAILURE\n");
+  // ASSERT_NE(exec_sql("select * from t2,t3 where a>b;"), "FAILURE\n");
   // ASSERT_NE(exec_sql("select *,a from t3,t2;"), "FAILURE\n");
 }
 //       ##  #######  #### ##    ##
