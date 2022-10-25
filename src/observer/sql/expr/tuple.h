@@ -120,6 +120,7 @@ public:
     cell.set_type(field_meta->type());
     cell.set_data(this->record_->data() + field_meta->offset());
     cell.set_length(field_meta->len());
+    cell.set_null(field_meta->is_null(record_->data()));
     return RC::SUCCESS;
   }
 

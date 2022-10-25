@@ -1558,6 +1558,130 @@ TEST_F(SQLTest, DISABLED_JoinTablesShouldWork)
       "2 | 3 | 300 | 500 | 777 | 0\n");
 }
 
+// ##    ## ##     ## ##       ##
+// ###   ## ##     ## ##       ##
+// ####  ## ##     ## ##       ##
+// ## ## ## ##     ## ##       ##
+// ##  #### ##     ## ##       ##
+// ##   ### ##     ## ##       ##
+// ##    ##  #######  ######## ########
+
+TEST_F(SQLTest, DISABLED_NullCreateTableShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a float not null, b int nullable);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("desc t;"),
+      "t(\n"
+      "\tfield name=__trx, type=ints, len=4, visible=no, nullable=no\n"
+      "\tfield name=__null, type=ints, len=4, visible=no, nullable=no\n"
+      "\tfield name=a, type=floats, len=4, visible=yes, nullable=no\n"
+      "\tfield name=b, type=ints, len=4, visible=yes, nullable=yes\n"
+      ")\n");
+}
+
+TEST_F(SQLTest, NullInsertShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int nullable);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, null);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t;"),
+      "a | b\n"
+      "1 | NULL\n"
+      "1 | 1\n");
+}
+
+TEST_F(SQLTest, NullInsertNullOnNotNullableShouldFailure)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int nullable);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null, null);"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("insert into t values (null, 1);"), "FAILURE\n");
+}
+
+TEST_F(SQLTest, DISABLED_NullInsertWithIndexShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int nullable);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create index t_b on t(b);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, null);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t;"),
+      "a | b\n"
+      "1 | NULL\n"
+      "1 | 1\n");
+}
+
+TEST_F(SQLTest, DISABLED_NullCompareWithNullShouldAlwaysFalse)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int nullable);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, null);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t where a = null;"), "a | b\n");
+  ASSERT_EQ(exec_sql("select * from t where b = null;"), "a | b\n");
+  ASSERT_EQ(exec_sql("select * from t where b < null;"), "a | b\n");
+  ASSERT_EQ(exec_sql("select * from t where b > null;"), "a | b\n");
+  ASSERT_EQ(exec_sql("select * from t where null = null;"), "a | b\n");
+  ASSERT_EQ(exec_sql("select * from t where 1 = null;"), "a | b\n");
+}
+
+TEST_F(SQLTest, DISABLED_NullIsNullShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int nullable);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, null);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select * from t where b is null;"), "a | b\n1 | NULL\n");
+  ASSERT_EQ(exec_sql("select * from t where b is not null;"), "a | b\n1 | 1\n");
+  ASSERT_EQ(exec_sql("select * from t where 1 is null;"), "a | b\n");
+  ASSERT_EQ(exec_sql("select * from t where 1 is not null;"),
+      "a | b\n"
+      "1 | NULL\n"
+      "1 | 1\n");
+}
+
+TEST_F(SQLTest, DISABLED_NullAggCountNullableShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int nullable);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select count(*) from t;"), "count(*)\n2\n");
+  ASSERT_EQ(exec_sql("select count(a) from t;"), "count(a)\n1\n");
+}
+
+TEST_F(SQLTest, DISABLED_NullAggMaxOfNullableShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int nullable);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select max(a) from t;"), "max(a)\nNULL\n");
+
+  ASSERT_EQ(exec_sql("insert into t values (1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select max(a) from t;"), "max(a)\n2\n");
+}
+
+TEST_F(SQLTest, DISABLED_NullAggMinOfNullableShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int nullable);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select min(a) from t;"), "min(a)\nNULL\n");
+
+  ASSERT_EQ(exec_sql("insert into t values (1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select min(a) from t;"), "min(a)\n1\n");
+}
+
+TEST_F(SQLTest, DISABLED_NullAggAvgOfNullableShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int nullable);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select avg(a) from t;"), "avg(a)\nNULL\n");
+
+  ASSERT_EQ(exec_sql("insert into t values (1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select avg(a) from t;"), "avg(a)\n1.5\n");
+}
+
 int main(int argc, char **argv)
 {
   srand((unsigned)time(NULL));

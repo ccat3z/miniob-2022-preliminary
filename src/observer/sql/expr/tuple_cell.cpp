@@ -26,6 +26,11 @@ using namespace std::string_literals;
 
 void TupleCell::to_string(std::ostream &os) const
 {
+  if (is_null()) {
+    os << "NULL";
+    return;
+  }
+
   switch (attr_type_) {
   case INTS: {
     os << *(int *)data_;
