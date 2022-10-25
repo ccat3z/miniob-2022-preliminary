@@ -17,25 +17,27 @@ See the Mulan PSL v2 for more details. */
 #include "sql/parser/parse.h"
 #include "sql/operator/operator.h"
 #include "rc.h"
-#include "tuple.h"
 
 class DecartsJoinOperator : public Operator {
 public:
   DecartsJoinOperator() = default;
 
-  virtual ~DecartsJoinOperator() = default;
-
+  virtual ~DecartsJoinOperator()
+  {
+    for (auto child : children_) {
+      delete child;
+    }
+  }
   RC open() override;
   RC next() override;
   RC close() override;
   Tuple *current_tuple();
 
 private:
-  RC get_child_tuples();  // 获取一个child的所有tuple,并计算它与当前的tuples的笛卡尔积
-  void decartes(std::vector<Tuple *> &current_tuples,
-      std::vector<Tuple *> &new_tuples);              // 根据所有children_tuples 计算笛卡尔积结果
+  void decartes_one(RowTuple *tuples);
+  RC get_child_tuples(Operator *child);  // 获取一个child的所有tuple,并计算它与当前的tuples的笛卡尔积
   bool hasjoined = false;                             // 标记是否进行过笛卡尔积计算
-  std::vector<std::vector<Tuple *>> children_tuples;  //存放计算前的tuples:  for debug
-  std::vector<ComplexTuple> tuples;                   // 存放笛卡尔积的计算结果
-  int current_index;                                  // 当前访问的tuple 在tuples 中的index
+  std::vector<ComplexTuple *> current_tuples;         // 存放计算好的笛卡尔积的结果
+  std::vector<ComplexTuple *> tuples;                 // 存放正在计算的笛卡尔积的计算结果
+  int current_index = -1;                             // 当前访问的tuple 在tuples 中的index
 };

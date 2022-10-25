@@ -32,6 +32,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/operator/predicate_operator.h"
 #include "sql/operator/delete_operator.h"
 #include "sql/operator/project_operator.h"
+#include "sql/operator/decarts_join_operator.h"
 #include "sql/stmt/stmt.h"
 #include "sql/stmt/select_stmt.h"
 #include "sql/stmt/update_stmt.h"
@@ -416,26 +417,30 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
   SelectStmt *select_stmt = (SelectStmt *)(sql_event->stmt());
   SessionEvent *session_event = sql_event->session_event();
   RC rc = RC::SUCCESS;
-  // if (select_stmt->tables().size() != 1) {
-  //   LOG_WARN("select more than 1 tables is not supported");
-  //   rc = RC::UNIMPLENMENT;
-  //   return rc;
-  // }
-
-  Operator *scan_oper = try_to_create_index_scan_operator(select_stmt->filter_stmt());
-  if (nullptr == scan_oper) {
-    scan_oper = new TableScanOperator(select_stmt->tables()[0]);
+  bool multi_table = false;
+  if (select_stmt->tables().size() >= 2) {
+    multi_table = true;
   }
+  /// mutil table 的index 稍后再查看
+  // Operator *scan_oper = try_to_create_index_scan_operator(select_stmt->filter_stmt());
+  // if (nullptr == scan_oper) {
+  //   scan_oper = new TableScanOperator(select_stmt->tables()[0]);
+  // }
+  // DEFER([&]() { delete scan_oper; });
 
-  DEFER([&] () {delete scan_oper;});
-
+  DecartsJoinOperator *decarts_join_oper = new DecartsJoinOperator();
+  unsigned table_nums = select_stmt->tables().size();
+  for (int i = table_nums - 1; i >= 0; i--) {
+    Operator *scan_oper = new TableScanOperator(select_stmt->tables()[i]);
+    decarts_join_oper->add_child(scan_oper);
+  }
   PredicateOperator pred_oper(select_stmt->filter_stmt());
-  pred_oper.add_child(scan_oper);
+  pred_oper.add_child(decarts_join_oper);
   ProjectOperator project_oper;
   project_oper.add_child(&pred_oper);
-
-  for (const Field &field : select_stmt->query_fields()) {
-    project_oper.add_projection(field.table(), field.meta());
+  for (unsigned i = 0; i < select_stmt->query_fields().size(); i++) {
+    Field field = select_stmt->query_fields()[i];
+    project_oper.add_projection(field.table(), field.meta(), multi_table);
   }
   rc = project_oper.open();
   if (rc != RC::SUCCESS) {

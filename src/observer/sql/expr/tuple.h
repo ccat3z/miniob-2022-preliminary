@@ -37,6 +37,7 @@ public:
     if (expression_) {
       delete expression_;
       expression_ = nullptr;
+      // TODO 释放alias_
     }
   }
 
@@ -75,13 +76,17 @@ public:
 class RowTuple : public Tuple {
 public:
   RowTuple() = default;
-  virtual ~RowTuple()
+  RowTuple(RowTuple *tuple)
   {
-    for (TupleCellSpec *spec : speces_) {
-      delete spec;
+    record_ = &tuple->record();
+    for (int i = 0; i < tuple->cell_num(); i++) {
+      const TupleCellSpec *spec;
+      tuple->cell_spec_at(i, spec);
+      speces_.push_back(const_cast<TupleCellSpec *>(spec));
     }
-    speces_.clear();
   }
+  virtual ~RowTuple()
+  {}  //  不在释放放 vector<TUpleCellSpec*> speces_;因为这个部分会被转移到其它Tuple中。
 
   void set_record(Record *record)
   {
@@ -172,7 +177,7 @@ private:
   std::vector<Tuple *> tuples_;
 };
 */
-
+class ComplexTuple;
 class ProjectTuple : public Tuple
 {
 public:
@@ -189,7 +194,6 @@ public:
   {
     this->tuple_ = tuple;
   }
-
   void add_cell_spec(TupleCellSpec *spec)
   {
     speces_.push_back(spec);
@@ -238,9 +242,21 @@ public:
     // 将record 里面的信息拆解到tuple cell 中。
     int nums = tuple->cell_num();
     for (int i = 0; i < nums; i++) {
-      TupleCell cell;
+      TupleCell *cell = new TupleCell();
       const TupleCellSpec *spec;
-      tuple->cell_at(i, cell);
+      tuple->cell_at(i, *cell);
+      tuple->cell_spec_at(i, spec);
+      tuple_.push_back(cell);
+      speces_.push_back(spec);
+    }
+  }
+  ComplexTuple(ComplexTuple *tuple)
+  {
+    int nums = tuple->cell_num();
+    for (int i = 0; i < nums; i++) {
+      TupleCell *cell = new TupleCell();
+      const TupleCellSpec *spec;
+      tuple->cell_at(i, *cell);
       tuple->cell_spec_at(i, spec);
       tuple_.push_back(cell);
       speces_.push_back(spec);
@@ -248,10 +264,9 @@ public:
   }
   virtual ~ComplexTuple()
   {
-    for (const TupleCellSpec *spec : speces_) {
-      delete spec;
+    for (const TupleCell *cell : tuple_) {
+      delete cell;
     }
-    speces_.clear();
     tuple_.clear();
   }
   int cell_num() const override
@@ -264,15 +279,15 @@ public:
       LOG_WARN("invalid argument. index=%d", index);
       return RC::INVALID_ARGUMENT;
     }
-    cell = tuple_[index];
+    cell = *tuple_[index];
     return RC::SUCCESS;
   }
   void add_row_tuple(RowTuple *tuple)
   {
     for (int i = 0; i < tuple->cell_num(); i++) {
-      TupleCell cell;
+      TupleCell *cell = new TupleCell();
       const TupleCellSpec *spec;
-      tuple->cell_at(i, cell);
+      tuple->cell_at(i, *cell);
       tuple->cell_spec_at(i, spec);
       tuple_.push_back(cell);
       speces_.push_back(spec);
@@ -289,7 +304,11 @@ public:
   }
   RC add_tuple_cell(TupleCell tuple_cell, const TupleCellSpec *spec)
   {
-    tuple_.push_back(tuple_cell);
+    TupleCell *new_tuple_cell = new TupleCell();
+    new_tuple_cell->set_data(tuple_cell.data());
+    new_tuple_cell->set_type(tuple_cell.attr_type());
+    new_tuple_cell->set_length(tuple_cell.length());
+    tuple_.push_back(new_tuple_cell);
     speces_.push_back(spec);
     return RC::SUCCESS;
   }
@@ -308,8 +327,23 @@ public:
     }
     return RC::NOTFOUND;
   }
+  void print()
+  {
+    // for debug
+    std::stringstream ss;
+    bool first_field = true;
+    for (unsigned i = 0; i < tuple_.size(); i++) {
+      if (!first_field) {
+        ss << " | ";
+      } else {
+        first_field = false;
+      }
+      tuple_[i]->to_string(ss);
+    }
+    std::cout << "complex tuple print : \n " << ss.str() << std::endl;
+  }
 
 private:
   std::vector<const TupleCellSpec *> speces_;
-  std::vector<TupleCell> tuple_;  // TupleCell自定义不需要偏移量，直接取用其data
+  std::vector<TupleCell *> tuple_;  // TupleCell自定义不需要偏移量，直接取用其data
 };
