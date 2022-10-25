@@ -1608,7 +1608,7 @@ TEST_F(SQLTest, DISABLED_NullInsertWithIndexShouldWork)
       "1 | 1\n");
 }
 
-TEST_F(SQLTest, DISABLED_NullCompareWithNullShouldAlwaysFalse)
+TEST_F(SQLTest, NullCompareWithNullShouldAlwaysFalse)
 {
   ASSERT_EQ(exec_sql("create table t(a int, b int nullable);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into t values (1, null);"), "SUCCESS\n");

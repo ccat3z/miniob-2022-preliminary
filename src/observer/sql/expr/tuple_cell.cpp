@@ -68,6 +68,10 @@ int TupleCell::compare(const TupleCell &other) const
     try_cast(other.attr_type_);
   }
 
+  if (is_null() || other.is_null()) {
+    throw std::invalid_argument("cannot compare with NULL");
+  }
+
   if (this->attr_type_ == other.attr_type_) {
     switch (this->attr_type_) {
     case INTS: return compare_int(this->data_, other.data_);

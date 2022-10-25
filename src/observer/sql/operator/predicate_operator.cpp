@@ -78,6 +78,10 @@ bool PredicateOperator::do_predicate(Tuple &tuple)
     left_expr->get_value(tuple, left_cell);
     right_expr->get_value(tuple, right_cell);
 
+    if (left_cell.is_null() || right_cell.is_null()) {
+      return false;
+    }
+
     if (comp == OP_LIKE || comp == OP_NOT_LIKE) {
       if (left_cell.attr_type() != CHARS || right_cell.attr_type() != CHARS) {
         LOG_WARN("like support CHARS only");
