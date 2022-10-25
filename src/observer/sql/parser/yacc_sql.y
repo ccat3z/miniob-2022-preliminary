@@ -306,6 +306,7 @@ ID_get:
 	;
 attr_def_nullable:
 	{ $$ = false; }
+	| NOT NULL_VALUE { $$ = false; }
 	| NULLABLE { $$ = true; }
 	;
 
