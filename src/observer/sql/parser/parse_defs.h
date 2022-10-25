@@ -95,16 +95,60 @@ typedef struct {
   size_t len;
 } List;
 
+typedef enum { EXPR_VALUE, EXPR_ATTR } UnionExprType;
+
+typedef struct _UnionExpr {
+  union {
+    Value value;
+    RelAttr attr;
+  } value;
+  UnionExprType type;
+} UnionExpr;
+
 typedef struct _Condition {
-  int left_is_attr;    // TRUE if left-hand side is an attribute
-                       // 1时，操作符左边是属性名，0时，是属性值
-  Value left_value;    // left-hand side value if left_is_attr = FALSE
-  RelAttr left_attr;   // left-hand side attribute
-  CompOp comp;         // comparison operator
-  int right_is_attr;   // TRUE if right-hand side is an attribute
-                       // 1时，操作符右边是属性名，0时，是属性值
-  RelAttr right_attr;  // right-hand side attribute if right_is_attr = TRUE 右边的属性
-  Value right_value;   // right-hand side value if right_is_attr = FALSE
+#ifdef __cplusplus
+  // TRUE if left-hand side is an attribute
+  // 1时，操作符左边是属性名，0时，是属性值
+  const int left_is_attr() const
+  {
+    return left_expr.type == EXPR_ATTR ? 1 : 0;
+  }
+
+  // left-hand side value if left_is_attr = FALSE
+  const Value &left_value() const
+  {
+    return left_expr.value.value;
+  }
+
+  // left-hand side attribute
+  const RelAttr &left_attr() const
+  {
+    return left_expr.value.attr;
+  }
+
+  // TRUE if right-hand side is an attribute
+  // 1时，操作符右边是属性名，0时，是属性值
+  const int right_is_attr() const
+  {
+    return right_expr.type == EXPR_ATTR ? 1 : 0;
+  }
+
+  // right-hand side attribute if right_is_attr = TRUE 右边的属性
+  const RelAttr &right_attr() const
+  {
+    return right_expr.value.attr;
+  }
+
+  // right-hand side value if right_is_attr = FALSE
+  const Value &right_value() const
+  {
+    return right_expr.value.value;
+  }
+#endif
+
+  UnionExpr left_expr;
+  CompOp comp;  // comparison operator
+  UnionExpr right_expr;
 } Condition;
 
 // struct of select
@@ -237,8 +281,9 @@ void value_init_float(Value *value, float v);
 void value_init_string(Value *value, const char *v);
 void value_destroy(Value *value);
 
-void condition_init(Condition *condition, CompOp comp, int left_is_attr, RelAttr *left_attr, Value *left_value,
-    int right_is_attr, RelAttr *right_attr, Value *right_value);
+void expr_destroy(UnionExpr *expr);
+
+void condition_init(Condition *condition, CompOp comp, UnionExpr *left, UnionExpr *right);
 void condition_destroy(Condition *condition);
 
 void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length);

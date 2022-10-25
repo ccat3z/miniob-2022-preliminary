@@ -125,6 +125,7 @@ union YYSTYPE
 
   struct _Attr *attr;
   Condition condition;
+  UnionExpr expr;
   Value value;
   char *string;
   int number;
@@ -134,7 +135,7 @@ union YYSTYPE
   List *list;
   CompOp comp_op;
 
-#line 138 "yacc_sql.tab.h"
+#line 139 "yacc_sql.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

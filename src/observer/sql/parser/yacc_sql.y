@@ -104,6 +104,7 @@ ParserContext *get_context(yyscan_t scanner)
 %union {
   struct _Attr *attr;
   Condition condition;
+  UnionExpr expr;
   Value value;
   char *string;
   int number;
@@ -134,6 +135,7 @@ ParserContext *get_context(yyscan_t scanner)
 %type <list> where;
 %type <list> condition_list;
 %type <comp_op> comOp;
+%type <expr> expr;
 
 %%
 
@@ -436,66 +438,9 @@ condition_list:
 	}
     ;
 condition:
-    ID comOp value 
-		{
-			RelAttr left_attr;
-			relation_attr_init(&left_attr, NULL, $1);
-
-			Value *right_value = &$3;
-
-			condition_init(&$$, $2, 1, &left_attr, NULL, 0, NULL, right_value);
-		}
-		|value comOp value 
-		{
-			Value *left_value = &$1;
-			Value *right_value = &$3;
-
-			condition_init(&$$, $2, 0, NULL, left_value, 0, NULL, right_value);
-		}
-		|ID comOp ID 
-		{
-			RelAttr left_attr;
-			relation_attr_init(&left_attr, NULL, $1);
-			RelAttr right_attr;
-			relation_attr_init(&right_attr, NULL, $3);
-
-			condition_init(&$$, $2, 1, &left_attr, NULL, 1, &right_attr, NULL);
-		}
-    |value comOp ID
-		{
-			Value *left_value = &$1;
-			RelAttr right_attr;
-			relation_attr_init(&right_attr, NULL, $3);
-
-			condition_init(&$$, $2, 0, NULL, left_value, 1, &right_attr, NULL);
-		}
-    |ID DOT ID comOp value
-		{
-			RelAttr left_attr;
-			relation_attr_init(&left_attr, $1, $3);
-			Value *right_value = &$5;
-
-			condition_init(&$$, $4, 1, &left_attr, NULL, 0, NULL, right_value);
-							
-    }
-    |value comOp ID DOT ID
-		{
-			Value *left_value = &$1;
-
-			RelAttr right_attr;
-			relation_attr_init(&right_attr, $3, $5);
-
-			condition_init(&$$, $2, 0, NULL, left_value, 1, &right_attr, NULL);
-    }
-    |ID DOT ID comOp ID DOT ID
-		{
-			RelAttr left_attr;
-			relation_attr_init(&left_attr, $1, $3);
-			RelAttr right_attr;
-			relation_attr_init(&right_attr, $5, $7);
-
-			condition_init(&$$, $4, 1, &left_attr, NULL, 1, &right_attr, NULL);
-    }
+	expr comOp expr {
+		condition_init(&$$, $2, &$1, &$3);
+	}
     ;
 
 comOp:
@@ -508,6 +453,20 @@ comOp:
 	| LIKE { $$ = OP_LIKE; }
 	| NOT LIKE { $$ = OP_NOT_LIKE; }
     ;
+
+expr:
+	ID {
+		$$.type = EXPR_ATTR;
+		relation_attr_init(&$$.value.attr, NULL, $1);
+	}
+	| ID DOT ID {
+		$$.type = EXPR_ATTR;
+		relation_attr_init(&$$.value.attr, $1, $3);
+	}
+	| value {
+		$$.type = EXPR_VALUE;
+		$$.value.value = $1;
+	}
 
 load_data:
 		LOAD DATA INFILE SSS INTO TABLE ID SEMICOLON

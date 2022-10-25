@@ -145,36 +145,31 @@ void value_destroy(Value *value)
   value->data = nullptr;
 }
 
-void condition_init(Condition *condition, CompOp comp, int left_is_attr, RelAttr *left_attr, Value *left_value,
-    int right_is_attr, RelAttr *right_attr, Value *right_value)
+void expr_destroy(UnionExpr *expr)
 {
-  condition->comp = comp;
-  condition->left_is_attr = left_is_attr;
-  if (left_is_attr) {
-    condition->left_attr = *left_attr;
-  } else {
-    condition->left_value = *left_value;
-  }
-
-  condition->right_is_attr = right_is_attr;
-  if (right_is_attr) {
-    condition->right_attr = *right_attr;
-  } else {
-    condition->right_value = *right_value;
+  switch (expr->type) {
+    case EXPR_ATTR:
+      relation_attr_destroy(&expr->value.attr);
+      break;
+    case EXPR_VALUE:
+      value_destroy(&expr->value.value);
+      break;
+    default:
+      throw std::logic_error("Unreachable code");
   }
 }
+
+void condition_init(Condition *condition, CompOp comp, UnionExpr *left, UnionExpr *right)
+{
+  condition->left_expr = *left;
+  condition->right_expr = *right;
+  condition->comp = comp;
+}
+
 void condition_destroy(Condition *condition)
 {
-  if (condition->left_is_attr) {
-    relation_attr_destroy(&condition->left_attr);
-  } else {
-    value_destroy(&condition->left_value);
-  }
-  if (condition->right_is_attr) {
-    relation_attr_destroy(&condition->right_attr);
-  } else {
-    value_destroy(&condition->right_value);
-  }
+  expr_destroy(&condition->left_expr);
+  expr_destroy(&condition->right_expr);
 }
 
 void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length)

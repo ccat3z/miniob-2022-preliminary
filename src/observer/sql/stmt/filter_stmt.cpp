@@ -91,23 +91,23 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
 
   Expression *left = nullptr;
   Expression *right = nullptr;
-  if (condition.left_is_attr) {
+  if (condition.left_is_attr()) {
     Table *table = nullptr;
     const FieldMeta *field = nullptr;
-    rc = get_table_and_field(db, default_table, tables, condition.left_attr, table, field);  
+    rc = get_table_and_field(db, default_table, tables, condition.left_attr(), table, field);
     if (rc != RC::SUCCESS) {
       LOG_WARN("cannot find attr");
       return rc;
     }
     left = new FieldExpr(table, field);
   } else {
-    left = new ValueExpr(condition.left_value);
+    left = new ValueExpr(condition.left_value());
   }
 
-  if (condition.right_is_attr) {
+  if (condition.right_is_attr()) {
     Table *table = nullptr;
     const FieldMeta *field = nullptr;
-    rc = get_table_and_field(db, default_table, tables, condition.right_attr, table, field);  
+    rc = get_table_and_field(db, default_table, tables, condition.right_attr(), table, field);
     if (rc != RC::SUCCESS) {
       LOG_WARN("cannot find attr");
       delete left;
@@ -115,7 +115,7 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
     }
     right = new FieldExpr(table, field);
   } else {
-    right = new ValueExpr(condition.right_value);
+    right = new ValueExpr(condition.right_value());
   }
 
   filter_unit = new FilterUnit;
