@@ -1429,7 +1429,7 @@ yyreduce:
 #line 241 "yacc_sql.y"
            {
 		(yyval.list) = list_create(sizeof(char *), MAX_NUM);
-		list_append((yyval.list), &(yyvsp[0].string));
+		list_prepend((yyval.list), &(yyvsp[0].string));
 	}
 #line 1435 "yacc_sql.tab.c"
     break;
@@ -1438,7 +1438,7 @@ yyreduce:
 #line 245 "yacc_sql.y"
                                           {
 		(yyval.list) = (yyvsp[0].list);
-		list_append((yyval.list), &(yyvsp[-2].string));
+		list_prepend((yyval.list), &(yyvsp[-2].string));
 	}
 #line 1444 "yacc_sql.tab.c"
     break;
@@ -1556,7 +1556,7 @@ yyreduce:
                                                      {
 		CONTEXT->ssql->sstr.insertion.tuple_num++;
 		(yyval.list) = (yyvsp[0].list);
-		list_append_list((yyval.list), (yyvsp[-3].list));
+		list_prepend_list((yyval.list), (yyvsp[-3].list));
 		list_free((yyvsp[-3].list));
 	}
 #line 1563 "yacc_sql.tab.c"
@@ -1566,7 +1566,7 @@ yyreduce:
 #line 326 "yacc_sql.y"
               {
 		(yyval.list) = list_create(sizeof(Value), MAX_NUM);
-		list_append((yyval.list), &(yyvsp[0].value));
+		list_prepend((yyval.list), &(yyvsp[0].value));
 	}
 #line 1572 "yacc_sql.tab.c"
     break;
@@ -1575,7 +1575,7 @@ yyreduce:
 #line 330 "yacc_sql.y"
                               { 
 		(yyval.list) = (yyvsp[0].list);
-		list_append((yyval.list), &(yyvsp[-2].value));
+		list_prepend((yyval.list), &(yyvsp[-2].value));
 	}
 #line 1581 "yacc_sql.tab.c"
     break;
@@ -1724,7 +1724,7 @@ yyreduce:
 #line 426 "yacc_sql.y"
                   {
 		(yyval.list) = list_create(sizeof(Condition), MAX_NUM);
-		list_append((yyval.list), &(yyvsp[0].condition));
+		list_prepend((yyval.list), &(yyvsp[0].condition));
 	}
 #line 1730 "yacc_sql.tab.c"
     break;
@@ -1733,7 +1733,7 @@ yyreduce:
 #line 430 "yacc_sql.y"
                                    {
 		(yyval.list) = (yyvsp[0].list);
-		list_append((yyval.list), &(yyvsp[-2].condition));
+		list_prepend((yyval.list), &(yyvsp[-2].condition));
 	}
 #line 1739 "yacc_sql.tab.c"
     break;

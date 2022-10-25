@@ -240,11 +240,11 @@ create_index_unique:
 create_index_attr_list:
 	ID {
 		$$ = list_create(sizeof(char *), MAX_NUM);
-		list_append($$, &$1);
+		list_prepend($$, &$1);
 	}
 	| ID COMMA create_index_attr_list {
 		$$ = $3;
-		list_append($$, &$1);
+		list_prepend($$, &$1);
 	}
 	;
 
@@ -316,7 +316,7 @@ value_lists:
 	| LBRACE value_list RBRACE COMMA value_lists {
 		CONTEXT->ssql->sstr.insertion.tuple_num++;
 		$$ = $5;
-		list_append_list($$, $2);
+		list_prepend_list($$, $2);
 		list_free($2);
 	}
 	;
@@ -325,11 +325,11 @@ value_list:
     /* empty */
 	value {
 		$$ = list_create(sizeof(Value), MAX_NUM);
-		list_append($$, &$1);
+		list_prepend($$, &$1);
 	}
     | value COMMA value_list  { 
 		$$ = $3;
-		list_append($$, &$1);
+		list_prepend($$, &$1);
 	}
     ;
 
@@ -425,11 +425,11 @@ where:
 condition_list:
 	condition {
 		$$ = list_create(sizeof(Condition), MAX_NUM);
-		list_append($$, &$1);
+		list_prepend($$, &$1);
 	}
     | condition AND condition_list {
 		$$ = $3;
-		list_append($$, &$1);
+		list_prepend($$, &$1);
 	}
     ;
 condition:

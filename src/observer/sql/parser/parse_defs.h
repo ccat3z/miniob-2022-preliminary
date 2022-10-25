@@ -89,6 +89,8 @@ private:
 
 typedef struct {
   char *values;
+  char *data;
+  size_t cap;
   size_t size;
   size_t len;
 } List;
@@ -285,8 +287,8 @@ void query_reset(Query *query);
 void query_destroy(Query *query);  // reset and delete
 
 List *list_create(size_t size, size_t max);
-void list_append(List *list, void *value);
-void list_append_list(List *list, List *append);
+void list_prepend(List *list, void *value);
+void list_prepend_list(List *list, List *append);
 void list_free(List *list);
 #ifdef __cplusplus
 }

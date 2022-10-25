@@ -17,8 +17,10 @@ See the Mulan PSL v2 for more details. */
 #include <common/time/datetime.h>
 #include <cstring>
 #include <cstdlib>
+#include <stdexcept>
 #include <string>
 #include <cmath>
+#include <exception>
 #include "sql/parser/parse.h"
 #include "rc.h"
 #include "common/log/log.h"
@@ -230,7 +232,6 @@ void inserts_init(Inserts *inserts, const char *relation_name, Value values[], s
   assert(value_num <= sizeof(inserts->values) / sizeof(inserts->values[0]));
 
   inserts->relation_name = strdup(relation_name);
-  std::reverse(values, values + value_num);
   for (size_t i = 0; i < value_num; i++) {
     inserts->values[i] = values[i];
   }
@@ -480,26 +481,40 @@ void query_destroy(Query *query)
 List *list_create(size_t size, size_t max)
 {
   List *l = (List *)malloc(sizeof(List));
-  l->values = (char *)malloc(size * max);
+  l->data = (char *)malloc(size * max);
   l->size = size;
+
   l->len = 0;
+  l->cap = max;
+  l->values = l->data + (l->size * l->cap);
   return l;
 }
 
-void list_append(List *list, void *value)
+void list_prepend(List *list, void *value)
 {
-  memcpy(list->values + (list->size * list->len++), value, list->size);
+  if (list->len + 1 > list->cap) {
+    throw std::out_of_range("overflow");
+  }
+
+  list->values -= list->size;
+  list->len++;
+  memcpy(list->values, value, list->size);
 }
 
-void list_append_list(List *list, List *append)
+void list_prepend_list(List *list, List *append)
 {
-  memcpy(list->values + (list->size * list->len), append->values, append->size * append->len);
+  if (list->len + append->len > list->cap) {
+    throw std::out_of_range("overflow");
+  }
+
+  list->values -= append->size * append->len;
   list->len += append->len;
+  memcpy(list->values, append->values, append->size * append->len);
 }
 
 void list_free(List *list)
 {
-  free(list->values);
+  free(list->data);
   free(list);
 }
 #ifdef __cplusplus
