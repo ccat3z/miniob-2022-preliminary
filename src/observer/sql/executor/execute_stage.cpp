@@ -441,7 +441,14 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
     decarts_join_oper->add_child(scan_oper);
   }
   PredicateOperator pred_oper(select_stmt->filter_stmt());
-  pred_oper.add_child(decarts_join_oper);
+  if (select_stmt->join_filter_stmt()) {
+    PredicateOperator *pred_join_oper = new PredicateOperator(select_stmt->join_filter_stmt());
+    pred_join_oper->add_child(decarts_join_oper);
+    pred_oper.add_child(pred_join_oper);
+  } else {
+    pred_oper.add_child(decarts_join_oper);
+  }
+
   ProjectOperator project_oper;
   project_oper.add_child(&pred_oper);
   for (unsigned i = 0; i < select_stmt->query_fields().size(); i++) {

@@ -62,7 +62,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
     tables.push_back(table);
     table_map.insert(std::pair<std::string, Table*>(table_name, table));
   }
-  
+
   // collect query fields in `select` statement
   std::vector<Field> query_fields;
   for (int i = select_sql.attr_num - 1; i >= 0; i--) {
@@ -137,12 +137,20 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
     LOG_WARN("cannot construct filter stmt");
     return rc;
   }
-
+  // collect join infos int `from` statement
+  FilterStmt *join_filter_stmt = nullptr;
+  rc = FilterStmt::create(
+      db, default_table, &table_map, select_sql.join_conditions, select_sql.join_condition_num, join_filter_stmt);
+  if (rc != RC::SUCCESS) {
+    LOG_WARN("cannot construct filter stmt");
+    return rc;
+  }
   // everything alright
   SelectStmt *select_stmt = new SelectStmt();
   select_stmt->tables_.swap(tables);
   select_stmt->query_fields_.swap(query_fields);
   select_stmt->filter_stmt_ = filter_stmt;
+  select_stmt->join_filter_stmt_ = join_filter_stmt;
   stmt = select_stmt;
   return RC::SUCCESS;
 }

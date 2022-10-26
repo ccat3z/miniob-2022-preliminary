@@ -1499,7 +1499,16 @@ TEST_F(SQLTest, SelectMutilTablesShouldWork)
   ASSERT_NE(exec_sql("select * from t2,t3 where t2.b>=t2.d;"), "FAILURE\n");
   ASSERT_NE(exec_sql("select * from t2,t3 where t2.b > 10; "), "FAILURE\n");
   ASSERT_NE(exec_sql("select t2.b,t3.a from t3,t2; "), "FAILURE\n");
-  // ASSERT_NE(exec_sql("select * from t2,t3 where a>b;"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select t2.b,t3.a from t3,t2 where t3.a != 100; "),
+      "t2.b | t3.a\n"
+      "10 | 102\n"
+      "10 | 202\n"
+      "10 | 302\n"
+      "20 | 102\n"
+      "20 | 202\n"
+      "20 | 302\n");
+
+  // ASSERT_NE(exec_sql("select *   from t2,t3 where a>b;"), "FAILURE\n");
   // ASSERT_NE(exec_sql("select *,a from t3,t2;"), "FAILURE\n");
 }
 
@@ -1518,7 +1527,7 @@ TEST_F(SQLTest, SelectMutilTablesShouldWork)
 //    ##    ##     ## ##     ## ##       ##       ##    ##
 //    ##    ##     ## ########  ######## ########  ######
 
-TEST_F(SQLTest, DISABLED_JoinTablesShouldWork)
+TEST_F(SQLTest, JoinTablesShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("create table t2(b int, d int);"), "SUCCESS\n");
@@ -1533,17 +1542,17 @@ TEST_F(SQLTest, DISABLED_JoinTablesShouldWork)
   ASSERT_EQ(exec_sql("insert into t3 values (777, 666);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into t3 values (777, 0);"), "SUCCESS\n");
 
-  ASSERT_EQ(exec_sql("select * from t, t2 inner join t3 on o <= 777 and t.a >= 2;"),
+  ASSERT_EQ(exec_sql("select * from t, t2 inner join t3 on t3.o <= 777 and t.a >= 2;"),
       "t.a | t.b | t2.b | t2.d | t3.o | t3.a\n"
       "2 | 3 | 100 | 200 | 777 | 666\n"
-      "2 | 3 | 100 | 200 | 777 | 0\n"
       "2 | 3 | 300 | 500 | 777 | 666\n"
+      "2 | 3 | 100 | 200 | 777 | 0\n"
       "2 | 3 | 300 | 500 | 777 | 0\n");
 
   ASSERT_EQ(exec_sql("select * from t "
                      "inner join t2 on 1 = 1 "
                      "inner join t3 on 1 = 1 "
-                     "where o <= 777 and t.a >= 2 and t.a < t3.a;"),
+                     "where t3.o <= 777 and t.a >= 2 and t.a < t3.a;"),
       "t.a | t.b | t2.b | t2.d | t3.o | t3.a\n"
       "2 | 3 | 100 | 200 | 777 | 666\n"
       "2 | 3 | 300 | 500 | 777 | 666\n");
@@ -1553,8 +1562,8 @@ TEST_F(SQLTest, DISABLED_JoinTablesShouldWork)
                      "inner join t3 on t.a > t3.a;"),
       "t.a | t.b | t2.b | t2.d | t3.o | t3.a\n"
       "1 | 1 | 100 | 200 | 777 | 0\n"
-      "1 | 1 | 300 | 500 | 777 | 0\n"
       "2 | 3 | 100 | 200 | 777 | 0\n"
+      "1 | 1 | 300 | 500 | 777 | 0\n"
       "2 | 3 | 300 | 500 | 777 | 0\n");
 }
 

@@ -76,6 +76,8 @@ QUOTE            [\'\"]
 [Nn][Oo][Tt]                                         RETURN_TOKEN(NOT);
 [Uu][Nn][Ii][Qq][Uu][Ee]                             RETURN_TOKEN(UNIQUE);
 [Tt][Ee][Xx][Tt]                                     RETURN_TOKEN(TEXT_T);
+[Ii][Nn][Nn][Ee][Rr]                                 RETURN_TOKEN(INNER);  
+[Jj][Oo][Ii][Nn]                                     RETURN_TOKEN(JOIN);  
 {ID}                                                 yylval->string=strdup(yytext); RETURN_TOKEN(ID);
 "("                                                  RETURN_TOKEN(LBRACE);
 ")"                                                  RETURN_TOKEN(RBRACE);
@@ -87,7 +89,8 @@ QUOTE            [\'\"]
 "<"                                                  RETURN_TOKEN(LT);
 ">="                                                 RETURN_TOKEN(GE);
 ">"                                                  RETURN_TOKEN(GT);
-"!="                                                 RETURN_TOKEN(NE);    
+"!="                                                 RETURN_TOKEN(NE);   
+
 {QUOTE}[\40\42A-Za-z0-9_/\.\-%]*{QUOTE}            yylval->string=strdup(yytext); RETURN_TOKEN(SSS);
 
 .                                                    printf("Unknown character [%c]\n",yytext[0]); return yytext[0];

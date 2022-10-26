@@ -40,10 +40,15 @@ public:
   const std::vector<Table *> &tables() const { return tables_; }
   const std::vector<Field> &query_fields() const { return query_fields_; }
   FilterStmt *filter_stmt() const { return filter_stmt_; }
+  FilterStmt *join_filter_stmt() const
+  {
+    return join_filter_stmt_;
+  }
 
 private:
   std::vector<Field> query_fields_;
   std::vector<Table *> tables_;
   FilterStmt *filter_stmt_ = nullptr;
+  FilterStmt *join_filter_stmt_ = nullptr;
 };
 
