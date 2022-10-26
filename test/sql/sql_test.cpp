@@ -1335,6 +1335,13 @@ TEST_F(SQLTest, InsertInvalidTupleShouldInsertNothing)
   ASSERT_EQ(exec_sql("select * from t;"), "a | b\n");
 }
 
+TEST_F(SQLTest, InsertMultiTupleShouldBeAtomic)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int nullable);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, null), (null, 3);"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select * from t;"), "a | b\n");
+}
+
 //  ######  ##        #######   ######
 // ##    ## ##       ##     ## ##    ##
 // ##       ##       ##     ## ##
