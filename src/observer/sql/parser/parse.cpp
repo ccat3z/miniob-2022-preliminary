@@ -96,6 +96,9 @@ bool Value::try_cast(const AttrType &type) const
           return false;
       }
     } break;
+    case TYPE_NULL:
+      // NULL can be anything
+      break;
     default:
       return false;
   }
@@ -122,23 +125,35 @@ void relation_attr_destroy(RelAttr *relation_attr)
   relation_attr->attribute_name = nullptr;
 }
 
+void value_init_null(Value *value)
+{
+  value->type = TYPE_NULL;
+  value->data = malloc(4);
+  memset(value->data, 0, 4);
+  value->is_null = true;
+}
+
 void value_init_integer(Value *value, int v)
 {
   value->type = INTS;
   value->data = malloc(sizeof(v));
   memcpy(value->data, &v, sizeof(v));
+  value->is_null = false;
 }
 void value_init_float(Value *value, float v)
 {
   value->type = FLOATS;
   value->data = malloc(sizeof(v));
   memcpy(value->data, &v, sizeof(v));
+  value->is_null = false;
 }
 void value_init_string(Value *value, const char *v)
 {
   value->type = CHARS;
   value->data = strdup(v);
+  value->is_null = false;
 }
+
 void value_destroy(Value *value)
 {
   value->type = UNDEFINED;
@@ -173,11 +188,12 @@ void condition_destroy(Condition *condition)
   expr_destroy(&condition->right_expr);
 }
 
-void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length)
+void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length, bool nullable)
 {
   attr_info->name = strdup(name);
   attr_info->type = type;
   attr_info->length = length;
+  attr_info->nullable = nullable;
 }
 void attr_info_destroy(AttrInfo *attr_info)
 {

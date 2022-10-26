@@ -44,17 +44,20 @@ typedef enum {
   GREAT_THAN,   //">"     5
   OP_LIKE,      //"like"  6
   OP_NOT_LIKE,  //"like"  6
+  IS_NULL,
+  IS_NOT_NULL,
   NO_OP
 } CompOp;
 
 //属性值类型
-typedef enum { UNDEFINED, CHARS, INTS, FLOATS, DATE, TEXT, MIXED } AttrType;
+typedef enum { UNDEFINED, CHARS, INTS, FLOATS, DATE, TEXT, MIXED, TYPE_NULL } AttrType;
 
 //属性值
 typedef struct _Value {
 #ifdef __cplusplus
   mutable AttrType type;  // type of value
   mutable void *data;     // value
+  mutable bool is_null;
 
   // Cast value to type, precision may be lost.
   bool try_cast(const AttrType &type) const;
@@ -84,6 +87,7 @@ private:
 #else
   AttrType type;  // type of value
   void *data;     // value
+  bool is_null;
 #endif
 } Value;
 
@@ -203,6 +207,7 @@ typedef struct {
   char *name;     // Attribute name
   AttrType type;  // Type of attribute
   size_t length;  // Length of attribute
+  bool nullable;
 } AttrInfo;
 
 // struct of craete_table
@@ -290,6 +295,7 @@ extern "C" {
 void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const char *attribute_name);
 void relation_attr_destroy(RelAttr *relation_attr);
 
+void value_init_null(Value *value);
 void value_init_integer(Value *value, int v);
 void value_init_float(Value *value, float v);
 void value_init_string(Value *value, const char *v);
@@ -300,7 +306,7 @@ void expr_destroy(UnionExpr *expr);
 void condition_init(Condition *condition, CompOp comp, UnionExpr *left, UnionExpr *right);
 void condition_destroy(Condition *condition);
 
-void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length);
+void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length, bool nullable);
 void attr_info_destroy(AttrInfo *attr_info);
 
 void selects_init(Selects *selects, ...);

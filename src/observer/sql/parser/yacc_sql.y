@@ -59,6 +59,8 @@ ParserContext *get_context(yyscan_t scanner)
         DROP
         TABLE
         TABLES
+		NULL_VALUE
+		NULLABLE
         INDEX
         SELECT
         DESC
@@ -85,6 +87,7 @@ ParserContext *get_context(yyscan_t scanner)
         VALUES
         FROM
         WHERE
+		IS
         AND
         SET
         ON
@@ -139,6 +142,7 @@ ParserContext *get_context(yyscan_t scanner)
 %type <comp_op> comOp;
 %type <expr> expr;
 %type <list> update_set_list;
+%type <boolean> attr_def_nullable;
 
 %%
 
@@ -273,16 +277,16 @@ attr_def_list:
     ;
     
 attr_def:
-    ID_get type LBRACE number RBRACE 
+    ID_get type LBRACE number RBRACE attr_def_nullable
 		{
 			AttrInfo attribute;
-			attr_info_init(&attribute, CONTEXT->id, $2, $4);
+			attr_info_init(&attribute, CONTEXT->id, $2, $4, $6);
 			create_table_append_attribute(&CONTEXT->ssql->sstr.create_table, &attribute);
 		}
-    |ID_get type
+    |ID_get type attr_def_nullable
 		{
 			AttrInfo attribute;
-			attr_info_init(&attribute, CONTEXT->id, $2, 4);
+			attr_info_init(&attribute, CONTEXT->id, $2, 4, $3);
 			create_table_append_attribute(&CONTEXT->ssql->sstr.create_table, &attribute);
 		}
     ;
@@ -302,6 +306,11 @@ ID_get:
 		char *temp=$1; 
 		snprintf(CONTEXT->id, sizeof(CONTEXT->id), "%s", temp);
 	}
+	;
+attr_def_nullable:
+	{ $$ = false; }
+	| NOT NULL_VALUE { $$ = false; }
+	| NULLABLE { $$ = true; }
 	;
 
 	
@@ -339,7 +348,10 @@ value_list:
     ;
 
 value:
-    NUMBER{	
+	NULL_VALUE {
+		value_init_null(&$$);
+	}
+    |NUMBER{	
   		value_init_integer(&$$, $1);
 	}
     |FLOAT{
@@ -480,7 +492,27 @@ condition:
 	expr comOp expr {
 		condition_init(&$$, $2, &$1, &$3);
 	}
-    ;
+	| expr IS NULL_VALUE {
+		Value null;
+		value_init_null(&null);
+
+		UnionExpr null_expr;
+		null_expr.type = EXPR_VALUE;
+		null_expr.value.value = null;
+
+		condition_init(&$$, IS_NULL, &$1, &null_expr);
+	}
+	| expr IS NOT NULL_VALUE {
+		Value null;
+		value_init_null(&null);
+
+		UnionExpr null_expr;
+		null_expr.type = EXPR_VALUE;
+		null_expr.value.value = null;
+
+		condition_init(&$$, IS_NOT_NULL, &$1, &null_expr);
+	}
+	;
 
 comOp:
   	  EQ { $$ = EQUAL_TO; }

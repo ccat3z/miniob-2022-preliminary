@@ -40,7 +40,7 @@ void TableMeta::swap(TableMeta &other) noexcept
 
 RC TableMeta::init_sys_fields()
 {
-  sys_fields_.reserve(1);
+  sys_fields_.reserve(2);
   FieldMeta field_meta;
   RC rc = field_meta.init(Trx::trx_field_name(), Trx::trx_field_type(), 0, Trx::trx_field_len(), false);
   if (rc != RC::SUCCESS) {
@@ -49,6 +49,11 @@ RC TableMeta::init_sys_fields()
   }
 
   sys_fields_.push_back(field_meta);
+
+  // Null field
+  FieldMeta null_field;
+  null_field.init("__null", INTS, 4, 4, false);
+  sys_fields_.push_back(null_field);
   return rc;
 }
 RC TableMeta::init(const char *name, int field_num, const AttrInfo attributes[])
@@ -82,11 +87,13 @@ RC TableMeta::init(const char *name, int field_num, const AttrInfo attributes[])
 
   for (int i = 0; i < field_num; i++) {
     const AttrInfo &attr_info = attributes[i];
-    rc = fields_[i + sys_fields_.size()].init(attr_info.name, attr_info.type, field_offset, attr_info.length, true);
+    auto &field = fields_[i + sys_fields_.size()];
+    rc = field.init(attr_info.name, attr_info.type, field_offset, attr_info.length, true, attr_info.nullable);
     if (rc != RC::SUCCESS) {
       LOG_ERROR("Failed to init field meta. table name=%s, field name: %s", name, attr_info.name);
       return rc;
     }
+    field.set_null_offset(null_field()->offset(), i + sys_fields_.size());
 
     field_offset += attr_info.length;
   }
@@ -112,6 +119,11 @@ const char *TableMeta::name() const
 const FieldMeta *TableMeta::trx_field() const
 {
   return &fields_[0];
+}
+
+const FieldMeta *TableMeta::null_field() const
+{
+  return &fields_[1];
 }
 
 const FieldMeta *TableMeta::field(int index) const
@@ -281,6 +293,10 @@ int TableMeta::deserialize(std::istream &is)
   name_.swap(table_name);
   fields_.swap(fields);
   record_size_ = fields_.back().offset() + fields_.back().len() - fields_.begin()->offset();
+
+  for (int i = sys_field_num(); i < fields_.size(); i++) {
+    fields_[i].set_null_offset(null_field()->offset(), i);
+  }
 
   const Json::Value &indexes_value = table_value[FIELD_INDEXES];
   if (!indexes_value.empty()) {

@@ -657,6 +657,10 @@ RC ExecuteStage::do_insert(SQLStageEvent *sql_event)
       session_event->set_response("SUCCESS\n");
     }
   } else {
+    if (!session->is_trx_multi_operation_mode()) {
+      trx->rollback();
+    }
+    // FIXME: Records that have been inserted cannot be rolled back in mutli op trx
     session_event->set_response("FAILURE\n");
   }
   return rc;

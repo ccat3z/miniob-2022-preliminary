@@ -26,6 +26,11 @@ using namespace std::string_literals;
 
 void TupleCell::to_string(std::ostream &os) const
 {
+  if (is_null()) {
+    os << "NULL";
+    return;
+  }
+
   switch (attr_type_) {
   case INTS: {
     os << *(int *)data_;
@@ -61,6 +66,10 @@ int TupleCell::compare(const TupleCell &other) const
 {
   if (!other.try_cast(attr_type_)) {
     try_cast(other.attr_type_);
+  }
+
+  if (is_null() || other.is_null()) {
+    throw std::invalid_argument("cannot compare with NULL");
   }
 
   if (this->attr_type_ == other.attr_type_) {

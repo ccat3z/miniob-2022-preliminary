@@ -120,6 +120,7 @@ public:
     cell.set_type(field_meta->type());
     cell.set_data(this->record_->data() + field_meta->offset());
     cell.set_length(field_meta->len());
+    cell.set_null(field_meta->is_null(record_->data()));
     return RC::SUCCESS;
   }
 
@@ -300,16 +301,6 @@ public:
       return RC::INVALID_ARGUMENT;
     }
     spec = speces_[index];
-    return RC::SUCCESS;
-  }
-  RC add_tuple_cell(TupleCell tuple_cell, const TupleCellSpec *spec)
-  {
-    TupleCell *new_tuple_cell = new TupleCell();
-    new_tuple_cell->set_data(tuple_cell.data());
-    new_tuple_cell->set_type(tuple_cell.attr_type());
-    new_tuple_cell->set_length(tuple_cell.length());
-    tuple_.push_back(new_tuple_cell);
-    speces_.push_back(spec);
     return RC::SUCCESS;
   }
   RC find_cell(const Field &field, TupleCell &cell) const override

@@ -22,12 +22,11 @@ class TupleCell
 {
 public: 
   TupleCell() = default;
-  
-  TupleCell(FieldMeta *meta, char *data)
-    : TupleCell(meta->type(), data)
+
+  TupleCell(FieldMeta *meta, char *data, bool is_null = false) : TupleCell(meta->type(), data, is_null)
   {}
-  TupleCell(AttrType attr_type, char *data)
-    : attr_type_(attr_type), data_(data)
+  TupleCell(AttrType attr_type, char *data, bool is_null = false)
+      : attr_type_(attr_type), data_(data), is_null_(is_null)
   {}
 
   void set_type(AttrType type) { this->attr_type_ = type; }
@@ -56,8 +55,19 @@ public:
   // Force convert to float
   float as_float() const;
 
+  bool is_null() const
+  {
+    return is_null_;
+  }
+
+  void set_null(bool is_null)
+  {
+    is_null_ = is_null;
+  }
+
 private:
   mutable AttrType attr_type_ = UNDEFINED;
   mutable int length_ = -1;
   mutable char *data_ = nullptr;  // real data. no need to move to field_meta.offset
+  bool is_null_;
 };
