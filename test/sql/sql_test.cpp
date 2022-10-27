@@ -1691,6 +1691,40 @@ TEST_F(SQLTest, DISABLED_NullAggAvgOfNullableShouldWork)
   ASSERT_EQ(exec_sql("select avg(a) from t;"), "avg(a)\n1.5\n");
 }
 
+//    ###    ##       ####    ###     ######
+//   ## ##   ##        ##    ## ##   ##    ##
+//  ##   ##  ##        ##   ##   ##  ##
+// ##     ## ##        ##  ##     ##  ######
+// ######### ##        ##  #########       ##
+// ##     ## ##        ##  ##     ## ##    ##
+// ##     ## ######## #### ##     ##  ######
+
+TEST_F(SQLTest, AliasColumnShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 2);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select a as b, b as a from t;"), "b | a\n1 | 2\n");
+}
+
+TEST_F(SQLTest, AliasColumnShouldWork2)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table t2(b int, d int);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (100, 200);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (300, 500);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select t.a as c1, t.b as c2, t2.b, t2.d from t, t2;"),
+      "c1 | c2 | t2.b | t2.d\n"
+      "1 | 1 | 100 | 200\n"
+      "2 | 3 | 100 | 200\n"
+      "1 | 1 | 300 | 500\n"
+      "2 | 3 | 300 | 500\n");
+}
+
 int main(int argc, char **argv)
 {
   srand((unsigned)time(NULL));

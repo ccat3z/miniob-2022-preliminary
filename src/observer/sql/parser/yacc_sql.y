@@ -103,6 +103,7 @@ ParserContext *get_context(yyscan_t scanner)
 		NOT
 		LIKE
 		UNIQUE
+		AS
 
 %union {
   Condition condition;
@@ -424,6 +425,11 @@ select_attr:
 	{
 		$$.expr = $1;
 		$$.name = NULL;
+	}
+	| expr AS ID
+	{
+		$$.expr = $1;
+		$$.name = $3;
 	}
     ;
 
