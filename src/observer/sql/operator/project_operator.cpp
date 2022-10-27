@@ -62,9 +62,7 @@ void ProjectOperator::add_projection(const Table *table, const FieldMeta *field_
   // 对多表查询来说，展示的alias 需要带表名字
   TupleCellSpec *spec = new TupleCellSpec(new FieldExpr(table, field_meta));
   if (multi_table) {
-    std::string alia1 = std::string(table->name()) + "." + std::string(field_meta->name());
-    std::string *alia2 = new std::string(alia1);
-    spec->set_alias(alia2->c_str());
+    spec->set_alias(std::string(table->name()) + "." + std::string(field_meta->name()));
   } else {
     spec->set_alias(field_meta->name());
   }

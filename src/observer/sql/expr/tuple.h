@@ -41,13 +41,13 @@ public:
     }
   }
 
-  void set_alias(const char *alias)
+  void set_alias(std::string alias)
   {
     this->alias_ = alias;
   }
   const char *alias() const
   {
-    return alias_;
+    return alias_.c_str();
   }
 
   Expression *expression() const
@@ -56,7 +56,7 @@ public:
   }
 
 private:
-  const char *alias_ = nullptr;
+  std::string alias_;
   Expression *expression_ = nullptr;
 };
 
