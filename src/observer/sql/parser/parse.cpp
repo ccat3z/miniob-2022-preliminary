@@ -202,9 +202,12 @@ void attr_info_destroy(AttrInfo *attr_info)
 }
 
 void selects_init(Selects *selects, ...);
-void selects_append_attribute(Selects *selects, RelAttr *rel_attr)
+void selects_append_attribute(Selects *selects, AttrExpr *rel_attr, size_t attr_len)
 {
-  selects->attributes[selects->attr_num++] = *rel_attr;
+  for (int i = 0; i < attr_len; i++) {
+    selects->attributes[i] = rel_attr[i];
+  }
+  selects->attr_num = attr_len;
 }
 void selects_append_relation(Selects *selects, const char *relation_name)
 {
@@ -223,7 +226,9 @@ void selects_append_conditions(Selects *selects, Condition conditions[], size_t 
 void selects_destroy(Selects *selects)
 {
   for (size_t i = 0; i < selects->attr_num; i++) {
-    relation_attr_destroy(&selects->attributes[i]);
+    expr_destroy(&selects->attributes[i].expr);
+    if (selects->attributes[i].name)
+      free(selects->attributes[i].name);
   }
   selects->attr_num = 0;
 

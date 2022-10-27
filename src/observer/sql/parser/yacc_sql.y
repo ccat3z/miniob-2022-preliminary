@@ -105,7 +105,6 @@ ParserContext *get_context(yyscan_t scanner)
 		UNIQUE
 
 %union {
-  struct _Attr *attr;
   Condition condition;
   UnionExpr expr;
   Value value;
@@ -116,6 +115,7 @@ ParserContext *get_context(yyscan_t scanner)
   bool boolean;
   List *list;
   CompOp comp_op;
+  AttrExpr attr;
 }
 
 %token <number> NUMBER
@@ -137,6 +137,8 @@ ParserContext *get_context(yyscan_t scanner)
 %type <list> value_lists;
 %type <list> where;
 %type <list> condition_list;
+%type <list> attr_list;
+%type <attr> select_attr;
 %type <comp_op> comOp;
 %type <expr> expr;
 %type <list> update_set_list;
@@ -402,60 +404,38 @@ update_set_list:
 	;
 
 select:				/*  select 语句的语法解析树*/
-    SELECT select_attr FROM ID rel_list where SEMICOLON
+    SELECT attr_list FROM ID rel_list where SEMICOLON
 		{
 			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
 
 			selects_append_conditions(&CONTEXT->ssql->sstr.selection, (Condition *) $6->values, $6->len);
 			list_free($6);
 
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, (AttrExpr *) $2->values, $2->len);
+			list_free($2);
+
 			CONTEXT->ssql->flag=SCF_SELECT;//"select";
 	}
 	;
 
 select_attr:
-    STAR attr_list{  
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, "*");
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-		}
-    | ID attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, $1);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-		}
-  	| ID DOT ID attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, $1, $3);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-		}
-	| ID DOT STAR attr_list{
-			RelAttr attr;
-			relation_attr_init(&attr, $1, "*");
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+	expr
+	{
+		$$.expr = $1;
+		$$.name = NULL;
 	}
     ;
+
 attr_list:
-    /* empty */
-	| COMMA STAR attr_list{
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, "*");
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-	 }
-    | COMMA ID attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, $2);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-      }
-    | COMMA ID DOT ID attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, $2, $4);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-  	  }
-	| COMMA ID DOT STAR attr_list{
-			RelAttr attr;
-			relation_attr_init(&attr, $2, "*");
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+	select_attr
+	{
+		$$ = list_create(sizeof(AttrExpr), MAX_NUM);
+		list_prepend($$, &$1);
+	}
+	| select_attr COMMA attr_list
+	{
+		$$ = $3;
+		list_prepend($$, &$1);
 	}
   	;
 
@@ -519,9 +499,19 @@ comOp:
     ;
 
 expr:
-	ID {
+    STAR
+	{
+		$$.type = EXPR_ATTR;
+		relation_attr_init(&$$.value.attr, NULL, "*");
+	}
+	| ID {
 		$$.type = EXPR_ATTR;
 		relation_attr_init(&$$.value.attr, NULL, $1);
+	}
+	| ID DOT STAR
+	{
+		$$.type = EXPR_ATTR;
+		relation_attr_init(&$$.value.attr, $1, "*");
 	}
 	| ID DOT ID {
 		$$.type = EXPR_ATTR;
@@ -531,6 +521,7 @@ expr:
 		$$.type = EXPR_VALUE;
 		$$.value.value = $1;
 	}
+	;
 
 load_data:
 		LOAD DATA INFILE SSS INTO TABLE ID SEMICOLON

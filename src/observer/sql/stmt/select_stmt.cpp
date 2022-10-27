@@ -13,6 +13,7 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include "sql/stmt/select_stmt.h"
+#include "sql/parser/parse_defs.h"
 #include "sql/stmt/filter_stmt.h"
 #include "common/log/log.h"
 #include "common/lang/string.h"
@@ -65,8 +66,15 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
   
   // collect query fields in `select` statement
   std::vector<Field> query_fields;
-  for (int i = select_sql.attr_num - 1; i >= 0; i--) {
-    const RelAttr &relation_attr = select_sql.attributes[i];
+  for (int i = 0; i < select_sql.attr_num; i++) {
+    const auto &attr_expr = select_sql.attributes[i];
+
+    if (attr_expr.expr.type != EXPR_ATTR) {
+      LOG_ERROR("Non-attr selects is not support yet.");
+      return RC::GENERIC_ERROR;
+    }
+
+    const RelAttr &relation_attr = attr_expr.expr.value.attr;
 
     if (common::is_blank(relation_attr.relation_name) && 0 == strcmp(relation_attr.attribute_name, "*")) {
       for (int i = tables.size() - 1; i >= 0; i--) {

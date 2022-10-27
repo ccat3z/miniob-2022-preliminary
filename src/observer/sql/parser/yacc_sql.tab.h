@@ -126,7 +126,6 @@ union YYSTYPE
 {
 #line 107 "yacc_sql.y"
 
-  struct _Attr *attr;
   Condition condition;
   UnionExpr expr;
   Value value;
@@ -137,6 +136,7 @@ union YYSTYPE
   bool boolean;
   List *list;
   CompOp comp_op;
+  AttrExpr attr;
 
 #line 142 "yacc_sql.tab.h"
 
