@@ -27,7 +27,7 @@ public:
 
   virtual ~ProjectOperator() = default;
 
-  void add_projection(const std::vector<AttrExpr> &attrs, bool multi_table);
+  RC add_projection(const std::vector<AttrExpr> &attrs, bool multi_table);
 
   RC open() override;
   RC next() override;

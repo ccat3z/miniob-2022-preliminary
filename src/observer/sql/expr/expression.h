@@ -14,6 +14,7 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include <sstream>
 #include <string.h>
 #include "storage/common/field.h"
 #include "sql/expr/tuple_cell.h"
@@ -34,6 +35,7 @@ public:
   
   virtual RC get_value(const Tuple &tuple, TupleCell &cell) const = 0;
   virtual ExprType type() const = 0;
+  virtual std::string toString(bool show_table) const = 0;
 };
 
 class FieldExpr : public Expression
@@ -71,6 +73,16 @@ public:
   }
 
   RC get_value(const Tuple &tuple, TupleCell &cell) const override;
+
+  std::string toString(bool show_table) const override
+  {
+    if (show_table) {
+      return std::string(field_.table_name()) + "." + field_.field_name();
+    } else {
+      return field_.field_name();
+    }
+  }
+
 private:
   Field field_;
 };
@@ -96,6 +108,13 @@ public:
 
   void get_tuple_cell(TupleCell &cell) const {
     cell = tuple_cell_;
+  }
+
+  std::string toString(bool show_table) const override
+  {
+    std::stringstream ss;
+    tuple_cell_.to_string(ss);
+    return ss.str();
   }
 
 private:

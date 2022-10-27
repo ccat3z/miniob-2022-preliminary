@@ -13,7 +13,9 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include "common/log/log.h"
+#include "sql/expr/expression.h"
 #include "sql/operator/project_operator.h"
+#include "sql/parser/parse_defs.h"
 #include "storage/record/record.h"
 #include "storage/common/table.h"
 
@@ -56,23 +58,39 @@ Tuple *ProjectOperator::current_tuple()
   return &tuple_;
 }
 
-void ProjectOperator::add_projection(const std::vector<AttrExpr> &attrs, bool multi_table)
+RC ProjectOperator::add_projection(const std::vector<AttrExpr> &attrs, bool multi_table)
 {
   for (auto &attr : attrs) {
-    auto &field = *attr.expr.value.field;
-    auto table = field.table();
-    auto field_meta = field.meta();
+    Expression *expr = nullptr;
 
-    // 对单表来说，展示的(alias) 字段总是字段名称，
-    // 对多表查询来说，展示的alias 需要带表名字
-    TupleCellSpec *spec = new TupleCellSpec(new FieldExpr(table, field_meta));
-    if (multi_table) {
-      spec->set_alias(std::string(table->name()) + "." + std::string(field_meta->name()));
-    } else {
-      spec->set_alias(field_meta->name());
+    switch (attr.expr.type) {
+      case EXPR_ATTR: {
+        auto &field = *attr.expr.value.field;
+        auto table = field.table();
+        auto field_meta = field.meta();
+        expr = new FieldExpr(table, field_meta);
+      } break;
+      case EXPR_VALUE: {
+        expr = new ValueExpr(attr.expr.value.value);
+      } break;
+      default:
+        LOG_ERROR("Unsupport expr type: %d", attr.expr.type);
+        return RC::GENERIC_ERROR;
     }
+
+    TupleCellSpec *spec = new TupleCellSpec(expr);
+    if (attr.name != nullptr) {
+      spec->set_alias(attr.name);
+    } else {
+      // 对单表来说，展示的(alias) 字段总是字段名称，
+      // 对多表查询来说，展示的alias 需要带表名字
+      spec->set_alias(expr->toString(multi_table));
+    }
+
     tuple_.add_cell_spec(spec);
   }
+
+  return RC::SUCCESS;
 }
 
 RC ProjectOperator::tuple_cell_spec_at(int index, const TupleCellSpec *&spec) const

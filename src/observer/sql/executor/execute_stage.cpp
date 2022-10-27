@@ -443,7 +443,9 @@ std::shared_ptr<ProjectOperator> build_operator(const SelectStmt &select_stmt)
   }
 
   auto project_oper = std::make_shared<ProjectOperator>();
-  project_oper->add_projection(select_stmt.attrs(), multi_table);
+  if (RC::SUCCESS != project_oper->add_projection(select_stmt.attrs(), multi_table)) {
+    return nullptr;
+  }
   project_oper->add_child(pred_oper);
 
   return project_oper;
@@ -499,6 +501,10 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
   RC rc = RC::SUCCESS;
 
   auto oper = build_operator(*select_stmt);
+  if (!oper) {
+    LOG_ERROR("Failed to build operator");
+    return RC::INVALID_ARGUMENT;
+  }
 
   std::stringstream ss;
   print_tuple_header(ss, *oper);
@@ -705,6 +711,10 @@ RC ExecuteStage::do_update(SQLStageEvent *sql_event)
     return rc;
   }
   auto oper = build_operator(select_stmt);
+  if (!oper) {
+    LOG_ERROR("Failed to build operator");
+    return RC::INVALID_ARGUMENT;
+  }
 
   std::vector<RID> rids;
 
