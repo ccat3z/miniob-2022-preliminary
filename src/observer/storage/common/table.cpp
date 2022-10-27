@@ -208,7 +208,7 @@ RC Table::drop()
   // Remove table data
   std::string data_file = base_dir_ + "/" + table_meta_.name() + TABLE_DATA_SUFFIX;
   if (::remove(data_file.c_str()) != 0) {
-    LOG_ERROR("Failed to delete data file: %s", data_file);
+    LOG_ERROR("Failed to delete data file: %s", data_file.c_str());
     return RC::IOERR_DELETE;
   }
 
