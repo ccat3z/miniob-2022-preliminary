@@ -423,15 +423,21 @@ std::shared_ptr<ProjectOperator> build_operator(const SelectStmt &select_stmt)
 {
   bool multi_table = select_stmt.tables().size() >= 2;
 
-  auto decarts_join_oper = std::make_shared<DecartsJoinOperator>();
-  unsigned table_nums = select_stmt.tables().size();
-  for (int i = table_nums - 1; i >= 0; i--) {
-    auto scan_oper = std::make_shared<TableScanOperator>(select_stmt.tables()[i]);
-    decarts_join_oper->add_child(scan_oper);
-  }
-
   auto pred_oper = std::make_shared<PredicateOperator>(select_stmt.filter_stmt());
-  pred_oper->add_child(decarts_join_oper);
+
+  if (multi_table) {
+    auto decarts_join_oper = std::make_shared<DecartsJoinOperator>();
+    unsigned table_nums = select_stmt.tables().size();
+    for (int i = table_nums - 1; i >= 0; i--) {
+      auto scan_oper = std::make_shared<TableScanOperator>(select_stmt.tables()[i]);
+      decarts_join_oper->add_child(scan_oper);
+    }
+
+    pred_oper->add_child(decarts_join_oper);
+  } else {
+    auto scan_oper = std::make_shared<TableScanOperator>(select_stmt.tables()[0]);
+    pred_oper->add_child(scan_oper);
+  }
 
   auto project_oper = std::make_shared<ProjectOperator>();
   project_oper->add_child(pred_oper);
