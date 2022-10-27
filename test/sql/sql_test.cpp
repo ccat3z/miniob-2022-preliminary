@@ -801,18 +801,6 @@ TEST_F(SQLTest, DISABLED_UpdateWithInvalidValueShouldFailure)
 // ##     ## ##     ##    ##    ##
 // ########  ##     ##    ##    ########
 
-TEST_F(SQLTest, DateCanCreateTable)
-{
-  ASSERT_EQ(exec_sql("create table t(a int, d date);"), "SUCCESS\n");
-  ASSERT_EQ(exec_sql("desc t;"),
-      "t(\n"
-      "\tfield name=__trx, type=ints, len=4, visible=no, nullable=no\n"
-      "\tfield name=__null, type=ints, len=4, visible=no, nullable=no\n"
-      "\tfield name=a, type=ints, len=4, visible=yes, nullable=no\n"
-      "\tfield name=d, type=date, len=4, visible=yes, nullable=no\n"
-      ")\n");
-}
-
 TEST_F(SQLTest, DateInsertShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t(a int, d date);"), "SUCCESS\n");
@@ -1108,22 +1096,6 @@ TEST_F(SQLTest, LikeShouldBeCaseInsensitivity)
 // ##     ## ##   ###  ##  ##    ##  ##     ## ##
 //  #######  ##    ## ####  ##### ##  #######  ########
 
-TEST_F(SQLTest, UniqueIndexMetaShouldWork)
-{
-  ASSERT_EQ(exec_sql("create table t (a int, b int);"), "SUCCESS\n");
-  ASSERT_EQ(exec_sql("create unique index t_a on t(a);"), "SUCCESS\n");
-  ASSERT_EQ(exec_sql("create index t_b on t(b);"), "SUCCESS\n");
-  ASSERT_EQ(exec_sql("desc t;"),
-      "t(\n"
-      "\tfield name=__trx, type=ints, len=4, visible=no, nullable=no\n"
-      "\tfield name=__null, type=ints, len=4, visible=no, nullable=no\n"
-      "\tfield name=a, type=ints, len=4, visible=yes, nullable=no\n"
-      "\tfield name=b, type=ints, len=4, visible=yes, nullable=no\n"
-      "\tindex name=t_a, field=a, unique=yes\n"
-      "\tindex name=t_b, field=b, unique=no\n"
-      ")\n");
-}
-
 TEST_F(SQLTest, UniqueIndexInsertConflictRecordShouldFailure)
 {
   ASSERT_EQ(exec_sql("create table t (a int, b int);"), "SUCCESS\n");
@@ -1258,17 +1230,6 @@ TEST_F(SQLTest, UniqueIndexManyIndexsUpdate)
 //    ##    ##         ## ##      ##
 //    ##    ##        ##   ##     ##
 //    ##    ######## ##     ##    ##
-
-TEST_F(SQLTest, TextCreateTableShouldWork)
-{
-  ASSERT_EQ(exec_sql("create table t (a text);"), "SUCCESS\n");
-  ASSERT_EQ(exec_sql("desc t;"),
-      "t(\n"
-      "\tfield name=__trx, type=ints, len=4, visible=no, nullable=no\n"
-      "\tfield name=__null, type=ints, len=4, visible=no, nullable=no\n"
-      "\tfield name=a, type=text, len=4, visible=yes, nullable=no\n"
-      ")\n");
-}
 
 TEST_F(SQLTest, TextInsertSelectShouldWork)
 {
@@ -1572,18 +1533,6 @@ TEST_F(SQLTest, DISABLED_JoinTablesShouldWork)
 // ##  #### ##     ## ##       ##
 // ##   ### ##     ## ##       ##
 // ##    ##  #######  ######## ########
-
-TEST_F(SQLTest, NullCreateTableShouldWork)
-{
-  ASSERT_EQ(exec_sql("create table t(a float not null, b int nullable);"), "SUCCESS\n");
-  ASSERT_EQ(exec_sql("desc t;"),
-      "t(\n"
-      "\tfield name=__trx, type=ints, len=4, visible=no, nullable=no\n"
-      "\tfield name=__null, type=ints, len=4, visible=no, nullable=no\n"
-      "\tfield name=a, type=floats, len=4, visible=yes, nullable=no\n"
-      "\tfield name=b, type=ints, len=4, visible=yes, nullable=yes\n"
-      ")\n");
-}
 
 TEST_F(SQLTest, NullInsertShouldWork)
 {
