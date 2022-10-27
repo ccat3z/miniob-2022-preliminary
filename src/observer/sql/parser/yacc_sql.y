@@ -468,7 +468,7 @@ rel_list:
 	}
 	| INNER JOIN ID ON condition_list rel_list{
 		selects_append_relation(&CONTEXT->ssql->sstr.selection, $3);
-	//	selects_append_inner_join(&CONTEXT->ssql->sstr.selection, (Condition *) $5->values, $5->len);
+		//selects_append_inner_join(&CONTEXT->ssql->sstr.selection, (Condition *) $5->values, $5->len);
 		selects_append_join_conditions(&CONTEXT->ssql->sstr.selection, (Condition *) $5->values, $5->len);
 		list_free($5);
 	};

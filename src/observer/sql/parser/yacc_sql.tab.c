@@ -1802,7 +1802,7 @@ yyreduce:
 #line 469 "yacc_sql.y"
                                                   {
 		selects_append_relation(&CONTEXT->ssql->sstr.selection, (yyvsp[-3].string));
-	//	selects_append_inner_join(&CONTEXT->ssql->sstr.selection, (Condition *) $5->values, $5->len);
+		//selects_append_inner_join(&CONTEXT->ssql->sstr.selection, (Condition *) $5->values, $5->len);
 		selects_append_join_conditions(&CONTEXT->ssql->sstr.selection, (Condition *) (yyvsp[-1].list)->values, (yyvsp[-1].list)->len);
 		list_free((yyvsp[-1].list));
 	}
