@@ -138,6 +138,7 @@ ParserContext *get_context(yyscan_t scanner)
 %type <list> where;
 %type <list> condition_list;
 %type <list> attr_list;
+%type <list> expr_list;
 %type <attr> select_attr;
 %type <comp_op> comOp;
 %type <expr> expr;
@@ -520,6 +521,24 @@ expr:
 	| value {
 		$$.type = EXPR_VALUE;
 		$$.value.value = $1;
+	}
+	| ID LBRACE expr_list RBRACE
+	{
+		$$.type = EXPR_FUNC;
+		func_init(&$$.value.func, $1, (UnionExpr *) $3->values, $3->len);
+	}
+	;
+
+expr_list:
+	expr
+	{
+		$$ = list_create(sizeof(UnionExpr), MAX_NUM);
+		list_prepend($$, &$1);
+	}
+	| expr COMMA expr_list
+	{
+		$$ = $3;
+		list_prepend($$, &$1);
 	}
 	;
 

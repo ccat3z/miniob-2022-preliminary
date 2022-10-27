@@ -99,12 +99,21 @@ typedef struct {
   size_t len;
 } List;
 
-typedef enum { EXPR_VALUE, EXPR_ATTR } UnionExprType;
+typedef enum { EXPR_VALUE, EXPR_ATTR, EXPR_FUNC } UnionExprType;
+
+struct _UnionExpr;
+
+typedef struct {
+  char *name;
+  struct _UnionExpr *args;
+  int arg_num;
+} FuncExpr;
 
 typedef struct _UnionExpr {
   union {
     Value value;
     RelAttr attr;
+    FuncExpr func;
   } value;
   UnionExprType type;
 } UnionExpr;
@@ -298,6 +307,8 @@ void value_init_string(Value *value, const char *v);
 void value_destroy(Value *value);
 
 void expr_destroy(UnionExpr *expr);
+void func_init(FuncExpr *func, const char *name, UnionExpr *args, size_t length);
+void func_destroy(FuncExpr *func);
 
 void condition_init(Condition *condition, CompOp comp, UnionExpr *left, UnionExpr *right);
 void condition_destroy(Condition *condition);

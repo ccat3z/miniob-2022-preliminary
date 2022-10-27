@@ -170,9 +170,36 @@ void expr_destroy(UnionExpr *expr)
     case EXPR_VALUE:
       value_destroy(&expr->value.value);
       break;
+    case EXPR_FUNC:
+      func_destroy(&expr->value.func);
+      break;
     default:
       throw std::logic_error("Unreachable code");
   }
+}
+
+void func_init(FuncExpr *func, const char *name, UnionExpr *args, size_t length)
+{
+  func->name = strdup(name);
+  func->args = (UnionExpr *)malloc(sizeof(UnionExpr) * length);
+  memcpy(func->args, args, sizeof(UnionExpr) * length);
+  func->arg_num = length;
+}
+
+void func_destroy(FuncExpr *func)
+{
+  if (func->args) {
+    for (int i = 0; i < func->arg_num; i++)
+      expr_destroy(&func->args[i]);
+
+    free(func->args);
+    func->args = nullptr;
+  }
+  if (func->name) {
+    free(func->name);
+    func->name = nullptr;
+  }
+  func->arg_num = 0;
 }
 
 void condition_init(Condition *condition, CompOp comp, UnionExpr *left, UnionExpr *right)
