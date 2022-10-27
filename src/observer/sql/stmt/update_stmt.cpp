@@ -60,6 +60,7 @@ RC UpdateStmt::to_rid_select(Db *db, SelectStmt &stmt)
   stmt.filter_stmt_ = filter_stmt;
 
   AttrExpr expr;
+  expr.name = nullptr;
   expr.expr.type = EXPR_ATTR;
   // FIXME: Memory leak
   expr.expr.value.field = new Field(table_, table_->table_meta().page_field());
