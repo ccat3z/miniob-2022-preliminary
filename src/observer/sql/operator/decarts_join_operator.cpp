@@ -20,6 +20,9 @@ RC DecartsJoinOperator::next()
   }
   hasjoined = true;
   current_index++;
+  if (current_index >= (int)current_tuples.size()) {
+    return RC::RECORD_EOF;
+  }
   return rc;
 }
 
