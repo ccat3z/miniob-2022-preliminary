@@ -173,10 +173,10 @@ RC FieldMeta::from_json(const Json::Value &json_value, FieldMeta &field)
 
 bool FieldMeta::is_null(const char *record) const
 {
-  if (field_idx_ < 0)
-    return true;
-
   if (!nullable_)
+    return false;
+
+  if (field_idx_ < 0)
     return false;
 
   uint32_t null = *(uint32_t *)((char *)record + null_offset_);
