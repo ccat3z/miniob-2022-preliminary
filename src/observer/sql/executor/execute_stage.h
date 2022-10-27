@@ -16,12 +16,16 @@ See the Mulan PSL v2 for more details. */
 #define __OBSERVER_SQL_EXECUTE_STAGE_H__
 
 #include "common/seda/stage.h"
+#include "sql/operator/project_operator.h"
 #include "sql/parser/parse.h"
 #include "rc.h"
 
 class SQLStageEvent;
 class SessionEvent;
 class SelectStmt;
+class ProjectOperator;
+
+std::shared_ptr<ProjectOperator> build_operator(const SelectStmt &select_stmt);
 
 class ExecuteStage : public common::Stage {
 public:

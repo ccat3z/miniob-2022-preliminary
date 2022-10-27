@@ -21,13 +21,8 @@ See the Mulan PSL v2 for more details. */
 class DecartsJoinOperator : public Operator {
 public:
   DecartsJoinOperator() = default;
+  virtual ~DecartsJoinOperator() = default;
 
-  virtual ~DecartsJoinOperator()
-  {
-    for (auto child : children_) {
-      delete child;
-    }
-  }
   RC open() override;
   RC next() override;
   RC close() override;

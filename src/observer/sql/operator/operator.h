@@ -14,6 +14,7 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include <memory>
 #include <vector>
 #include "rc.h"
 #include "sql/expr/tuple.h"
@@ -41,7 +42,15 @@ public:
     children_.push_back(oper);
   }
 
+  void add_child(std::shared_ptr<Operator> oper)
+  {
+    children_.push_back(oper.get());
+    holder.push_back(oper);
+  }
 
 protected:
   std::vector<Operator *> children_;
+
+private:
+  std::vector<std::shared_ptr<Operator>> holder;
 };

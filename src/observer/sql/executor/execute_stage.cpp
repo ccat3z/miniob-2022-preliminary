@@ -29,6 +29,7 @@ See the Mulan PSL v2 for more details. */
 #include "event/sql_event.h"
 #include "event/session_event.h"
 #include "sql/expr/tuple.h"
+#include "sql/operator/operator.h"
 #include "sql/operator/table_scan_operator.h"
 #include "sql/operator/index_scan_operator.h"
 #include "sql/operator/predicate_operator.h"
@@ -418,37 +419,40 @@ IndexScanOperator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
   return oper;
 }
 
+std::shared_ptr<ProjectOperator> build_operator(const SelectStmt &select_stmt)
+{
+  bool multi_table = select_stmt.tables().size() >= 2;
+
+  auto decarts_join_oper = std::make_shared<DecartsJoinOperator>();
+  unsigned table_nums = select_stmt.tables().size();
+  for (int i = table_nums - 1; i >= 0; i--) {
+    auto scan_oper = std::make_shared<TableScanOperator>(select_stmt.tables()[i]);
+    decarts_join_oper->add_child(scan_oper);
+  }
+
+  auto pred_oper = std::make_shared<PredicateOperator>(select_stmt.filter_stmt());
+  pred_oper->add_child(decarts_join_oper);
+
+  auto project_oper = std::make_shared<ProjectOperator>();
+  project_oper->add_child(pred_oper);
+
+  for (unsigned i = 0; i < select_stmt.query_fields().size(); i++) {
+    Field field = select_stmt.query_fields()[i];
+    project_oper->add_projection(field.table(), field.meta(), multi_table);
+  }
+
+  return project_oper;
+}
+
 RC ExecuteStage::do_select(SQLStageEvent *sql_event)
 {
   SelectStmt *select_stmt = (SelectStmt *)(sql_event->stmt());
   SessionEvent *session_event = sql_event->session_event();
   RC rc = RC::SUCCESS;
-  bool multi_table = false;
-  if (select_stmt->tables().size() >= 2) {
-    multi_table = true;
-  }
-  /// mutil table 的index 稍后再查看
-  // Operator *scan_oper = try_to_create_index_scan_operator(select_stmt->filter_stmt());
-  // if (nullptr == scan_oper) {
-  //   scan_oper = new TableScanOperator(select_stmt->tables()[0]);
-  // }
-  // DEFER([&]() { delete scan_oper; });
 
-  DecartsJoinOperator *decarts_join_oper = new DecartsJoinOperator();
-  unsigned table_nums = select_stmt->tables().size();
-  for (int i = table_nums - 1; i >= 0; i--) {
-    Operator *scan_oper = new TableScanOperator(select_stmt->tables()[i]);
-    decarts_join_oper->add_child(scan_oper);
-  }
-  PredicateOperator pred_oper(select_stmt->filter_stmt());
-  pred_oper.add_child(decarts_join_oper);
-  ProjectOperator project_oper;
-  project_oper.add_child(&pred_oper);
-  for (unsigned i = 0; i < select_stmt->query_fields().size(); i++) {
-    Field field = select_stmt->query_fields()[i];
-    project_oper.add_projection(field.table(), field.meta(), multi_table);
-  }
-  rc = project_oper.open();
+  auto oper = build_operator(*select_stmt);
+
+  rc = oper->open();
   if (rc != RC::SUCCESS) {
     LOG_WARN("failed to open operator");
     return rc;
@@ -457,13 +461,13 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
   // For convenience, the operator is not exception-free.
   try {
     std::stringstream ss;
-    print_tuple_header(ss, project_oper);
+    print_tuple_header(ss, *oper);
     // 每次获取一个tuple
     // table_scan_oper.next() 则是通过record_scan 获取当前的record
-    while ((rc = project_oper.next()) == RC::SUCCESS) {
+    while ((rc = oper->next()) == RC::SUCCESS) {
       // get current record
       // write to response
-      Tuple *tuple = project_oper.current_tuple();
+      Tuple *tuple = oper->current_tuple();
       if (nullptr == tuple) {
         rc = RC::INTERNAL;
         LOG_WARN("failed to get current record. rc=%s", strrc(rc));
@@ -476,14 +480,15 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
 
     if (rc != RC::RECORD_EOF) {
       LOG_WARN("something wrong while iterate operator. rc=%s", strrc(rc));
-      project_oper.close();
+      oper->close();
     } else {
-      rc = project_oper.close();
+      rc = oper->close();
     }
     session_event->set_response(ss.str());
   } catch (const std::exception &e) {
     LOG_ERROR("operator throw exception: %s", e.what());
     session_event->set_response("FAILURE\n");
+    rc = RC::GENERIC_ERROR;
   }
 
   return rc;
