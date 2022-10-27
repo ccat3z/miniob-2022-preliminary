@@ -24,6 +24,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/lang/defer.h"
 #include "common/seda/timer_stage.h"
 #include "common/lang/string.h"
+#include "rc.h"
 #include "session/session.h"
 #include "event/storage_event.h"
 #include "event/sql_event.h"
@@ -450,6 +451,49 @@ std::shared_ptr<ProjectOperator> build_operator(const SelectStmt &select_stmt)
   return project_oper;
 }
 
+RC exec_operator(ProjectOperator &oper, std::function<RC(Tuple &tuple)> func)
+{
+  RC rc = oper.open();
+  if (rc != RC::SUCCESS) {
+    LOG_WARN("failed to open operator");
+    return rc;
+  }
+
+  // For convenience, the operator is not exception-free.
+  try {
+    // 每次获取一个tuple
+    // table_scan_oper.next() 则是通过record_scan 获取当前的record
+    while ((rc = oper.next()) == RC::SUCCESS) {
+      // get current record
+      // write to response
+      Tuple *tuple = oper.current_tuple();
+      if (nullptr == tuple) {
+        rc = RC::INTERNAL;
+        LOG_WARN("failed to get current record. rc=%s", strrc(rc));
+        break;
+      }
+
+      rc = func(*tuple);
+      if (rc != RC::SUCCESS) {
+        LOG_ERROR("operator iter: func failed. rc=%s", strrc(rc));
+        break;
+      }
+    }
+
+    if (rc != RC::RECORD_EOF) {
+      LOG_WARN("something wrong while iterate operator. rc=%s", strrc(rc));
+      oper.close();
+    } else {
+      rc = oper.close();
+    }
+  } catch (const std::exception &e) {
+    LOG_ERROR("operator throw exception: %s", e.what());
+    rc = RC::GENERIC_ERROR;
+  }
+
+  return rc;
+}
+
 RC ExecuteStage::do_select(SQLStageEvent *sql_event)
 {
   SelectStmt *select_stmt = (SelectStmt *)(sql_event->stmt());
@@ -458,43 +502,19 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
 
   auto oper = build_operator(*select_stmt);
 
-  rc = oper->open();
-  if (rc != RC::SUCCESS) {
-    LOG_WARN("failed to open operator");
-    return rc;
-  }
+  std::stringstream ss;
+  print_tuple_header(ss, *oper);
 
-  // For convenience, the operator is not exception-free.
-  try {
-    std::stringstream ss;
-    print_tuple_header(ss, *oper);
-    // 每次获取一个tuple
-    // table_scan_oper.next() 则是通过record_scan 获取当前的record
-    while ((rc = oper->next()) == RC::SUCCESS) {
-      // get current record
-      // write to response
-      Tuple *tuple = oper->current_tuple();
-      if (nullptr == tuple) {
-        rc = RC::INTERNAL;
-        LOG_WARN("failed to get current record. rc=%s", strrc(rc));
-        break;
-      }
+  rc = exec_operator(*oper, [&](Tuple &tuple) {
+    tuple_to_string(ss, tuple);
+    ss << std::endl;
+    return RC::SUCCESS;
+  });
 
-      tuple_to_string(ss, *tuple);
-      ss << std::endl;
-    }
-
-    if (rc != RC::RECORD_EOF) {
-      LOG_WARN("something wrong while iterate operator. rc=%s", strrc(rc));
-      oper->close();
-    } else {
-      rc = oper->close();
-    }
+  if (rc == RC::SUCCESS) {
     session_event->set_response(ss.str());
-  } catch (const std::exception &e) {
-    LOG_ERROR("operator throw exception: %s", e.what());
+  } else {
     session_event->set_response("FAILURE\n");
-    rc = RC::GENERIC_ERROR;
   }
 
   return rc;

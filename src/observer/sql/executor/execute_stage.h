@@ -26,6 +26,7 @@ class SelectStmt;
 class ProjectOperator;
 
 std::shared_ptr<ProjectOperator> build_operator(const SelectStmt &select_stmt);
+RC exec_operator(ProjectOperator &oper, std::function<RC(Tuple &tuple)> func);
 
 class ExecuteStage : public common::Stage {
 public:
