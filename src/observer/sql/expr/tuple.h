@@ -238,21 +238,9 @@ class ComplexTuple : public Tuple {
   // complex tuple 的基本由RowTuple 进行构造。
 public:
   ComplexTuple() = default;
-  ComplexTuple(RowTuple *tuple)
+  ComplexTuple(Tuple *tuple)
   {
     // 将record 里面的信息拆解到tuple cell 中。
-    int nums = tuple->cell_num();
-    for (int i = 0; i < nums; i++) {
-      TupleCell *cell = new TupleCell();
-      const TupleCellSpec *spec;
-      tuple->cell_at(i, *cell);
-      tuple->cell_spec_at(i, spec);
-      tuple_.push_back(cell);
-      speces_.push_back(spec);
-    }
-  }
-  ComplexTuple(ComplexTuple *tuple)
-  {
     int nums = tuple->cell_num();
     for (int i = 0; i < nums; i++) {
       TupleCell *cell = new TupleCell();
@@ -283,7 +271,7 @@ public:
     cell = *tuple_[index];
     return RC::SUCCESS;
   }
-  void add_row_tuple(RowTuple *tuple)
+  void add_tuple(Tuple *tuple)
   {
     for (int i = 0; i < tuple->cell_num(); i++) {
       TupleCell *cell = new TupleCell();

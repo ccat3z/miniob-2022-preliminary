@@ -42,7 +42,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
     LOG_WARN("invalid argument. db is null");
     return RC::INVALID_ARGUMENT;
   }
-
+  SelectStmt *select_stmt = new SelectStmt();
   // collect tables in `from` statement
   std::vector<Table *> tables;
   std::unordered_map<std::string, Table *> table_map;
@@ -145,12 +145,28 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
     LOG_WARN("cannot construct filter stmt");
     return rc;
   }
+  std::unordered_map<std::string, FilterStmt *> table_join_filters;
+  for (size_t i = 0; i < select_sql.relation_join_num; i++) {
+    FilterStmt *inner_join_filter_stmt = nullptr;
+    std::string table_name = select_sql.relation_join_list[i].relation_name;
+    rc = FilterStmt::create(db,
+        default_table,
+        &table_map,
+        select_sql.relation_join_list[i].conditions,
+        select_sql.relation_join_list[i].condition_num,
+        inner_join_filter_stmt);
+    if (rc != RC::SUCCESS) {
+      LOG_WARN("cannot construct filter stmt");
+      return rc;
+    }
+    table_join_filters.emplace(table_name, inner_join_filter_stmt);
+  }
   // everything alright
-  SelectStmt *select_stmt = new SelectStmt();
   select_stmt->tables_.swap(tables);
   select_stmt->query_fields_.swap(query_fields);
   select_stmt->filter_stmt_ = filter_stmt;
   select_stmt->join_filter_stmt_ = join_filter_stmt;
+  select_stmt->table_join_filters_.swap(table_join_filters);
   stmt = select_stmt;
   return RC::SUCCESS;
 }

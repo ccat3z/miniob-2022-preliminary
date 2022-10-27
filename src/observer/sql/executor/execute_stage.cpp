@@ -31,6 +31,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/expr/tuple.h"
 #include "sql/operator/table_scan_operator.h"
 #include "sql/operator/index_scan_operator.h"
+#include "sql/operator/join_operator.h"
 #include "sql/operator/predicate_operator.h"
 #include "sql/operator/delete_operator.h"
 #include "sql/operator/project_operator.h"
@@ -434,19 +435,40 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
   // }
   // DEFER([&]() { delete scan_oper; });
 
-  DecartsJoinOperator *decarts_join_oper = new DecartsJoinOperator();
-  unsigned table_nums = select_stmt->tables().size();
-  for (int i = table_nums - 1; i >= 0; i--) {
-    Operator *scan_oper = new TableScanOperator(select_stmt->tables()[i]);
-    decarts_join_oper->add_child(scan_oper);
-  }
+  // DecartsJoinOperator *decarts_join_oper = new DecartsJoinOperator();
+  // unsigned table_nums = select_stmt->tables().size();
+  // for (int i = table_nums - 1; i >= 0; i--) {
+  //   Operator *scan_oper = new TableScanOperator(select_stmt->tables()[i]);
+  //   decarts_join_oper->add_child(scan_oper);
+  // }
+  // PredicateOperator pred_oper(select_stmt->filter_stmt());
+  // if (select_stmt->join_filter_stmt()) {
+  //   PredicateOperator *pred_join_oper = new PredicateOperator(select_stmt->join_filter_stmt());
+  //   pred_join_oper->add_child(decarts_join_oper);
+  //   pred_oper.add_child(pred_join_oper);
+  // } else {
+  //   pred_oper.add_child(decarts_join_oper);
+  // }
   PredicateOperator pred_oper(select_stmt->filter_stmt());
-  if (select_stmt->join_filter_stmt()) {
-    PredicateOperator *pred_join_oper = new PredicateOperator(select_stmt->join_filter_stmt());
-    pred_join_oper->add_child(decarts_join_oper);
-    pred_oper.add_child(pred_join_oper);
+  unsigned table_nums = select_stmt->tables().size();
+  if (table_nums == 1) {
+    Operator *scan_oper = new TableScanOperator(select_stmt->tables()[0]);
+    pred_oper.add_child(scan_oper);
   } else {
-    pred_oper.add_child(decarts_join_oper);
+    Operator *left = new TableScanOperator(select_stmt->tables()[0]);
+    Operator *right = new TableScanOperator(select_stmt->tables()[1]);
+    JoinOperator *join_oper = new JoinOperator(left, right);
+    for (size_t i = 2; i < table_nums; i++) {
+      Operator *scan = new TableScanOperator(select_stmt->tables()[i]);
+      join_oper = new JoinOperator(join_oper, scan);
+    }
+    if (select_stmt->join_filter_stmt()) {
+      PredicateOperator *pred_join_oper = new PredicateOperator(select_stmt->join_filter_stmt());
+      pred_join_oper->add_child(join_oper);
+      pred_oper.add_child(pred_join_oper);
+    } else {
+      pred_oper.add_child(join_oper);
+    }
   }
 
   ProjectOperator project_oper;

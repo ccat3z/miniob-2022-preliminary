@@ -214,13 +214,13 @@ void selects_append_inner_join(
     Selects *selects, const char *relation_name, Condition conditions[], size_t condition_num)
 {  // 将所有的conditions 变成inner—join-lists[i]
   assert(selects->relation_join_num <= sizeof(selects->relation_join_list) / sizeof(selects->relation_join_list[0]));
-  selects->relation_join_num++;
   for (size_t i = 0; i < condition_num; i++) {
     selects->relation_join_list[selects->relation_join_num].conditions[i] = conditions[i];
   }
   selects->relation_join_list[selects->relation_join_num].inner_join = true;
   selects->relation_join_list[selects->relation_join_num].relation_name = strdup(relation_name);
   selects->relation_join_list[selects->relation_join_num].condition_num = condition_num;
+  selects->relation_join_num++;
 }
 void selects_append_join_conditions(Selects *selects, Condition conditions[], size_t condition_num)
 {

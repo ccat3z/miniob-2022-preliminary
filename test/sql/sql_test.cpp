@@ -24,6 +24,7 @@
 #include <thread>
 #include <vector>
 #include <tuple>
+#include <sstream>
 
 #define MAX_MEM_BUFFER_SIZE 8192
 #define SERVER_START_STOP_TIMEOUT 1s
@@ -1585,16 +1586,18 @@ TEST_F(SQLTest, JoinTablesShouldWork2)
   ASSERT_EQ(exec_sql("insert into join_table_large_2 values(1,1);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into join_table_large_3 values(1,1);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into join_table_large_4 values(1,1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into join_table_large_5 values(84,84),(85,85),(86,86);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into join_table_large_5 values(94,94);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into join_table_large_5 values(93,93);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into join_table_large_5 values(92,92);"), "SUCCESS\n");
   ASSERT_EQ(
       exec_sql("insert into join_table_large_5 values(95,95),(96,96),(97,97),(98,98),(99,99),(100,100);"), "SUCCESS\n");
-  ASSERT_EQ(
-      exec_sql("insert into join_table_large_6 values(95,95),(96,96),(97,97),(98,98),(99,99),(100,100);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into join_table_large_6 values(84,84),(85,85),(86,86);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into join_table_large_6 values(94,94);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into join_table_large_6 values(93,93);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into join_table_large_6 values(92,92);"), "SUCCESS\n");
+  ASSERT_EQ(
+      exec_sql("insert into join_table_large_6 values(95,95),(96,96),(97,97),(98,98),(99,99),(100,100);"), "SUCCESS\n");
 
   ASSERT_EQ(
       exec_sql("select * from join_table_large_1 inner join join_table_large_2 on "
@@ -1605,18 +1608,54 @@ TEST_F(SQLTest, JoinTablesShouldWork2)
                "where join_table_large_3.num3 <10 and join_table_large_5.num5>90;"),
       "join_table_large_1.id | join_table_large_1.num1 | join_table_large_2.id | join_table_large_2.num2 | "
       "join_table_large_3.id | join_table_large_3.num3 | join_table_large_4.id | join_table_large_4.num4 | "
-      "join_table_large_5.id | join_table_large_5.num5 | join_table_large_6.id | join_table_large_6.num6\n"
-      "1 | 1 | 1 | 1 |1 | 1 | 1 | 1 | 95 | 95 | 95 | 95\n"
-      "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 96 | 96 | 96 | 96\n"
-      "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 97 | 97 | 97 | 97\n"
-      "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 98 | 98 | 98 | 98\n"
-      "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 99 | 99 | 99 | 99\n"
-      "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 100 | 100 | 100 | 100\n"
-      "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 94 | 94 | 94 | 94\n"
-      "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 93 | 93 | 93 | 93\n"
-      "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 92 | 92 | 92 | 92\n");
+      "join_table_large_5.id | join_table_large_5.num5 | join_table_large_6.id | join_table_large_6.num6\n1 | 1 | 1 | "
+      "1 | 1 | 1 | 1 | 1 | 94 | 94 | 94 | 94\n1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 93 | 93 | 93 | 93\n1 | 1 | 1 | 1 | 1 | 1 "
+      "| 1 | 1 | 92 | 92 | 92 | 92\n1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 95 | 95 | 95 | 95\n1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | "
+      "96 | 96 | 96 | 96\n1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 97 | 97 | 97 | 97\n1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 98 | 98 | "
+      "98 | 98\n1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 99 | 99 | 99 | 99\n1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 100 | 100 | 100 | "
+      "100\n");
 }
-
+TEST_F(SQLTest, DISABLED_JoinTablesVeryLargeJoin)
+{
+  // create
+  ASSERT_EQ(exec_sql("create table join_table_large_1(id int, num1 int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table join_table_large_2(id int, num2 int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table join_table_large_3(id int, num3 int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table join_table_large_4(id int, num4 int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table join_table_large_5(id int, num5 int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table join_table_large_6(id int, num6 int);"), "SUCCESS\n");
+  // inserts
+  std::string tables = "";
+  for (size_t i = 1; i <= 100; i++) {
+    std::string sql;
+    std::string num = std::to_string(i);
+    tables = tables + "(" + num + "," + num + "),";
+    sql = "insert into join_table_large_1 values(" + num + "," + num + ");";
+    // ASSERT_EQ(sql, "dd");
+    ASSERT_EQ(exec_sql(sql), "SUCCESS\n");
+    sql = "insert into join_table_large_2 values(" + num + "," + num + ");";
+    ASSERT_EQ(exec_sql(sql), "SUCCESS\n");
+    sql = "insert into join_table_large_3 values(" + num + "," + num + ");";
+    ASSERT_EQ(exec_sql(sql), "SUCCESS\n");
+    sql = "insert into join_table_large_4 values(" + num + "," + num + ");";
+    ASSERT_EQ(exec_sql(sql), "SUCCESS\n");
+    sql = "insert into join_table_large_5 values(" + num + "," + num + ");";
+    ASSERT_EQ(exec_sql(sql), "SUCCESS\n");
+    sql = "insert into join_table_large_6 values(" + num + "," + num + ");";
+    ASSERT_EQ(exec_sql(sql), "SUCCESS\n");
+  }
+  ASSERT_EQ(tables, "ddd");
+  ASSERT_EQ(exec_sql("select * from join_table_large_1 inner join join_table_large_2 on "
+                     "join_table_large_1.id=join_table_large_2.id "
+                     "inner join join_table_large_3 on join_table_large_1.id=join_table_large_3.id inner join "
+                     "join_table_large_4 on "
+                     "join_table_large_3.id=join_table_large_4.id and join_table_large_4.num4 <= 5 inner join "
+                     "join_table_large_5 on "
+                     "1=1 inner join join_table_large_6 on join_table_large_5.id=join_table_large_6.id where "
+                     "join_table_large_3.num3 "
+                     "<10 and join_table_large_5.num5>90;"),
+      "SUCCESS\n");
+}
 // ##    ## ##     ## ##       ##
 // ###   ## ##     ## ##       ##
 // ####  ## ##     ## ##       ##

@@ -23,16 +23,22 @@ class JoinOperator : public Operator
 {
 public:
   JoinOperator(Operator *left, Operator *right)
-  {}
+  {
+    left_ = left;
+    right_ = right;
+  }
 
   virtual ~JoinOperator() = default;
 
   RC open() override;
   RC next() override;
   RC close() override;
+  Tuple *current_tuple();
 
 private:
   Operator *left_ = nullptr;
   Operator *right_ = nullptr;
   bool round_done_ = true;
+  ComplexTuple *current_tuple_;
+  Tuple *left_tuple_;
 };
