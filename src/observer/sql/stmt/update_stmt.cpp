@@ -15,7 +15,9 @@ See the Mulan PSL v2 for more details. */
 #include "sql/stmt/update_stmt.h"
 #include "common/log/log.h"
 #include "storage/common/db.h"
+#include "storage/common/field.h"
 #include "storage/common/table.h"
+#include "select_stmt.h"
 
 RC UpdateStmt::create(Db *db, const Updates &update, Stmt *&stmt)
 {
@@ -42,4 +44,21 @@ RC UpdateStmt::create(Db *db, const Updates &update, Stmt *&stmt)
 
   stmt = update_stmt;
   return RC::SUCCESS;
+}
+
+RC UpdateStmt::to_rid_select(Db *db, SelectStmt &stmt)
+{
+  FilterStmt *filter_stmt = nullptr;
+  RC rc = FilterStmt::create(db, table_, nullptr, conditions_, condition_num_, filter_stmt);
+  if (rc != RC::SUCCESS) {
+    LOG_WARN("cannot construct filter stmt");
+    return rc;
+  }
+
+  stmt.tables_.emplace_back(table_);
+  stmt.query_fields_.emplace_back(Field(table_, table_->table_meta().page_field()));
+  stmt.query_fields_.emplace_back(Field(table_, table_->table_meta().slot_field()));
+  stmt.filter_stmt_ = filter_stmt;
+
+  return rc;
 }

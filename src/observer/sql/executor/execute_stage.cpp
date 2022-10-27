@@ -16,6 +16,7 @@ See the Mulan PSL v2 for more details. */
 #include <ostream>
 #include <string>
 #include <sstream>
+#include <vector>
 
 #include "execute_stage.h"
 
@@ -30,6 +31,7 @@ See the Mulan PSL v2 for more details. */
 #include "event/sql_event.h"
 #include "event/session_event.h"
 #include "sql/expr/tuple.h"
+#include "sql/expr/tuple_cell.h"
 #include "sql/operator/operator.h"
 #include "sql/operator/table_scan_operator.h"
 #include "sql/operator/index_scan_operator.h"
@@ -696,11 +698,32 @@ RC ExecuteStage::do_update(SQLStageEvent *sql_event)
   auto *stmt = (UpdateStmt *)sql_event->stmt();
   SessionEvent *session_event = sql_event->session_event();
   Session *session = session_event->session();
+  Db *db = session->get_current_db();
   auto *table = stmt->table();
   Trx *trx = session->current_trx();
 
-  int updated;
-  RC rc = table->update_record(trx, stmt->kvs(), stmt->condition_num(), stmt->conditions(), &updated);
+  SelectStmt select_stmt;
+  RC rc = stmt->to_rid_select(db, select_stmt);
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to build select for matched rids");
+    return rc;
+  }
+  auto oper = build_operator(select_stmt);
+
+  std::vector<RID> rids;
+
+  rc = exec_operator(*oper, [&](Tuple &tuple) {
+    TupleCell cell;
+    tuple.cell_at(0, cell);
+    rids.emplace_back(*(RID *)cell.data());
+    return RC::SUCCESS;
+  });
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("failed to query matched rids. rc=%s", strrc(rc));
+    return rc;
+  }
+
+  rc = table->update_record(trx, stmt->kvs(), rids);
 
   session_event->set_response(rc == RC::SUCCESS ? "SUCCESS\n" : "FAILURE\n");
   return rc;

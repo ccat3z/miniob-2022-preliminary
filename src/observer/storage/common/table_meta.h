@@ -38,6 +38,8 @@ public:
 
 public:
   const char *name() const;
+  const FieldMeta *page_field() const;
+  const FieldMeta *slot_field() const;
   const FieldMeta *trx_field() const;
   const FieldMeta *null_field() const;
   const FieldMeta *field(int index) const;

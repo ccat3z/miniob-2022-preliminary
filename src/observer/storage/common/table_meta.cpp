@@ -15,6 +15,8 @@ See the Mulan PSL v2 for more details. */
 #include <algorithm>
 #include <common/lang/string.h>
 
+#include "sql/parser/parse_defs.h"
+#include "storage/common/field_meta.h"
 #include "storage/common/table_meta.h"
 #include "json/json.h"
 #include "common/log/log.h"
@@ -40,9 +42,33 @@ void TableMeta::swap(TableMeta &other) noexcept
 
 RC TableMeta::init_sys_fields()
 {
-  sys_fields_.reserve(2);
+  sys_fields_.reserve(4);
+  RC rc = RC::SUCCESS;
+
+  // HACK: First 8 byte of record is RID, see RecordPageHandler::get_record()
+  //       and RecordPageIterator::next().
+  {
+    FieldMeta field_meta;
+    rc = field_meta.init("__page", INTS, 0, 4, false);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to init __page field. rc = %d:%s", rc, strrc(rc));
+      return rc;
+    }
+    sys_fields_.emplace_back(field_meta);
+  }
+
+  {
+    FieldMeta field_meta;
+    rc = field_meta.init("__slot", INTS, 4, 4, false);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to init __slot field. rc = %d:%s", rc, strrc(rc));
+      return rc;
+    }
+    sys_fields_.emplace_back(field_meta);
+  }
+
   FieldMeta field_meta;
-  RC rc = field_meta.init(Trx::trx_field_name(), Trx::trx_field_type(), 0, Trx::trx_field_len(), false);
+  rc = field_meta.init(Trx::trx_field_name(), Trx::trx_field_type(), 8, Trx::trx_field_len(), false);
   if (rc != RC::SUCCESS) {
     LOG_ERROR("Failed to init trx field. rc = %d:%s", rc, strrc(rc));
     return rc;
@@ -52,7 +78,7 @@ RC TableMeta::init_sys_fields()
 
   // Null field
   FieldMeta null_field;
-  null_field.init("__null", INTS, 4, 4, false);
+  null_field.init("__null", INTS, 12, 4, false);
   sys_fields_.push_back(null_field);
   return rc;
 }
@@ -116,14 +142,24 @@ const char *TableMeta::name() const
   return name_.c_str();
 }
 
-const FieldMeta *TableMeta::trx_field() const
+const FieldMeta *TableMeta::page_field() const
 {
   return &fields_[0];
 }
 
-const FieldMeta *TableMeta::null_field() const
+const FieldMeta *TableMeta::slot_field() const
 {
   return &fields_[1];
+}
+
+const FieldMeta *TableMeta::trx_field() const
+{
+  return &fields_[2];
+}
+
+const FieldMeta *TableMeta::null_field() const
+{
+  return &fields_[3];
 }
 
 const FieldMeta *TableMeta::field(int index) const

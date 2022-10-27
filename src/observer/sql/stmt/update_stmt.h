@@ -16,6 +16,8 @@ See the Mulan PSL v2 for more details. */
 
 #include "rc.h"
 #include "sql/parser/parse_defs.h"
+#include "filter_stmt.h"
+#include "select_stmt.h"
 #include "sql/stmt/stmt.h"
 #include <vector>
 
@@ -30,6 +32,8 @@ public:
   {
     return StmtType::UPDATE;
   }
+
+  RC to_rid_select(Db *db, SelectStmt &stmt);
 
 public:
   static RC create(Db *db, const Updates &update_sql, Stmt *&stmt);

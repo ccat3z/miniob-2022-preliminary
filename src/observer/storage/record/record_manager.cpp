@@ -16,6 +16,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include "common/lang/bitmap.h"
 #include "storage/common/condition_filter.h"
+#include "storage/record/record.h"
 
 using namespace common;
 
@@ -69,6 +70,7 @@ RC RecordPageIterator::next(Record &record)
 {
   record.set_rid(page_num_, next_slot_num_);
   record.set_data(record_page_handler_->get_record_data(record.rid().slot_num));
+  *(RID *)record.data() = RID{page_num_, next_slot_num_};
 
   if (next_slot_num_ >= 0) {
     next_slot_num_ = bitmap_.next_setted_bit(next_slot_num_ + 1);
@@ -290,6 +292,7 @@ RC RecordPageHandler::get_record(const RID *rid, Record *rec)
 
   rec->set_rid(*rid);
   rec->set_data(get_record_data(rid->slot_num));
+  *(RID *)rec->data() = *rid;
   return RC::SUCCESS;
 }
 

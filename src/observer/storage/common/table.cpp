@@ -705,21 +705,12 @@ RC Table::create_index(Trx *trx, const char *index_name, const char **attribute_
   return rc;
 }
 
-RC Table::update_record(
-    Trx *trx, const std::vector<KeyValue *> &kvs, int condition_num, const Condition conditions[], int *updated_count)
+RC Table::update_record(Trx *trx, const std::vector<KeyValue *> &kvs, std::vector<RID> &matched_rids)
 {
   if (trx != nullptr) {
     // TODO: Support trx update
     LOG_WARN("Update transaction not supported yet, all changes cannot be rollbacked.");
     // return RC::GENERIC_ERROR;
-  }
-
-  // Build filter
-  CompositeConditionFilter filter;
-  RC rc = filter.init(*this, conditions, condition_num);
-  if (rc != RC::SUCCESS) {
-    LOG_ERROR("Failed to init filter");
-    return rc;
   }
 
   // Check meta
@@ -736,19 +727,9 @@ RC Table::update_record(
     fields.emplace_back(field);
   }
 
-  // Find matched rids
-  std::vector<RID> matched_rids;
-  rc = scan_record(trx, &filter, -1, [&](Record *record)->RC {
-    matched_rids.push_back(record->rid());
-    return RC::SUCCESS;
-  });
-  if (rc != RC::SUCCESS) {
-    LOG_ERROR("Failed to find matched rids");
-    return rc;
-  }
-
   // Update date
   std::map<RID, std::unique_ptr<char, decltype(free) *>> recoveries;
+  RC rc = RC::SUCCESS;
   for (const auto &rid : matched_rids) {
     auto old_record = std::unique_ptr<char, decltype(free) *>((char *)malloc(table_meta_.record_size()), free);
 
