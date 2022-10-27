@@ -14,6 +14,7 @@ See the Mulan PSL v2 for more details. */
 
 #include "sql/stmt/update_stmt.h"
 #include "common/log/log.h"
+#include "sql/parser/parse_defs.h"
 #include "storage/common/db.h"
 #include "storage/common/field.h"
 #include "storage/common/table.h"
@@ -56,9 +57,13 @@ RC UpdateStmt::to_rid_select(Db *db, SelectStmt &stmt)
   }
 
   stmt.tables_.emplace_back(table_);
-  stmt.query_fields_.emplace_back(Field(table_, table_->table_meta().page_field()));
-  stmt.query_fields_.emplace_back(Field(table_, table_->table_meta().slot_field()));
   stmt.filter_stmt_ = filter_stmt;
+
+  AttrExpr expr;
+  expr.expr.type = EXPR_ATTR;
+  // FIXME: Memory leak
+  expr.expr.value.field = new Field(table_, table_->table_meta().page_field());
+  stmt.attrs_.emplace_back(expr);
 
   return rc;
 }

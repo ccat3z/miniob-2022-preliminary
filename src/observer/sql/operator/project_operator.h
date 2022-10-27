@@ -16,6 +16,8 @@ See the Mulan PSL v2 for more details. */
 
 #include "sql/operator/operator.h"
 #include "rc.h"
+#include "sql/parser/parse_defs.h"
+#include <vector>
 
 class ProjectOperator : public Operator
 {
@@ -25,7 +27,7 @@ public:
 
   virtual ~ProjectOperator() = default;
 
-  void add_projection(const Table *table, const FieldMeta *field, bool multi_table);
+  void add_projection(const std::vector<AttrExpr> &attrs, bool multi_table);
 
   RC open() override;
   RC next() override;

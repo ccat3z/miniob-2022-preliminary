@@ -19,6 +19,9 @@ See the Mulan PSL v2 for more details. */
 #include "common/lang/string.h"
 #include "storage/common/db.h"
 #include "storage/common/table.h"
+#include <cstddef>
+#include <cstring>
+#include <vector>
 
 SelectStmt::~SelectStmt()
 {
@@ -28,13 +31,148 @@ SelectStmt::~SelectStmt()
   }
 }
 
-static void wildcard_fields(Table *table, std::vector<Field> &field_metas)
+static void wildcard_fields(Table *table, std::vector<AttrExpr> &attrs)
 {
   const TableMeta &table_meta = table->table_meta();
   const int field_num = table_meta.field_num();
   for (int i = table_meta.sys_field_num(); i < field_num; i++) {
-    field_metas.push_back(Field(table, table_meta.field(i)));
+    AttrExpr attr;
+    attr.name = nullptr;
+    attr.expr.type = EXPR_ATTR;
+
+    // FIXME: Memory leak
+    attr.expr.value.field = new Field(table, table_meta.field(i));
+
+    attrs.emplace_back(attr);
   }
+}
+
+static RC fill_expr(const std::vector<Table *> &tables, const std::unordered_map<std::string, Table *> &table_map,
+    UnionExpr &expr, bool allow_star = false)
+{
+  RC rc = RC::SUCCESS;
+
+  /// Replace attr field
+  if (expr.type == EXPR_ATTR) {
+    auto &relattr = expr.value.attr;
+
+    if (common::is_blank(relattr.attribute_name)) {
+      LOG_ERROR("Attr name is blank");
+      return RC::INVALID_ARGUMENT;
+    }
+
+    Table *table = nullptr;
+    if (common::is_blank(relattr.relation_name)) {
+      if (tables.size() != 1) {
+        // TODO: select a,b from t1,t2; Find a table.
+        LOG_WARN("invalid. I do not know the attr's table. attr=%s", relattr.attribute_name);
+        return RC::SCHEMA_FIELD_MISSING;
+      } else {
+        table = tables[0];
+      }
+    } else {
+      auto it = table_map.find(relattr.relation_name);
+      if (it == table_map.end()) {
+        LOG_ERROR("Invalid table name: %s", relattr.relation_name);
+        return RC::SCHEMA_TABLE_NOT_EXIST;
+      }
+      table = it->second;
+    }
+
+    const FieldMeta *field_meta = table->table_meta().field(relattr.attribute_name);
+    if (nullptr == field_meta) {
+      LOG_WARN("no such field. field=%s.%s", table->name(), relattr.attribute_name);
+      return RC::SCHEMA_FIELD_MISSING;
+    }
+
+    // FIXME: Memory leak
+    expr.value.field = new Field(table, field_meta);
+    return RC::SUCCESS;
+  }
+
+  if (expr.type == EXPR_FUNC) {
+    auto &func = expr.value.func;
+    for (int i = 0; i < func.arg_num; i++) {
+      rc = fill_expr(tables, table_map, func.args[i]);
+      if (rc != RC::SUCCESS) {
+        LOG_ERROR("Failed to fill expr in func");
+        return rc;
+      }
+    }
+    return rc;
+  }
+
+  return rc;
+}
+
+/// Expand * attr and replace value.attr with value.field
+static RC expand_attr(const std::vector<Table *> &tables, const std::unordered_map<std::string, Table *> &table_map,
+    AttrExpr &attr, std::vector<AttrExpr> &attrs)
+{
+  if (attr.expr.type != EXPR_ATTR) {
+    LOG_ERROR("Cannot expand non-single-attr attr expr");
+    return RC::INTERNAL;
+  }
+
+  const auto &relation_attr = attr.expr.value.attr;
+
+  if (common::is_blank(relation_attr.attribute_name)) {
+    LOG_ERROR("Attr name is blank");
+    return RC::INVALID_ARGUMENT;
+  }
+
+  // *
+  if (common::is_blank(relation_attr.relation_name) && 0 == strcmp(relation_attr.attribute_name, "*")) {
+    for (int i = tables.size() - 1; i >= 0; i--) {
+      Table *table = tables[i];
+      wildcard_fields(table, attrs);
+    }
+    return RC::SUCCESS;
+  }
+
+  // t.?
+  if (!common::is_blank(relation_attr.relation_name)) {
+    const char *table_name = relation_attr.relation_name;
+    const char *field_name = relation_attr.attribute_name;
+
+    // *.?
+    if (0 == strcmp(table_name, "*")) {
+      if (0 != strcmp(field_name, "*")) {
+        // *.a
+        LOG_WARN("invalid field name while table is *. attr=%s", field_name);
+        return RC::SCHEMA_FIELD_MISSING;
+      }
+
+      // *.*
+      for (Table *table : tables) {
+        wildcard_fields(table, attrs);
+      }
+      return RC::SUCCESS;
+    }
+
+    // t.*
+    if (0 == strcmp(field_name, "*")) {
+      auto iter = table_map.find(table_name);
+      if (iter == table_map.end()) {
+        LOG_WARN("no such table in from list: %s", table_name);
+        return RC::SCHEMA_FIELD_MISSING;
+      }
+
+      Table *table = iter->second;
+      wildcard_fields(table, attrs);
+      return RC::SUCCESS;
+    }
+  }
+
+  // a or t.a
+  RC rc = fill_expr(tables, table_map, attr.expr);
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to fill attr");
+    return rc;
+  }
+  attrs.emplace_back(attr);
+
+  return RC::SUCCESS;
 }
 
 RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
@@ -61,76 +199,31 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
     }
 
     tables.push_back(table);
-    table_map.insert(std::pair<std::string, Table*>(table_name, table));
+    table_map.insert(std::pair<std::string, Table *>(table_name, table));
   }
-  
+
   // collect query fields in `select` statement
-  std::vector<Field> query_fields;
-  for (int i = 0; i < select_sql.attr_num; i++) {
-    const auto &attr_expr = select_sql.attributes[i];
+  std::vector<AttrExpr> attrs;
+  RC rc = RC::SUCCESS;
+  for (size_t i = 0; i < select_sql.attr_num; i++) {
+    auto attr_expr = select_sql.attributes[i];
 
-    if (attr_expr.expr.type != EXPR_ATTR) {
-      LOG_ERROR("Non-attr selects is not support yet.");
-      return RC::GENERIC_ERROR;
+    switch (attr_expr.expr.type) {
+      case EXPR_ATTR:
+        rc = expand_attr(tables, table_map, attr_expr, attrs);
+        break;
+      default:
+        rc = fill_expr(tables, table_map, attr_expr.expr);
+        attrs.emplace_back(attr_expr);
+        break;
     }
 
-    const RelAttr &relation_attr = attr_expr.expr.value.attr;
-
-    if (common::is_blank(relation_attr.relation_name) && 0 == strcmp(relation_attr.attribute_name, "*")) {
-      for (int i = tables.size() - 1; i >= 0; i--) {
-        Table *table = tables[i];
-        wildcard_fields(table, query_fields);
-      }
-    } else if (!common::is_blank(relation_attr.relation_name)) {  // TODO
-      const char *table_name = relation_attr.relation_name;
-      const char *field_name = relation_attr.attribute_name;
-
-      if (0 == strcmp(table_name, "*")) {
-        if (0 != strcmp(field_name, "*")) {
-          LOG_WARN("invalid field name while table is *. attr=%s", field_name);
-          return RC::SCHEMA_FIELD_MISSING;
-        }
-        for (Table *table : tables) {
-          wildcard_fields(table, query_fields);
-        }
-      } else {
-        auto iter = table_map.find(table_name);
-        if (iter == table_map.end()) {
-          LOG_WARN("no such table in from list: %s", table_name);
-          return RC::SCHEMA_FIELD_MISSING;
-        }
-
-        Table *table = iter->second;
-        if (0 == strcmp(field_name, "*")) {
-          wildcard_fields(table, query_fields);
-        } else {
-          const FieldMeta *field_meta = table->table_meta().field(field_name);
-          if (nullptr == field_meta) {
-            LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), field_name);
-            return RC::SCHEMA_FIELD_MISSING;
-          }
-
-        query_fields.push_back(Field(table, field_meta));
-        }
-      }
-    } else {
-      if (tables.size() != 1) {  // todo undefined : select a,b from t1,t2;
-        LOG_WARN("invalid. I do not know the attr's table. attr=%s", relation_attr.attribute_name);
-        return RC::SCHEMA_FIELD_MISSING;
-      }
-
-      Table *table = tables[0];
-      const FieldMeta *field_meta = table->table_meta().field(relation_attr.attribute_name);
-      if (nullptr == field_meta) {
-        LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), relation_attr.attribute_name);
-        return RC::SCHEMA_FIELD_MISSING;
-      }
-
-      query_fields.push_back(Field(table, field_meta));
+    if (rc != RC::SUCCESS) {
+      return rc;
     }
   }
 
-  LOG_INFO("got %d tables in from stmt and %d fields in query stmt", tables.size(), query_fields.size());
+  LOG_INFO("got %d tables in from stmt and %d fields in query stmt", tables.size(), attrs.size());
 
   Table *default_table = nullptr;
   if (tables.size() == 1) {
@@ -139,8 +232,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
 
   // create filter statement in `where` statement
   FilterStmt *filter_stmt = nullptr;
-  RC rc = FilterStmt::create(db, default_table, &table_map,
-           select_sql.conditions, select_sql.condition_num, filter_stmt);
+  rc = FilterStmt::create(db, default_table, &table_map, select_sql.conditions, select_sql.condition_num, filter_stmt);
   if (rc != RC::SUCCESS) {
     LOG_WARN("cannot construct filter stmt");
     return rc;
@@ -149,7 +241,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
   // everything alright
   SelectStmt *select_stmt = new SelectStmt();
   select_stmt->tables_.swap(tables);
-  select_stmt->query_fields_.swap(query_fields);
+  select_stmt->attrs_.swap(attrs);
   select_stmt->filter_stmt_ = filter_stmt;
   stmt = select_stmt;
   return RC::SUCCESS;

@@ -56,17 +56,23 @@ Tuple *ProjectOperator::current_tuple()
   return &tuple_;
 }
 
-void ProjectOperator::add_projection(const Table *table, const FieldMeta *field_meta, bool multi_table)
+void ProjectOperator::add_projection(const std::vector<AttrExpr> &attrs, bool multi_table)
 {
-  // 对单表来说，展示的(alias) 字段总是字段名称，
-  // 对多表查询来说，展示的alias 需要带表名字
-  TupleCellSpec *spec = new TupleCellSpec(new FieldExpr(table, field_meta));
-  if (multi_table) {
-    spec->set_alias(std::string(table->name()) + "." + std::string(field_meta->name()));
-  } else {
-    spec->set_alias(field_meta->name());
+  for (auto &attr : attrs) {
+    auto &field = *attr.expr.value.field;
+    auto table = field.table();
+    auto field_meta = field.meta();
+
+    // 对单表来说，展示的(alias) 字段总是字段名称，
+    // 对多表查询来说，展示的alias 需要带表名字
+    TupleCellSpec *spec = new TupleCellSpec(new FieldExpr(table, field_meta));
+    if (multi_table) {
+      spec->set_alias(std::string(table->name()) + "." + std::string(field_meta->name()));
+    } else {
+      spec->set_alias(field_meta->name());
+    }
+    tuple_.add_cell_spec(spec);
   }
-  tuple_.add_cell_spec(spec);
 }
 
 RC ProjectOperator::tuple_cell_spec_at(int index, const TupleCellSpec *&spec) const

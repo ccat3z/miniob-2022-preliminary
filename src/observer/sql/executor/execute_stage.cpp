@@ -443,12 +443,8 @@ std::shared_ptr<ProjectOperator> build_operator(const SelectStmt &select_stmt)
   }
 
   auto project_oper = std::make_shared<ProjectOperator>();
+  project_oper->add_projection(select_stmt.attrs(), multi_table);
   project_oper->add_child(pred_oper);
-
-  for (unsigned i = 0; i < select_stmt.query_fields().size(); i++) {
-    Field field = select_stmt.query_fields()[i];
-    project_oper->add_projection(field.table(), field.meta(), multi_table);
-  }
 
   return project_oper;
 }

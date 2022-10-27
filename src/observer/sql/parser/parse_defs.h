@@ -109,10 +109,19 @@ typedef struct {
   int arg_num;
 } FuncExpr;
 
+#ifdef __cplusplus
+class Field;
+#endif
+
 typedef struct _UnionExpr {
   union {
     Value value;
     RelAttr attr;
+#ifdef __cplusplus
+    Field *field;  // HACK: Executor will fill field to replace attr
+#else
+    void *field;
+#endif
     FuncExpr func;
   } value;
   UnionExprType type;
