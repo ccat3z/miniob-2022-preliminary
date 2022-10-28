@@ -1878,18 +1878,14 @@ TEST_F(SQLTest, DISABLED_JoinTablesVeryLargeJoin)
     ASSERT_EQ(exec_sql(sql), "SUCCESS\n");
   }
   ASSERT_EQ(exec_sql("select * from join_table_large_1 inner join join_table_large_2 on "
-                     "join_table_large_1.id=join_table_large_2.id "
-                     "inner join join_table_large_3 on join_table_large_1.id=join_table_large_3.id inner join "
-                     "join_table_large_4 on "
-                     "join_table_large_3.id=join_table_large_4.id and join_table_large_4.num4 <= 5 inner join "
-                     "join_table_large_5 on "
-                     "1=1 inner join join_table_large_6 on join_table_large_5.id=join_table_large_6.id where "
-                     "join_table_large_3.num3 "
+                     "join_table_large_1.id=join_table_large_2.id inner join join_table_large_3 on "
+                     "join_table_large_1.id=join_table_large_3.id inner join join_table_large_4 on "
+                     "join_table_large_3.id=join_table_large_4.id inner join join_table_large_5 on 1=1 inner join "
+                     "join_table_large_6 on join_table_large_5.id=join_table_large_6.id where join_table_large_3.num3 "
                      "<10 and join_table_large_5.num5>90;"),
-      "JOIN_TABLE_LARGE_1.ID | JOIN_TABLE_LARGE_1.NUM1 | JOIN_TABLE_LARGE_2.ID | JOIN_TABLE_LARGE_2.NUM2 | "
-      "JOIN_TABLE_LARGE_3.ID | JOIN_TABLE_LARGE_3.NUM3 | JOIN_TABLE_LARGE_4.ID | JOIN_TABLE_LARGE_4.NUM4 | "
-      "JOIN_TABLE_LARGE_5.ID | JOIN_TABLE_LARGE_5.NUM5 | JOIN_TABLE_LARGE_6.ID | JOIN_TABLE_LARGE_6.NUM6\n"
-      "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 100 | 100 | 100 | 100\n"
+      "join_table_large_1.id | join_table_large_1.num1 | join_table_large_2.id | join_table_large_2.num2 | "
+      "join_table_large_3.id | join_table_large_3.num3 | join_table_large_4.id | join_table_large_4.num4 | "
+      "join_table_large_5.id | join_table_large_5.num5 | join_table_large_6.id | join_table_large_6.num6\n"
       "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 91 | 91 | 91 | 91\n"
       "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 92 | 92 | 92 | 92\n"
       "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 93 | 93 | 93 | 93\n"
@@ -1899,7 +1895,8 @@ TEST_F(SQLTest, DISABLED_JoinTablesVeryLargeJoin)
       "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 97 | 97 | 97 | 97\n"
       "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 98 | 98 | 98 | 98\n"
       "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 99 | 99 | 99 | 99\n"
-      "2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 100 | 100 | 100 | 100\n"
+      "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 100 | 100 | 100 | 100\n"
+
       "2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 91 | 91 | 91 | 91\n"
       "2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 92 | 92 | 92 | 92\n"
       "2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 93 | 93 | 93 | 93\n"
@@ -1909,7 +1906,8 @@ TEST_F(SQLTest, DISABLED_JoinTablesVeryLargeJoin)
       "2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 97 | 97 | 97 | 97\n"
       "2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 98 | 98 | 98 | 98\n"
       "2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 99 | 99 | 99 | 99\n"
-      "3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 100 | 100 | 100 | 100\n"
+      "2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 100 | 100 | 100 | 100\n"
+
       "3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 91 | 91 | 91 | 91\n"
       "3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 92 | 92 | 92 | 92\n"
       "3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 93 | 93 | 93 | 93\n"
@@ -1919,7 +1917,8 @@ TEST_F(SQLTest, DISABLED_JoinTablesVeryLargeJoin)
       "3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 97 | 97 | 97 | 97\n"
       "3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 98 | 98 | 98 | 98\n"
       "3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 99 | 99 | 99 | 99\n"
-      "4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 100 | 100 | 100 | 100\n"
+      "3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 100 | 100 | 100 | 100\n"
+
       "4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 91 | 91 | 91 | 91\n"
       "4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 92 | 92 | 92 | 92\n"
       "4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 93 | 93 | 93 | 93\n"
@@ -1929,7 +1928,8 @@ TEST_F(SQLTest, DISABLED_JoinTablesVeryLargeJoin)
       "4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 97 | 97 | 97 | 97\n"
       "4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 98 | 98 | 98 | 98\n"
       "4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 99 | 99 | 99 | 99\n"
-      "5 | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 100 | 100 | 100 | 100\n"
+      "4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 100 | 100 | 100 | 100\n"
+
       "5 | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 91 | 91 | 91 | 91\n"
       "5 | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 92 | 92 | 92 | 92\n"
       "5 | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 93 | 93 | 93 | 93\n"
@@ -1939,7 +1939,8 @@ TEST_F(SQLTest, DISABLED_JoinTablesVeryLargeJoin)
       "5 | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 97 | 97 | 97 | 97\n"
       "5 | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 98 | 98 | 98 | 98\n"
       "5 | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 99 | 99 | 99 | 99\n"
-      "6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 100 | 100 | 100 | 100\n"
+      "5 | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 100 | 100 | 100 | 100\n"
+
       "6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 91 | 91 | 91 | 91\n"
       "6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 92 | 92 | 92 | 92\n"
       "6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 93 | 93 | 93 | 93\n"
@@ -1949,7 +1950,7 @@ TEST_F(SQLTest, DISABLED_JoinTablesVeryLargeJoin)
       "6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 97 | 97 | 97 | 97\n"
       "6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 98 | 98 | 98 | 98\n"
       "6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 99 | 99 | 99 | 99\n"
-      "7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 100 | 100 | 100 | 100\n"
+      "6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 100 | 100 | 100 | 100\n"
       "7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 91 | 91 | 91 | 91\n"
       "7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 92 | 92 | 92 | 92\n"
       "7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 93 | 93 | 93 | 93\n"
@@ -1959,7 +1960,7 @@ TEST_F(SQLTest, DISABLED_JoinTablesVeryLargeJoin)
       "7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 97 | 97 | 97 | 97\n"
       "7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 98 | 98 | 98 | 98\n"
       "7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 99 | 99 | 99 | 99\n"
-      "8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 100 | 100 | 100 | 100\n"
+      "7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 100 | 100 | 100 | 100\n"
       "8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 91 | 91 | 91 | 91\n"
       "8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 92 | 92 | 92 | 92\n"
       "8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 93 | 93 | 93 | 93\n"
@@ -1969,7 +1970,7 @@ TEST_F(SQLTest, DISABLED_JoinTablesVeryLargeJoin)
       "8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 97 | 97 | 97 | 97\n"
       "8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 98 | 98 | 98 | 98\n"
       "8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 99 | 99 | 99 | 99\n"
-      "9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 100 | 100 | 100 | 100\n"
+      "8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 100 | 100 | 100 | 100\n"
       "9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 91 | 91 | 91 | 91\n"
       "9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 92 | 92 | 92 | 92\n"
       "9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 93 | 93 | 93 | 93\n"
@@ -1978,7 +1979,8 @@ TEST_F(SQLTest, DISABLED_JoinTablesVeryLargeJoin)
       "9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 96 | 96 | 96 | 96\n"
       "9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 97 | 97 | 97 | 97\n"
       "9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 98 | 98 | 98 | 98\n"
-      "9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 99 | 99 | 99 | 99\n");
+      "9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 99 | 99 | 99 | 99\n"
+      "9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 100 | 100 | 100 | 100\n");
 }
 // ##    ## ##     ## ##       ##
 // ###   ## ##     ## ##       ##

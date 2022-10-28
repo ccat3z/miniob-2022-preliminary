@@ -56,6 +56,14 @@ public:
       return nullptr;
     }
   }
+  FilterStmt *get_one_table_filter(std::string table_name)
+  {
+    if (one_table_filters_.find(table_name) != one_table_filters_.end()) {
+      return one_table_filters_[table_name];
+    } else {
+      return nullptr;
+    }
+  }
 
 private:
   std::vector<Field> query_fields_;
@@ -63,5 +71,6 @@ private:
   FilterStmt *filter_stmt_ = nullptr;
   FilterStmt *join_filter_stmt_ = nullptr;
   std::unordered_map<std::string, FilterStmt *> table_join_filters_;
+  std::unordered_map<std::string, FilterStmt *> one_table_filters_;
 };
 

@@ -440,18 +440,31 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
     Operator *scan_oper = new TableScanOperator(select_stmt->tables()[0]);
     pred_oper.add_child(scan_oper);
   } else {
-    std::string table_name = select_stmt->tables()[table_nums - 2]->name();
-    Operator *left = new TableScanOperator(select_stmt->tables()[table_nums - 1]);
-    Operator *right = new TableScanOperator(select_stmt->tables()[table_nums - 2]);
-    PredicateOperator *pred_join_oper = new PredicateOperator(select_stmt->get_table_join_filter(table_name));
+    std::string table_name = select_stmt->tables()[table_nums - 1]->name();
+    Operator *left_scan = new TableScanOperator(select_stmt->tables()[table_nums - 1]);
+    Operator *left = new PredicateOperator(select_stmt->get_one_table_filter(table_name));
+    left->add_child(left_scan);
+    std::cout << table_name << std::endl;
+    table_name = select_stmt->tables()[table_nums - 2]->name();
+    std::cout << table_name << std::endl;
+    Operator *right_scan = new TableScanOperator(select_stmt->tables()[table_nums - 2]);
+    Operator *right = new PredicateOperator(select_stmt->get_one_table_filter(table_name));
+    right->add_child(right_scan);
+
     JoinOperator *join_oper = new JoinOperator(left, right);
+
+    Operator *pred_join_oper = new PredicateOperator(select_stmt->get_table_join_filter(table_name));
+
     pred_join_oper->add_child(join_oper);
     for (int i = table_nums - 3; i >= 0; i--) {
       std::cout << table_name << std::endl;
+      table_name = select_stmt->tables()[i]->name();
+      Operator *pred_scan = new PredicateOperator(select_stmt->get_one_table_filter(table_name));
       Operator *scan = new TableScanOperator(select_stmt->tables()[i]);
-      join_oper = new JoinOperator(pred_join_oper, scan);
+      pred_scan->add_child(scan);
+      join_oper = new JoinOperator(pred_join_oper, pred_scan);
       if (i != 0) {
-        table_name = select_stmt->tables()[i + 1]->name();
+        table_name = select_stmt->tables()[i]->name();
         pred_join_oper = new PredicateOperator(select_stmt->get_table_join_filter(table_name));
         pred_join_oper->add_child(join_oper);
       }
