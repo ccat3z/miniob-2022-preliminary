@@ -2102,8 +2102,8 @@ TEST_F(SQLTest, AliasColumnShouldWork2)
   ASSERT_EQ(exec_sql("select t.a as c1, t.b as c2, t2.b, t2.d from t, t2;"),
       "c1 | c2 | t2.b | t2.d\n"
       "1 | 1 | 100 | 200\n"
-      "2 | 3 | 100 | 200\n"
       "1 | 1 | 300 | 500\n"
+      "2 | 3 | 100 | 200\n"
       "2 | 3 | 300 | 500\n");
 }
 
