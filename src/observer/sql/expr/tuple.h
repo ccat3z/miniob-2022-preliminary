@@ -15,7 +15,9 @@ See the Mulan PSL v2 for more details. */
 #pragma once
 
 #include <cstddef>
+#include <exception>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -85,6 +87,7 @@ public:
       }
     }
 
+    LOG_ERROR("Cannot find cell %s in tuple", cell_name.c_str());
     return RC::NOTFOUND;
   }
 
@@ -117,6 +120,58 @@ public:
       cell.to_string(ss);
     }
     return ss.str();
+  }
+
+  bool operator<(const Tuple &other) const
+  {
+    if (cell_num() != other.cell_num()) {
+      return cell_num() < other.cell_num();
+    }
+
+    for (int i = 0; i < cell_num(); i++) {
+      TupleCell this_cell, other_cell;
+      RC rc = cell_at(i, this_cell);
+      if (rc != RC::SUCCESS) {
+        throw std::invalid_argument("failed to compare tuple");
+      }
+
+      rc = other.cell_at(i, other_cell);
+      if (rc != RC::SUCCESS) {
+        throw std::invalid_argument("failed to compare tuple");
+      }
+
+      auto res = this_cell.compare(other_cell);
+      if (res < 0)
+        return true;
+    }
+
+    return false;
+  }
+
+  bool operator==(const Tuple &other) const
+  {
+    if (cell_num() != other.cell_num()) {
+      return false;
+    }
+
+    for (int i = 0; i < cell_num(); i++) {
+      TupleCell this_cell, other_cell;
+      RC rc = cell_at(i, this_cell);
+      if (rc != RC::SUCCESS) {
+        throw std::invalid_argument("failed to compare tuple");
+      }
+
+      rc = other.cell_at(i, other_cell);
+      if (rc != RC::SUCCESS) {
+        throw std::invalid_argument("failed to compare tuple");
+      }
+
+      auto res = this_cell.compare(other_cell);
+      if (res != 0)
+        return false;
+    }
+
+    return true;
   }
 };
 
