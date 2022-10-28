@@ -304,6 +304,11 @@ RC AggOperator::next()
 
 RC AggOperator::add_agg_expr(const FuncExpr &expr)
 {
+  if (expr.arg_num != 1) {
+    LOG_ERROR("Aggregator %s requires one args", expr.name);
+    return RC::INVALID_ARGUMENT;
+  }
+
   try {
     exprs.emplace_back(std::make_shared<AggFuncExpr>(expr));
   } catch (const std::exception &e) {
