@@ -43,7 +43,7 @@ static void wildcard_fields(Table *table, std::vector<AttrExpr> &attrs)
     attr.expr.type = EXPR_ATTR;
 
     // FIXME: Memory leak
-    attr.expr.value.field = new Field(table, table_meta.field(i));
+    attr.expr.hack.field = new Field(table, table_meta.field(i));
 
     attrs.emplace_back(attr);
   }
@@ -97,7 +97,7 @@ RC fill_expr(const Table *default_table, const std::unordered_map<std::string, T
     }
 
     // FIXME: Memory leak
-    expr.value.field = new Field(table, field_meta);
+    expr.hack.field = new Field(table, field_meta);
     return RC::SUCCESS;
   }
 

@@ -36,7 +36,7 @@ std::unique_ptr<Expression> Expression::create(const UnionExpr &union_expr)
   Expression *expr = nullptr;
   switch (union_expr.type) {
     case EXPR_ATTR: {
-      auto &field = *union_expr.value.field;
+      auto &field = *union_expr.hack.field;
       auto table = field.table();
       auto field_meta = field.meta();
       expr = new FieldExpr(table, field_meta);

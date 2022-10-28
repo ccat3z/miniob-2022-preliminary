@@ -121,13 +121,16 @@ typedef struct _UnionExpr {
   union {
     Value value;
     RelAttr attr;
-#ifdef __cplusplus
-    mutable Field *field;  // HACK: Executor will fill field to replace attr
-#else
-    void *field;
-#endif
     FuncExpr func;
   } value;
+
+#ifdef __cplusplus
+  union {
+    mutable Field *field;  // HACK: Executor will fill field to replace attr
+  } hack;
+#else
+  void *field;
+#endif
 
   mutable UnionExprType type;
 
