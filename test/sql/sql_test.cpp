@@ -12,6 +12,7 @@
 #include "common/lang/string.h"
 #include "common/os/process_param.h"
 #include "common/seda/init.h"
+#include "common/seda/seda_config.h"
 #include "init.h"
 #include "net/server.h"
 #include <chrono>
@@ -153,7 +154,8 @@ public:
     server->shutdown();
     pthread_join(pid, nullptr);
     cleanup();
-    common::cleanup_seda();
+    // Avoid buggy ~SedaConfig(), fix randomly abort
+    common::SedaConfig::get_instance() = nullptr;
     delete server;
   }
 
@@ -256,7 +258,6 @@ public:
     close(sockfd[0]);
     close(sockfd[1]);
     server->stop();
-    // FIXME: Randomly abort
     fs::remove_all(data_dir);
   }
 
