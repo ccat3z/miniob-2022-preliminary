@@ -118,7 +118,7 @@ typedef struct _UnionExpr {
     Value value;
     RelAttr attr;
 #ifdef __cplusplus
-    Field *field;  // HACK: Executor will fill field to replace attr
+    mutable Field *field;  // HACK: Executor will fill field to replace attr
 #else
     void *field;
 #endif
