@@ -22,6 +22,7 @@ See the Mulan PSL v2 for more details. */
 #include <cstddef>
 #include <cstring>
 #include <set>
+#include <strings.h>
 #include <vector>
 
 SelectStmt::~SelectStmt()
@@ -64,6 +65,10 @@ RC fill_expr(const Table *default_table, const std::unordered_map<std::string, T
 
     const Table *table = nullptr;
     if (common::is_blank(relattr.relation_name)) {
+      if (allow_star && strcmp(relattr.attribute_name, "*")) {
+        expr.value.field = nullptr;
+      }
+
       std::set<const Table *> tables;
       for (auto &kv : table_map) {
         tables.emplace(kv.second);
@@ -97,8 +102,12 @@ RC fill_expr(const Table *default_table, const std::unordered_map<std::string, T
 
   if (expr.type == EXPR_FUNC) {
     auto &func = expr.value.func;
+
+    // HACK: Only count() allow star args
+    bool is_count = strcasecmp(func.name, "count") == 0;
     for (int i = 0; i < func.arg_num; i++) {
-      rc = fill_expr(default_table, table_map, func.args[i]);
+      rc = fill_expr(default_table, table_map, func.args[i], is_count);
+
       if (rc != RC::SUCCESS) {
         LOG_ERROR("Failed to fill expr in func");
         return rc;
