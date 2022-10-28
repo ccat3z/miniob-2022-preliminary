@@ -1725,6 +1725,117 @@ TEST_F(SQLTest, AliasColumnShouldWork2)
       "2 | 3 | 300 | 500\n");
 }
 
+// ######## ##     ## ##    ##  ######  ######## ####  #######  ##    ##
+// ##       ##     ## ###   ## ##    ##    ##     ##  ##     ## ###   ##
+// ##       ##     ## ####  ## ##          ##     ##  ##     ## ####  ##
+// ######   ##     ## ## ## ## ##          ##     ##  ##     ## ## ## ##
+// ##       ##     ## ##  #### ##          ##     ##  ##     ## ##  ####
+// ##       ##     ## ##   ### ##    ##    ##     ##  ##     ## ##   ###
+// ##        #######  ##    ##  ######     ##    ####  #######  ##    ##
+
+TEST_F(SQLTest, FuncInAttributeShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t (s char, f float, d date, t text);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values ('1', 1.04, '2022-9-8', 'VERY_LONG');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values ('22', 2.5, '2022-9-8', 'VERY_LONG');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values ('333', 6.88, '2022-9-8', 'VERY_LONG');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select length(s) from t;"),
+      "length(s)\n"
+      "1\n2\n3\n");
+}
+
+TEST_F(SQLTest, FuncInConditionShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t (s char, f float, d date, t text);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values ('1', 1.04, '2022-9-8', 'VERY_LONG');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values ('22', 2.5, '2022-9-8', 'VERY_LONG');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values ('333', 6.88, '2022-9-8', 'VERY_LONG');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select s from t where length(s) > 2;"),
+      "s\n"
+      "333\n");
+}
+
+TEST_F(SQLTest, FuncInDeleteShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t (s char, f float, d date, t text);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values ('1', 1.04, '2022-9-8', 'VERY_LONG');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values ('22', 2.5, '2022-9-8', 'VERY_LONG');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values ('333', 6.88, '2022-9-8', 'VERY_LONG');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("delete from t where length(s) > 2;"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select s from t;"),
+      "s\n"
+      "1\n22\n");
+}
+
+TEST_F(SQLTest, FuncInUpdateConditionShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t (s char, f float, d date, t text);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values ('1', 1.04, '2022-9-8', 'VERY_LONG');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values ('22', 2.5, '2022-9-8', 'VERY_LONG');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values ('333', 6.88, '2022-9-8', 'VERY_LONG');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("update t set s = '1' where length(s) > 2;"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select s from t;"),
+      "s\n"
+      "1\n22\n1\n");
+}
+
+TEST_F(SQLTest, FuncInvalidArgsShouldFailure)
+{
+  ASSERT_EQ(exec_sql("create table t (s char, f float, d date, t text);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values ('1', 1.04, '2022-9-8', 'VERY_LONG');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values ('22', 2.5, '2022-9-8', 'VERY_LONG');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values ('333', 6.88, '2022-9-8', 'VERY_LONG');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select length(s, s) from t;"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select length(f) from t;"), "FAILURE\n");
+}
+
+// ######## ##     ## ########  ########
+// ##        ##   ##  ##     ## ##     ##
+// ##         ## ##   ##     ## ##     ##
+// ######      ###    ########  ########
+// ##         ## ##   ##        ##   ##
+// ##        ##   ##  ##        ##    ##
+// ######## ##     ## ##        ##     ##
+
+TEST_F(SQLTest, DISABLED_ExpressionInConditionShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t (a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t where a + b = 5;"), "a | b\n2 | 3\n");
+  ASSERT_EQ(exec_sql("select * from t where a - b = -1;"), "a | b\n2 | 3\n");
+  ASSERT_EQ(exec_sql("select * from t where a - b = a + b - a * b;"), "a | b\n2 | 3\n");
+  ASSERT_EQ(exec_sql("select * from t where b / a = 1.5;"), "a | b\n2 | 3\n");
+  ASSERT_EQ(exec_sql("select * from t where 2 = a + b - a * (b - b / a);"), "a | b\n2 | 3\n");
+  ASSERT_EQ(exec_sql("select * from t where 1 + 1 > 2;"), "a | b\n");
+  ASSERT_EQ(exec_sql("select * from t where a-2 > 0;"), "a | b\n");
+  ASSERT_EQ(exec_sql("select * from t where a - -2 = 4;"), "a | b\n2 | 3\n");
+  ASSERT_EQ(exec_sql("select * from t where -a = -2;"), "a | b\n2 | 3\n");
+}
+
+TEST_F(SQLTest, DISABLED_ExpressionInSelectShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t (a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select a + b from t;"), "a+b\n5\n");
+  ASSERT_EQ(exec_sql("select a + b, a - b from t;"), "a+b | a-b\n5 | -1\n");
+  ASSERT_EQ(exec_sql("select 1 + 1, a - b from t;"), "1+1 | a-b\n2 | -1\n");
+  ASSERT_EQ(exec_sql("select a + b - a * (b - b / a) from t;"), "a+b-a*(b-b/a)\n2\n");
+  ASSERT_EQ(exec_sql("select -a + b from t;"), "-a+b\n1\n");
+  ASSERT_EQ(exec_sql("select a,3*a from t;"), "a | 3*a\n2 | 6\n");
+}
+
+TEST_F(SQLTest, DISABLED_ExpressionInSelectTablesShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t (a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table t2 (a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (2, 3);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select t.a + 1, t.a + t.b from t, t2;"),
+      "t.a+1 | t.a+t.b\n"
+      "3 | 5\n");
+}
+
 int main(int argc, char **argv)
 {
   srand((unsigned)time(NULL));

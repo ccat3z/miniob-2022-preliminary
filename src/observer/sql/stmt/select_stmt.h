@@ -14,6 +14,7 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include <unordered_map>
 #include <vector>
 
 #include "rc.h"
@@ -52,3 +53,5 @@ private:
   friend class UpdateStmt;
 };
 
+RC fill_expr(const Table *default_table, const std::unordered_map<std::string, Table *> &table_map,
+    const UnionExpr &expr, bool allow_star = false);

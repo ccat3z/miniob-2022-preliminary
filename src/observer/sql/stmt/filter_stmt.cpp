@@ -16,8 +16,10 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include "common/lang/string.h"
 #include "sql/stmt/filter_stmt.h"
+#include "sql/stmt/select_stmt.h"
 #include "storage/common/db.h"
 #include "storage/common/table.h"
+#include <memory>
 
 FilterStmt::~FilterStmt()
 {
@@ -89,40 +91,36 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
     return RC::INVALID_ARGUMENT;
   }
 
-  Expression *left = nullptr;
-  Expression *right = nullptr;
-  if (condition.left_is_attr()) {
-    Table *table = nullptr;
-    const FieldMeta *field = nullptr;
-    rc = get_table_and_field(db, default_table, tables, condition.left_attr(), table, field);
-    if (rc != RC::SUCCESS) {
-      LOG_WARN("cannot find attr");
-      return rc;
-    }
-    left = new FieldExpr(table, field);
-  } else {
-    left = new ValueExpr(condition.left_value());
+  std::unique_ptr<Expression> left;
+  std::unique_ptr<Expression> right;
+  rc = fill_expr(default_table, *tables, condition.left_expr);
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to fill left expr");
+    return rc;
   }
 
-  if (condition.right_is_attr()) {
-    Table *table = nullptr;
-    const FieldMeta *field = nullptr;
-    rc = get_table_and_field(db, default_table, tables, condition.right_attr(), table, field);
-    if (rc != RC::SUCCESS) {
-      LOG_WARN("cannot find attr");
-      delete left;
-      return rc;
-    }
-    right = new FieldExpr(table, field);
-  } else {
-    right = new ValueExpr(condition.right_value());
+  rc = create_expression(left, condition.left_expr);
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to create left expr");
+    return rc;
+  }
+
+  rc = fill_expr(default_table, *tables, condition.right_expr);
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to fill right expr");
+    return rc;
+  }
+
+  rc = create_expression(right, condition.right_expr);
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to create right expr");
+    return rc;
   }
 
   filter_unit = new FilterUnit;
   filter_unit->set_comp(comp);
-  filter_unit->set_left(left);
-  filter_unit->set_right(right);
+  filter_unit->set_left(left.release());
+  filter_unit->set_right(right.release());
 
-  // 检查两个类型是否能够比较
   return rc;
 }

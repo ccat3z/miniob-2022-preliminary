@@ -19,6 +19,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/common/field.h"
 #include "storage/common/table.h"
 #include "select_stmt.h"
+#include <unordered_map>
 
 RC UpdateStmt::create(Db *db, const Updates &update, Stmt *&stmt)
 {
@@ -50,7 +51,9 @@ RC UpdateStmt::create(Db *db, const Updates &update, Stmt *&stmt)
 RC UpdateStmt::to_rid_select(Db *db, SelectStmt &stmt)
 {
   FilterStmt *filter_stmt = nullptr;
-  RC rc = FilterStmt::create(db, table_, nullptr, conditions_, condition_num_, filter_stmt);
+  std::unordered_map<std::string, Table *> tables;
+  tables[table_->name()] = table_;
+  RC rc = FilterStmt::create(db, table_, &tables, conditions_, condition_num_, filter_stmt);
   if (rc != RC::SUCCESS) {
     LOG_WARN("cannot construct filter stmt");
     return rc;

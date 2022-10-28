@@ -21,6 +21,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/common/table.h"
 #include <cstddef>
 #include <cstring>
+#include <set>
 #include <vector>
 
 SelectStmt::~SelectStmt()
@@ -47,8 +48,8 @@ static void wildcard_fields(Table *table, std::vector<AttrExpr> &attrs)
   }
 }
 
-static RC fill_expr(const std::vector<Table *> &tables, const std::unordered_map<std::string, Table *> &table_map,
-    UnionExpr &expr, bool allow_star = false)
+RC fill_expr(const Table *default_table, const std::unordered_map<std::string, Table *> &table_map,
+    const UnionExpr &expr, bool allow_star)
 {
   RC rc = RC::SUCCESS;
 
@@ -61,14 +62,18 @@ static RC fill_expr(const std::vector<Table *> &tables, const std::unordered_map
       return RC::INVALID_ARGUMENT;
     }
 
-    Table *table = nullptr;
+    const Table *table = nullptr;
     if (common::is_blank(relattr.relation_name)) {
+      std::set<const Table *> tables;
+      for (auto &kv : table_map) {
+        tables.emplace(kv.second);
+      }
       if (tables.size() != 1) {
         // TODO: select a,b from t1,t2; Find a table.
         LOG_WARN("invalid. I do not know the attr's table. attr=%s", relattr.attribute_name);
         return RC::SCHEMA_FIELD_MISSING;
       } else {
-        table = tables[0];
+        table = default_table;
       }
     } else {
       auto it = table_map.find(relattr.relation_name);
@@ -93,7 +98,7 @@ static RC fill_expr(const std::vector<Table *> &tables, const std::unordered_map
   if (expr.type == EXPR_FUNC) {
     auto &func = expr.value.func;
     for (int i = 0; i < func.arg_num; i++) {
-      rc = fill_expr(tables, table_map, func.args[i]);
+      rc = fill_expr(default_table, table_map, func.args[i]);
       if (rc != RC::SUCCESS) {
         LOG_ERROR("Failed to fill expr in func");
         return rc;
@@ -165,7 +170,7 @@ static RC expand_attr(const std::vector<Table *> &tables, const std::unordered_m
   }
 
   // a or t.a
-  RC rc = fill_expr(tables, table_map, attr.expr);
+  RC rc = fill_expr(tables[0], table_map, attr.expr);
   if (rc != RC::SUCCESS) {
     LOG_ERROR("Failed to fill attr");
     return rc;
@@ -213,7 +218,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
         rc = expand_attr(tables, table_map, attr_expr, attrs);
         break;
       default:
-        rc = fill_expr(tables, table_map, attr_expr.expr);
+        rc = fill_expr(tables[0], table_map, attr_expr.expr);
         attrs.emplace_back(attr_expr);
         break;
     }
