@@ -1877,7 +1877,6 @@ TEST_F(SQLTest, DISABLED_JoinTablesVeryLargeJoin)
     sql = "insert into join_table_large_6 values(" + num + "," + num + ");";
     ASSERT_EQ(exec_sql(sql), "SUCCESS\n");
   }
-  ASSERT_EQ(tables, "ddd");
   ASSERT_EQ(exec_sql("select * from join_table_large_1 inner join join_table_large_2 on "
                      "join_table_large_1.id=join_table_large_2.id "
                      "inner join join_table_large_3 on join_table_large_1.id=join_table_large_3.id inner join "
