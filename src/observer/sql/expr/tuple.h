@@ -71,6 +71,7 @@ public:
   virtual RC  find_cell(const Field &field, TupleCell &cell) const = 0;
 
   virtual RC  cell_spec_at(int index, const TupleCellSpec *&spec) const = 0;
+  virtual void print() = 0;
 };
 
 class RowTuple : public Tuple {
@@ -87,7 +88,27 @@ public:
   }
   virtual ~RowTuple()
   {}  //  不在释放放 vector<TUpleCellSpec*> speces_;因为这个部分会被转移到其它Tuple中。
-
+  void print()
+  {
+    // for debug
+    std::stringstream ss;
+    std::stringstream head_ss;
+    bool first_field = true;
+    for (unsigned i = 0; i < speces_.size(); i++) {
+      if (!first_field) {
+        ss << " | ";
+        head_ss << " | ";
+      } else {
+        first_field = false;
+      }
+      TupleCell cell;
+      cell_at(i, cell);
+      cell.to_string(ss);
+      FieldExpr *field_expr = (FieldExpr *)speces_[i]->expression();
+      head_ss << field_expr->table_name() << "." << field_expr->field_name();
+    }
+    std::cout << "row tuple print : \n " << head_ss.str() << "\n" << ss.str() << std::endl;
+  }
   void set_record(Record *record)
   {
     this->record_ = record;
@@ -121,6 +142,11 @@ public:
     cell.set_data(this->record_->data() + field_meta->offset());
     cell.set_length(field_meta->len());
     cell.set_null(field_meta->is_null(record_->data()));
+    // int buf_len = strlen(cell.data());
+    // char *buf = new char[buf_len + 1];
+    // memset(buf, 0, buf_len + 1);
+    // strncpy(buf, cell.data(), buf_len);
+    // cell.set_data(buf);
     return RC::SUCCESS;
   }
 
@@ -190,7 +216,8 @@ public:
     }
     speces_.clear();
   }
-
+  void print()
+  {}
   void set_tuple(Tuple *tuple)
   {
     this->tuple_ = tuple;
@@ -310,16 +337,20 @@ public:
   {
     // for debug
     std::stringstream ss;
+    std::stringstream head_ss;
     bool first_field = true;
     for (unsigned i = 0; i < tuple_.size(); i++) {
       if (!first_field) {
         ss << " | ";
+        head_ss << " | ";
       } else {
         first_field = false;
       }
       tuple_[i]->to_string(ss);
+      FieldExpr *field_expr = (FieldExpr *)speces_[i]->expression();
+      head_ss << field_expr->table_name() << "." << field_expr->field_name();
     }
-    std::cout << "complex tuple print : \n " << ss.str() << std::endl;
+    std::cout << "complex tuple print : \n " << head_ss.str() << "\n" << ss.str() << std::endl;
   }
 
 private:

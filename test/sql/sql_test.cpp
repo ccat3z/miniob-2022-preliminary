@@ -1484,7 +1484,240 @@ TEST_F(SQLTest, ShowIndexNonExists)
 //    ##    ######### ##     ## ##       ##             ##
 //    ##    ##     ## ##     ## ##       ##       ##    ##
 //    ##    ##     ## ########  ######## ########  ######
+TEST_F(SQLTest, SelectTablesOfficalExample)
+{
+  ASSERT_EQ(exec_sql("CREATE TABLE Select_tables_1(id int, age int, u_name char);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("CREATE TABLE Select_tables_2(id int, age int, u_name char);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("CREATE TABLE Select_tables_3(id int, res int, u_name char);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("CREATE TABLE Select_tables_4(id int, age int, u_name char);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("CREATE TABLE Select_tables_5(id int, res int, u_name char);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("INSERT INTO Select_tables_1 VALUES (1,18,'a');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("INSERT INTO Select_tables_1 VALUES (2,15,'b');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("INSERT INTO Select_tables_2 VALUES (1,20,'a');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("INSERT INTO Select_tables_2 VALUES (2,21,'c');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("INSERT INTO Select_tables_3 VALUES (1,35,'a');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("INSERT INTO Select_tables_3 VALUES (2,37,'a');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("INSERT INTO Select_tables_4 VALUES (1, 2, 'a');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("INSERT INTO Select_tables_4 VALUES (1, 3, 'b');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("INSERT INTO Select_tables_4 VALUES (2, 2, 'c');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("INSERT INTO Select_tables_4 VALUES (2, 4, 'd');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("INSERT INTO Select_tables_5 VALUES (1, 10, 'g');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("INSERT INTO Select_tables_5 VALUES (1, 11, 'f');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("INSERT INTO Select_tables_5 VALUES (2, 12, 'c');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("SELECT * FROM Select_tables_1,Select_tables_2,Select_tables_3;"),
+      "Select_tables_1.id | Select_tables_1.age | Select_tables_1.u_name | Select_tables_2.id | Select_tables_2.age | "
+      "Select_tables_2.u_name | Select_tables_3.id | Select_tables_3.res | Select_tables_3.u_name\n"
+      "1 | 18 | a | 1 | 20 | a | 1 | 35 | a\n"
+      "2 | 15 | b | 1 | 20 | a | 1 | 35 | a\n"
+      "1 | 18 | a | 2 | 21 | c | 1 | 35 | a\n"
+      "2 | 15 | b | 2 | 21 | c | 1 | 35 | a\n"
+      "1 | 18 | a | 1 | 20 | a | 2 | 37 | a\n"
+      "2 | 15 | b | 1 | 20 | a | 2 | 37 | a\n"
+      "1 | 18 | a | 2 | 21 | c | 2 | 37 | a\n"
+      "2 | 15 | b | 2 | 21 | c | 2 | 37 | a\n");
+  ASSERT_EQ(exec_sql("SELECT * FROM Select_tables_1,Select_tables_2,Select_tables_3 WHERE "
+                     "Select_tables_1.id=Select_tables_2.id AND Select_tables_3.res=35;"),
+      "Select_tables_1.id | Select_tables_1.age | Select_tables_1.u_name | Select_tables_2.id | Select_tables_2.age | "
+      "Select_tables_2.u_name | Select_tables_3.id | Select_tables_3.res | Select_tables_3.u_name\n"
+      "1 | 18 | a | 1 | 20 | a | 1 | 35 | a\n"
+      "2 | 15 | b | 2 | 21 | c | 1 | 35 | a\n");
+  ASSERT_EQ(exec_sql("Select Select_tables_1.res FROM Select_tables_1,Select_tables_2,Select_tables_3;"), "FAILURE\n");
 
+  ASSERT_EQ(
+      exec_sql("SELECT * FROM Select_tables_1,Select_tables_2,Select_tables_3 WHERE "
+               "Select_tables_1.u_name=Select_tables_2.u_name AND Select_tables_2.u_name=Select_tables_3.u_name;"),
+      "Select_tables_1.id | Select_tables_1.age | Select_tables_1.u_name | Select_tables_2.id | Select_tables_2.age | "
+      "Select_tables_2.u_name | Select_tables_3.id | Select_tables_3.res | Select_tables_3.u_name\n"
+      "1 | 18 | a | 1 | 20 | a | 1 | 35 | a\n"
+      "1 | 18 | a | 1 | 20 | a | 2 | 37 | a\n");
+  ASSERT_EQ(exec_sql("SELECT * FROM Select_tables_1,Select_tables_2,Select_tables_3 WHERE Select_tables_1.age<18 AND "
+                     "Select_tables_2.u_name='c' AND Select_tables_3.res=35 AND Select_tables_1.id=Select_tables_2.id "
+                     "AND Select_tables_2.id=Select_tables_3.id;"),
+      "Select_tables_1.id | Select_tables_1.age | Select_tables_1.u_name | Select_tables_2.id | Select_tables_2.age | "
+      "Select_tables_2.u_name | Select_tables_3.id | Select_tables_3.res | Select_tables_3.u_name\n");
+  ASSERT_EQ(exec_sql("SELECT Select_tables_2.age FROM Select_tables_1,Select_tables_2 WHERE Select_tables_1.age<18 AND "
+                     "Select_tables_2.u_name='c' AND Select_tables_1.id=Select_tables_2.id;"),
+      "Select_tables_2.age\n"
+      "21\n");
+  ASSERT_EQ(exec_sql("SELECT * from Select_tables_4, Select_tables_5 where Select_tables_4.id=Select_tables_5.id;"),
+      "Select_tables_4.id | Select_tables_4.age | Select_tables_4.u_name | Select_tables_5.id | Select_tables_5.res | "
+      "Select_tables_5.u_name\n"
+      "1 | 2 | a | 1 | 10 | g\n"
+      "1 | 3 | b | 1 | 10 | g\n"
+      "1 | 2 | a | 1 | 11 | f\n"
+      "1 | 3 | b | 1 | 11 | f\n"
+      "2 | 2 | c | 2 | 12 | c\n"
+      "2 | 4 | d | 2 | 12 | c\n");
+  ASSERT_EQ(exec_sql("select * from Select_tables_4, Select_tables_5 where Select_tables_4.id >= Select_tables_5.id;"),
+      "Select_tables_4.id | Select_tables_4.age | Select_tables_4.u_name | Select_tables_5.id | Select_tables_5.res | "
+      "Select_tables_5.u_name\n"
+      "1 | 2 | a | 1 | 10 | g\n"
+      "1 | 3 | b | 1 | 10 | g\n"
+      "2 | 2 | c | 1 | 10 | g\n"
+      "2 | 4 | d | 1 | 10 | g\n"
+      "1 | 2 | a | 1 | 11 | f\n"
+      "1 | 3 | b | 1 | 11 | f\n"
+      "2 | 2 | c | 1 | 11 | f\n"
+      "2 | 4 | d | 1 | 11 | f\n"
+      "2 | 2 | c | 2 | 12 | c\n"
+      "2 | 4 | d | 2 | 12 | c\n");
+  ASSERT_EQ(exec_sql("CREATE TABLE Select_tables_6(id int, res int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("SELECT Select_tables_1.id,Select_tables_6.id from Select_tables_1, Select_tables_6 where "
+                     "Select_tables_1.id=Select_tables_6.id;"),
+      "Select_tables_1.id | Select_tables_6.id\n");
+}
+
+TEST_F(SQLTest, SelectTablesShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table t2(b int, d int);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (100, 200);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (300, 500);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select * from t, t2;"),
+      "t.a | t.b | t2.b | t2.d\n"
+      "1 | 1 | 100 | 200\n"
+      "2 | 3 | 100 | 200\n"
+      "1 | 1 | 300 | 500\n"
+      "2 | 3 | 300 | 500\n");
+  ASSERT_EQ(exec_sql("create table t3(o int, a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t3 values (999, 888);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t3 values (777, 666);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select * from t, t2, t3;"),
+      "t.a | t.b | t2.b | t2.d | t3.o | t3.a\n"
+      "1 | 1 | 100 | 200 | 999 | 888\n"
+      "2 | 3 | 100 | 200 | 999 | 888\n"
+      "1 | 1 | 300 | 500 | 999 | 888\n"
+      "2 | 3 | 300 | 500 | 999 | 888\n"
+      "1 | 1 | 100 | 200 | 777 | 666\n"
+      "2 | 3 | 100 | 200 | 777 | 666\n"
+      "1 | 1 | 300 | 500 | 777 | 666\n"
+      "2 | 3 | 300 | 500 | 777 | 666\n");
+}
+
+TEST_F(SQLTest, SelectTablesColumnsOrderShouldCorrect)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table t2(b int, d int);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (100, 200);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (300, 500);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("create table t3(o int, a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t3 values (999, 888);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t3 values (777, 666);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select t3.o, t.a, t2.b from t, t2, t3;"),
+      "t3.o | t.a | t2.b\n"
+      "999 | 1 | 100\n"
+      "999 | 2 | 100\n"
+      "999 | 1 | 300\n"
+      "999 | 2 | 300\n"
+      "777 | 1 | 100\n"
+      "777 | 2 | 100\n"
+      "777 | 1 | 300\n"
+      "777 | 2 | 300\n");
+  ASSERT_EQ(exec_sql("select * from t2, t;"),
+      "t2.b | t2.d | t.a | t.b\n"
+      "100 | 200 | 1 | 1\n"
+      "300 | 500 | 1 | 1\n"
+      "100 | 200 | 2 | 3\n"
+      "300 | 500 | 2 | 3\n");
+}
+
+TEST_F(SQLTest, SelectTablesSingleColumnShouldShowTableName)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table t2(b int, d int);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (100, 200);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (300, 500);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select t.a from t, t2;"),
+      "t.a\n"
+      "1\n"
+      "2\n"
+      "1\n"
+      "2\n");
+}
+
+TEST_F(SQLTest, SelectTablesBothStarAndColumnsShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table t2(b int, d int);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (100, 200);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (300, 500);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select t.*, t2.b from t, t2;"),
+      "t.a | t.b | t2.b\n"
+      "1 | 1 | 100\n"
+      "2 | 3 | 100\n"
+      "1 | 1 | 300\n"
+      "2 | 3 | 300\n");
+}
+
+TEST_F(SQLTest, SelectTablesWithConditionsShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table t2(b int, d int);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (100, 200);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (300, 500);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("create table t3(o int, a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t3 values (999, 888);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t3 values (777, 666);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t3 values (777, 0);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select * from t, t2, t3 where t3.o <= 777 and t.a >= 2;"),
+      "t.a | t.b | t2.b | t2.d | t3.o | t3.a\n"
+      "2 | 3 | 100 | 200 | 777 | 666\n"
+      "2 | 3 | 300 | 500 | 777 | 666\n"
+      "2 | 3 | 100 | 200 | 777 | 0\n"
+      "2 | 3 | 300 | 500 | 777 | 0\n");
+
+  ASSERT_EQ(exec_sql("select * from t, t2, t3 where t3.o <= 777 and t.a >= 2 and "
+                     "t.a < t3.a;"),
+      "t.a | t.b | t2.b | t2.d | t3.o | t3.a\n"
+      "2 | 3 | 100 | 200 | 777 | 666\n"
+      "2 | 3 | 300 | 500 | 777 | 666\n");
+
+  ASSERT_EQ(exec_sql("select * from t, t2, t3 where t.a < t2.b and t.a > t3.a;"),
+      "t.a | t.b | t2.b | t2.d | t3.o | t3.a\n"
+      "1 | 1 | 100 | 200 | 777 | 0\n"
+      "2 | 3 | 100 | 200 | 777 | 0\n"
+      "1 | 1 | 300 | 500 | 777 | 0\n"
+      "2 | 3 | 300 | 500 | 777 | 0\n");
+}
+
+TEST_F(SQLTest, SelectTablesWithConditionsNotInProjectionShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table t2(b int, d int);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (1, 200);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (3, 500);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select t.a, t.b from t, t2 where t.a < t2.b;"),
+      "t.a | t.b\n"
+      "1 | 1\n"
+      "2 | 3\n");
+}
 TEST_F(SQLTest, SelectMutilTablesShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");

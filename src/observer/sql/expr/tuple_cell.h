@@ -14,7 +14,14 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
+#include <memory>
+#include <string>
+#include "common/log/log.h"
+#include "sql/parser/parse_defs.h"
 #include "storage/common/table.h"
 #include "storage/common/field_meta.h"
 
@@ -70,4 +77,79 @@ private:
   mutable int length_ = -1;
   mutable char *data_ = nullptr;  // real data. no need to move to field_meta.offset
   bool is_null_;
+
+public:
+  template <typename T>
+  void save(const T &d, AttrType type)
+  {
+    placeholder.reset(malloc(sizeof(T)), free);
+    *(T *)placeholder.get() = d;
+
+    attr_type_ = type;
+    data_ = (char *)placeholder.get();
+    length_ = sizeof(T);
+    is_null_ = false;
+  }
+
+  void save(int32_t i)
+  {
+    save(i, INTS);
+  }
+
+  void save(float f)
+  {
+    save(f, FLOATS);
+  }
+
+  void save(const char *val)
+  {
+    placeholder.reset(strdup(val), free);
+
+    attr_type_ = CHARS;
+    data_ = (char *)placeholder.get();
+    length_ = strlen(val) + 1;
+    is_null_ = false;
+  }
+
+  void save(const std::string &str)
+  {
+    save(str.c_str());
+  }
+
+  template <typename T>
+  RC unsafe_get(const T *&b, AttrType type) const
+  {
+    if (data_ == nullptr) {
+      LOG_ERROR("Failed to get value from cell. Cell is null");
+      return RC::GENERIC_ERROR;
+    }
+
+    if (attr_type_ != type) {
+      if (!try_cast(type)) {
+        LOG_ERROR("Failed to get value from cell. Expect type: %d, actual: %d", type, attr_type_);
+        return RC::GENERIC_ERROR;
+      }
+    }
+
+    b = (const T *)data_;
+    return RC::SUCCESS;
+  }
+
+  RC safe_get(const int32_t *&v) const
+  {
+    return unsafe_get(v, INTS);
+  }
+
+  RC safe_get(const float *&v) const
+  {
+    return unsafe_get(v, FLOATS);
+  }
+
+  RC safe_get(const char *&v) const
+  {
+    return unsafe_get(v, CHARS);
+  }
+
+private:
+  std::shared_ptr<void> placeholder;
 };

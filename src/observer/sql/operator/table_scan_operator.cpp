@@ -43,6 +43,13 @@ RC TableScanOperator::close()
 Tuple * TableScanOperator::current_tuple()
 {
   tuple_.set_record(&current_record_);
+  LOG_DEBUG("Tuple * TableScanOperator::current_tuple()");
+  if (current_record_.data() == nullptr) {
+    LOG_DEBUG("record is nullptr");
+    return nullptr;
+  } else {
+    tuple_.print();
+  }
   return &tuple_;
 }
 // RC TableScanOperator::tuple_cell_spec_at(int index, TupleCellSpec &spec) const

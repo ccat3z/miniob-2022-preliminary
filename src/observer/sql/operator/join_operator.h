@@ -39,6 +39,7 @@ private:
   Operator *left_ = nullptr;
   Operator *right_ = nullptr;
   bool round_done_ = true;
-  ComplexTuple *current_tuple_;
+  bool begin_join = false;
+  ComplexTuple current_tuple_;
   Tuple *left_tuple_;
 };
