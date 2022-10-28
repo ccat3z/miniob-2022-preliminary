@@ -14,18 +14,20 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include <cstdint>
+#include <memory>
 #include <sstream>
+#include <stdexcept>
 #include <string.h>
+#include "common/log/log.h"
+#include "rc.h"
+#include "sql/parser/parse_defs.h"
 #include "storage/common/field.h"
 #include "sql/expr/tuple_cell.h"
 
 class Tuple;
 
-enum class ExprType {
-  NONE,
-  FIELD,
-  VALUE,
-};
+enum class ExprType { NONE, FIELD, VALUE, EVAL };
 
 class Expression
 {
@@ -36,6 +38,11 @@ public:
   virtual RC get_value(const Tuple &tuple, TupleCell &cell) const = 0;
   virtual ExprType type() const = 0;
   virtual std::string toString(bool show_table) const = 0;
+
+protected:
+  // May throw exception
+  static std::unique_ptr<Expression> create(const UnionExpr &expr);
+  friend RC create_expression(std::unique_ptr<Expression> &expr, const UnionExpr &union_expr) noexcept;
 };
 
 class FieldExpr : public Expression
@@ -120,3 +127,34 @@ public:
 private:
   TupleCell tuple_cell_;
 };
+
+class LengthFuncExpr : public Expression {
+public:
+  LengthFuncExpr(const FuncExpr &expr)
+  {
+    if (expr.arg_num != 1) {
+      throw std::invalid_argument("length() only accept 1 arg");
+    }
+
+    arg = create(expr.args[0]);
+  }
+
+  RC get_value(const Tuple &tuple, TupleCell &cell) const override;
+
+  ExprType type() const override
+  {
+    return ExprType::EVAL;
+  };
+
+  std::string toString(bool show_table) const override
+  {
+    std::stringstream ss;
+    ss << "length(" << arg->toString(show_table) << ")";
+    return ss.str();
+  }
+
+private:
+  std::unique_ptr<Expression> arg;
+};
+
+RC create_expression(std::unique_ptr<Expression> &expr, const UnionExpr &union_expr) noexcept;

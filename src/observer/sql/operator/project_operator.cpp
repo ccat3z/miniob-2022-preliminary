@@ -18,6 +18,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/parser/parse_defs.h"
 #include "storage/record/record.h"
 #include "storage/common/table.h"
+#include <memory>
 
 RC ProjectOperator::open()
 {
@@ -60,31 +61,29 @@ Tuple *ProjectOperator::current_tuple()
 
 RC ProjectOperator::add_projection(const std::vector<AttrExpr> &attrs, bool multi_table)
 {
-  for (auto &attr : attrs) {
-    Expression *expr = nullptr;
+  RC rc = RC::SUCCESS;
 
-    switch (attr.expr.type) {
-      case EXPR_ATTR: {
-        auto &field = *attr.expr.value.field;
-        auto table = field.table();
-        auto field_meta = field.meta();
-        expr = new FieldExpr(table, field_meta);
-      } break;
-      case EXPR_VALUE: {
-        expr = new ValueExpr(attr.expr.value.value);
-      } break;
-      default:
-        LOG_ERROR("Unsupport expr type: %d", attr.expr.type);
-        return RC::GENERIC_ERROR;
+  for (auto &attr : attrs) {
+    std::unique_ptr<Expression> expr = nullptr;
+
+    rc = create_expression(expr, attr.expr);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to create expression");
+      return rc;
     }
 
-    TupleCellSpec *spec = new TupleCellSpec(expr);
+    if (!expr) {
+      LOG_ERROR("Failed to create expression");
+      return RC::GENERIC_ERROR;
+    }
+
+    TupleCellSpec *spec = new TupleCellSpec(expr.release());
     if (attr.name != nullptr) {
       spec->set_alias(attr.name);
     } else {
       // 对单表来说，展示的(alias) 字段总是字段名称，
       // 对多表查询来说，展示的alias 需要带表名字
-      spec->set_alias(expr->toString(multi_table));
+      spec->set_alias(spec->expression()->toString(multi_table));
     }
 
     tuple_.add_cell_spec(spec);
