@@ -440,12 +440,21 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
     Operator *scan_oper = new TableScanOperator(select_stmt->tables()[0]);
     pred_oper.add_child(scan_oper);
   } else {
+    std::string table_name = select_stmt->tables()[table_nums - 2]->name();
     Operator *left = new TableScanOperator(select_stmt->tables()[table_nums - 1]);
     Operator *right = new TableScanOperator(select_stmt->tables()[table_nums - 2]);
+    PredicateOperator *pred_join_oper = new PredicateOperator(select_stmt->get_table_join_filter(table_name));
     JoinOperator *join_oper = new JoinOperator(left, right);
+    pred_join_oper->add_child(join_oper);
     for (int i = table_nums - 3; i >= 0; i--) {
+      std::cout << table_name << std::endl;
       Operator *scan = new TableScanOperator(select_stmt->tables()[i]);
-      join_oper = new JoinOperator(join_oper, scan);
+      join_oper = new JoinOperator(pred_join_oper, scan);
+      if (i != 0) {
+        table_name = select_stmt->tables()[i + 1]->name();
+        pred_join_oper = new PredicateOperator(select_stmt->get_table_join_filter(table_name));
+        pred_join_oper->add_child(join_oper);
+      }
     }
     if (select_stmt->join_filter_stmt()) {
       PredicateOperator *pred_join_oper = new PredicateOperator(select_stmt->join_filter_stmt());
