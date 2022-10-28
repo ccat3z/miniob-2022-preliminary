@@ -104,6 +104,9 @@ ParserContext *get_context(yyscan_t scanner)
 		LIKE
 		UNIQUE
 		AS
+		ADD
+		MINUS
+		DIV
 
 %union {
   Condition condition;
@@ -131,6 +134,7 @@ ParserContext *get_context(yyscan_t scanner)
 %type <number> type;
 %type <condition> condition;
 %type <value> value;
+%type <value> pos_value;
 %type <number> number;
 %type <boolean> create_index_unique;
 %type <list> create_index_attr_list;
@@ -146,6 +150,8 @@ ParserContext *get_context(yyscan_t scanner)
 %type <list> update_set_list;
 %type <boolean> attr_def_nullable;
 
+%left ADD MINUS
+%left STAR DIV
 %%
 
 commands:		//commands or sqls. parser starts here.
@@ -350,16 +356,28 @@ value_list:
     ;
 
 value:
+	pos_value {
+		$$ = $1;
+	}
+    | MINUS NUMBER{	
+  		value_init_integer(&$$, -$2);
+	}
+    | MINUS FLOAT{
+  		value_init_float(&$$, -$2);
+	}
+    ;
+    ;
+pos_value:
 	NULL_VALUE {
 		value_init_null(&$$);
 	}
-    |NUMBER{	
+    | NUMBER {	
   		value_init_integer(&$$, $1);
 	}
-    |FLOAT{
+    | FLOAT {
   		value_init_float(&$$, $1);
-	}
-    |SSS {
+		}
+    | SSS {
 		$1 = substr($1,1,strlen($1)-2);
   		value_init_string(&$$, $1);
 	}
@@ -524,14 +542,37 @@ expr:
 		$$.type = EXPR_ATTR;
 		relation_attr_init(&$$.value.attr, $1, $3);
 	}
-	| value {
-		$$.type = EXPR_VALUE;
-		$$.value.value = $1;
-	}
 	| ID LBRACE expr_list RBRACE
 	{
 		$$.type = EXPR_FUNC;
 		func_init(&$$.value.func, $1, (UnionExpr *) $3->values, $3->len);
+	}
+	| pos_value {
+		$$.type = EXPR_VALUE;
+		$$.value.value = $1;
+	}
+	| MINUS expr {
+		$$.type = EXPR_FUNC;
+		func_init_1(&$$.value.func, "neg", &$2);
+	}
+	| expr ADD expr {
+		$$.type = EXPR_FUNC;
+		func_init_2(&$$.value.func, "+", &$1, &$3);
+	}
+	| expr MINUS expr {
+		$$.type = EXPR_FUNC;
+		func_init_2(&$$.value.func, "-", &$1, &$3);
+	}
+	| expr STAR expr {
+		$$.type = EXPR_FUNC;
+		func_init_2(&$$.value.func, "*", &$1, &$3);
+	}
+	| expr DIV expr {
+		$$.type = EXPR_FUNC;
+		func_init_2(&$$.value.func, "/", &$1, &$3);
+	}
+	| LBRACE expr RBRACE {
+		$$ = $2;
 	}
 	;
 

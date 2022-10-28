@@ -125,6 +125,10 @@ typedef struct _UnionExpr {
     FuncExpr func;
   } value;
   UnionExprType type;
+
+#ifdef __cplusplus
+  std::string to_string();
+#endif
 } UnionExpr;
 
 typedef struct _Condition {
@@ -316,6 +320,8 @@ void value_init_string(Value *value, const char *v);
 void value_destroy(Value *value);
 
 void expr_destroy(UnionExpr *expr);
+void func_init_1(FuncExpr *func, const char *name, UnionExpr *arg);
+void func_init_2(FuncExpr *func, const char *name, UnionExpr *arg1, UnionExpr *arg2);
 void func_init(FuncExpr *func, const char *name, UnionExpr *args, size_t length);
 void func_destroy(FuncExpr *func);
 

@@ -18,6 +18,8 @@ See the Mulan PSL v2 for more details. */
 #include <common/time/datetime.h>
 #include <cstring>
 #include <cstdlib>
+#include <ostream>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <cmath>
@@ -176,6 +178,23 @@ void expr_destroy(UnionExpr *expr)
     default:
       throw std::logic_error("Unreachable code");
   }
+}
+
+void func_init_1(FuncExpr *func, const char *name, UnionExpr *arg)
+{
+  func->name = strdup(name);
+  func->args = (UnionExpr *)malloc(sizeof(UnionExpr));
+  memcpy(func->args, arg, sizeof(UnionExpr));
+  func->arg_num = 1;
+}
+
+void func_init_2(FuncExpr *func, const char *name, UnionExpr *arg1, UnionExpr *arg2)
+{
+  func->name = strdup(name);
+  func->args = (UnionExpr *)malloc(sizeof(UnionExpr) * 2);
+  memcpy(func->args, arg1, sizeof(UnionExpr));
+  memcpy(func->args + 1, arg2, sizeof(UnionExpr));
+  func->arg_num = 2;
 }
 
 void func_init(FuncExpr *func, const char *name, UnionExpr *args, size_t length)
@@ -581,4 +600,36 @@ RC parse(const char *st, Query *sqln)
     return SQL_SYNTAX;
   else
     return SUCCESS;
+}
+
+std::ostream &operator<<(std::ostream &os, const UnionExpr &expr)
+{
+  switch (expr.type) {
+    case EXPR_ATTR: {
+      auto &attr = expr.value.attr;
+      if (attr.relation_name)
+        os << attr.relation_name << ".";
+      os << attr.attribute_name;
+    } break;
+    case EXPR_VALUE: {
+      auto &value = expr.value.value;
+      os << "$" << value.type;
+    } break;
+    case EXPR_FUNC: {
+      auto &func = expr.value.func;
+      os << func.name << "(";
+      for (int i = 0; i < func.arg_num; i++) {
+        os << func.args[i] << ",";
+      }
+      os << ")";
+    } break;
+  }
+  return os;
+}
+
+std::string _UnionExpr::to_string()
+{
+  std::stringstream ss;
+  ss << *this;
+  return ss.str();
 }
