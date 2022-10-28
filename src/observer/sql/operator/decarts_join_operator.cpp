@@ -66,7 +66,6 @@ RC DecartsJoinOperator::get_child_tuples(Operator *child)
   current_tuples.clear();
   LOG_DEBUG("DecartsJoinOperator::get_child_tuples: after decarts oper print tuples");
   for (unsigned i = 0; i < tuples.size(); i++) {
-    tuples[i]->print();
     current_tuples.push_back(tuples[i]);
   }
   tuples.clear();
@@ -84,7 +83,7 @@ void DecartsJoinOperator::decartes_one(RowTuple *tuple)
   }
   for (unsigned i = 0; i < current_tuples.size(); i++) {
     ComplexTuple *new_tuple = new ComplexTuple(current_tuples[i]);
-    new_tuple->add_row_tuple(tuple);
+    new_tuple->add_tuple(tuple);
     tuples.push_back(new_tuple);
   }
 }

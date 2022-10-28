@@ -53,9 +53,6 @@ Tuple *ProjectOperator::current_tuple()
   tuple_.set_tuple(new_tuple);
   LOG_DEBUG("ProjectOperator::current_tuple():%d", new_tuple->cell_num());
   LOG_DEBUG("ProjectOperator::current_tuple() after projection:%d", tuple_.cell_num());
-  ComplexTuple *debug_tuple = dynamic_cast<ComplexTuple *>(new_tuple);
-  if (debug_tuple)
-    debug_tuple->print();
   return &tuple_;
 }
 

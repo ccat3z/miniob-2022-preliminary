@@ -43,9 +43,6 @@ RC PredicateOperator::next()
       break;
     }
     LOG_DEBUG("PredicateOperator::current_tuple():tuple->cell_num():%d", tuple->cell_num());
-    ComplexTuple *debug_tuple = dynamic_cast<ComplexTuple *>(tuple);
-    if (debug_tuple)
-      debug_tuple->print();
     if (do_predicate(static_cast<Tuple &>(*tuple))) {
       return rc;
     }
