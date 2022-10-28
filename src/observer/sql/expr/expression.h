@@ -19,6 +19,8 @@ See the Mulan PSL v2 for more details. */
 #include <sstream>
 #include <stdexcept>
 #include <string.h>
+#include <string>
+#include <vector>
 #include "common/log/log.h"
 #include "rc.h"
 #include "sql/parser/parse_defs.h"
@@ -160,6 +162,87 @@ public:
 
 private:
   std::unique_ptr<Expression> arg;
+};
+
+class AggFuncExpr : public Expression {
+public:
+  AggFuncExpr(const FuncExpr &expr)
+  {
+    for (int i = 0; i < expr.arg_num; i++) {
+      args.emplace_back(create(expr.args[i]));
+    }
+    name = expr.name;
+  }
+
+  RC get_value(const Tuple &tuple, TupleCell &cell) const override;
+
+  ExprType type() const override
+  {
+    return ExprType::EVAL;
+  };
+
+  std::string toString(bool show_table) const override
+  {
+    std::stringstream ss;
+    ss << name << "(";
+
+    bool first = true;
+    for (auto &arg : args) {
+      if (first)
+        first = false;
+      else
+        ss << ",";
+
+      ss << arg->toString(show_table);
+    }
+    ss << ")";
+    return ss.str();
+  }
+
+  const std::string &agg_func() const
+  {
+    return name;
+  }
+
+private:
+  std::vector<std::unique_ptr<Expression>> args;
+  std::string name;
+  friend class Aggregator;
+};
+
+class RuntimeAttrExpr : public Expression {
+public:
+  RuntimeAttrExpr(const RelAttr &attr)
+  {
+    if (attr.relation_name)
+      table = attr.relation_name;
+    if (attr.attribute_name)
+      field = attr.attribute_name;
+  }
+
+  RC get_value(const Tuple &tuple, TupleCell &cell) const override
+  {
+    LOG_DEBUG("Not implemnt");
+    return RC::INTERNAL;
+  }
+
+  ExprType type() const override
+  {
+    return ExprType::EVAL;
+  };
+
+  std::string toString(bool show_table) const override
+  {
+    if (show_table && !table.empty()) {
+      return std::string(table) + "." + field;
+    } else {
+      return field;
+    }
+  }
+
+private:
+  std::string table;
+  std::string field;
 };
 
 RC create_expression(std::unique_ptr<Expression> &expr, const UnionExpr &union_expr) noexcept;

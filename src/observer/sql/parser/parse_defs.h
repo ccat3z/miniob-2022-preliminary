@@ -23,6 +23,10 @@ See the Mulan PSL v2 for more details. */
 #include <string>
 #endif
 
+#ifndef __cplusplus
+#define mutable
+#endif
+
 #define MAX_NUM 20
 #define MAX_REL_NAME 20
 #define MAX_ATTR_NAME 20
@@ -99,7 +103,7 @@ typedef struct {
   size_t len;
 } List;
 
-typedef enum { EXPR_VALUE, EXPR_ATTR, EXPR_FUNC } UnionExprType;
+typedef enum { EXPR_VALUE, EXPR_ATTR, EXPR_FUNC, EXPR_AGG, EXPR_RUNTIME_ATTR } UnionExprType;
 
 struct _UnionExpr;
 
@@ -124,7 +128,8 @@ typedef struct _UnionExpr {
 #endif
     FuncExpr func;
   } value;
-  UnionExprType type;
+
+  mutable UnionExprType type;
 
 #ifdef __cplusplus
   std::string to_string();

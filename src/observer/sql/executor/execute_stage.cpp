@@ -13,6 +13,7 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include <algorithm>
+#include <memory>
 #include <ostream>
 #include <string>
 #include <sstream>
@@ -32,6 +33,7 @@ See the Mulan PSL v2 for more details. */
 #include "event/session_event.h"
 #include "sql/expr/tuple.h"
 #include "sql/expr/tuple_cell.h"
+#include "sql/operator/agg_operator.h"
 #include "sql/operator/operator.h"
 #include "sql/operator/table_scan_operator.h"
 #include "sql/operator/index_scan_operator.h"
@@ -443,11 +445,34 @@ std::shared_ptr<ProjectOperator> build_operator(const SelectStmt &select_stmt)
     pred_oper->add_child(scan_oper);
   }
 
+  std::shared_ptr<Operator> oper;
+
+  // Aggregator
+  {
+    std::vector<FuncExpr> agg_exprs;
+    for (auto &attr : select_stmt.attrs()) {
+      if (attr.expr.type == EXPR_AGG) {
+        agg_exprs.emplace_back(attr.expr.value.func);
+      }
+    }
+
+    if (agg_exprs.size() > 0) {
+      auto agg = std::make_shared<AggOperator>();
+      for (auto &expr : agg_exprs) {
+        agg->add_agg_expr(expr);
+      }
+      agg->add_child(pred_oper);
+      oper = agg;
+    } else {
+      oper = pred_oper;
+    }
+  }
+
   auto project_oper = std::make_shared<ProjectOperator>();
   if (RC::SUCCESS != project_oper->add_projection(select_stmt.attrs(), multi_table)) {
     return nullptr;
   }
-  project_oper->add_child(pred_oper);
+  project_oper->add_child(oper);
 
   return project_oper;
 }

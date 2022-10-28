@@ -53,6 +53,12 @@ std::unique_ptr<Expression> Expression::create(const UnionExpr &union_expr)
         throw std::invalid_argument(std::string("Unsupport func: ") + name);
       }
     } break;
+    case EXPR_AGG: {
+      expr = new AggFuncExpr(union_expr.value.func);
+    } break;
+    case EXPR_RUNTIME_ATTR: {
+      expr = new RuntimeAttrExpr(union_expr.value.attr);
+    } break;
     default:
       LOG_ERROR("Unsupport expr type: %d", union_expr.type);
       throw std::invalid_argument("Unsupport expr type");
@@ -100,3 +106,8 @@ RC LengthFuncExpr::get_value(const Tuple &tuple, TupleCell &cell) const
 
   return RC::SUCCESS;
 };
+
+RC AggFuncExpr::get_value(const Tuple &tuple, TupleCell &cell) const
+{
+  return tuple.find_cell(*this, cell);
+}

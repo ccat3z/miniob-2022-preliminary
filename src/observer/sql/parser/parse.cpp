@@ -167,12 +167,14 @@ void expr_destroy(UnionExpr *expr)
 {
   switch (expr->type) {
     case EXPR_ATTR:
+    case EXPR_RUNTIME_ATTR:
       relation_attr_destroy(&expr->value.attr);
       break;
     case EXPR_VALUE:
       value_destroy(&expr->value.value);
       break;
     case EXPR_FUNC:
+    case EXPR_AGG:
       func_destroy(&expr->value.func);
       break;
     default:

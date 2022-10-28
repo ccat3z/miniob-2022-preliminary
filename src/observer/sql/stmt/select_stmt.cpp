@@ -65,8 +65,9 @@ RC fill_expr(const Table *default_table, const std::unordered_map<std::string, T
 
     const Table *table = nullptr;
     if (common::is_blank(relattr.relation_name)) {
-      if (allow_star && strcmp(relattr.attribute_name, "*")) {
-        expr.value.field = nullptr;
+      if (allow_star && strcmp(relattr.attribute_name, "*") == 0) {
+        expr.type = EXPR_RUNTIME_ATTR;
+        return RC::SUCCESS;
       }
 
       std::set<const Table *> tables;
@@ -103,10 +104,23 @@ RC fill_expr(const Table *default_table, const std::unordered_map<std::string, T
   if (expr.type == EXPR_FUNC) {
     auto &func = expr.value.func;
 
-    // HACK: Only count() allow star args
-    bool is_count = strcasecmp(func.name, "count") == 0;
+    bool agg_accept_star = false;
+    bool is_agg = false;
+
+    if (strcasecmp(func.name, "count") == 0) {
+      agg_accept_star = true;
+      is_agg = true;
+    } else if (strcasecmp(func.name, "max") == 0 || strcasecmp(func.name, "min") == 0 ||
+               strcasecmp(func.name, "avg") == 0 || strcasecmp(func.name, "sum") == 0) {
+      is_agg = true;
+    }
+
+    if (is_agg) {
+      expr.type = EXPR_AGG;
+    }
+
     for (int i = 0; i < func.arg_num; i++) {
-      rc = fill_expr(default_table, table_map, func.args[i], is_count);
+      rc = fill_expr(default_table, table_map, func.args[i], agg_accept_star);
 
       if (rc != RC::SUCCESS) {
         LOG_ERROR("Failed to fill expr in func");
