@@ -12,7 +12,7 @@ RC JoinOperator::next()
 {
   RC rc = RC::SUCCESS;
   if (begin_join == false) {
-    left_->next();
+    rc = left_->next();
     begin_join = true;
   }
   while (rc == RC::SUCCESS) {  // 当 left->next() !=RC::SUCCESS 则应该返回RC::E
@@ -23,7 +23,7 @@ RC JoinOperator::next()
       break;
     }
     if (RC::SUCCESS == (rc = right_->next())) {
-      current_tuple_ = new ComplexTuple();
+      current_tuple_ = ComplexTuple();
       current_tuple_.add_tuple(left_tuple_);
       LOG_DEBUG("join left_tule");
       current_tuple_.print();

@@ -1469,12 +1469,12 @@ TEST_F(SQLTest, SelectTablesOfficalExample)
       "Select_tables_1.id | Select_tables_1.age | Select_tables_1.u_name | Select_tables_2.id | Select_tables_2.age | "
       "Select_tables_2.u_name | Select_tables_3.id | Select_tables_3.res | Select_tables_3.u_name\n"
       "1 | 18 | a | 1 | 20 | a | 1 | 35 | a\n"
-      "2 | 15 | b | 1 | 20 | a | 1 | 35 | a\n"
-      "1 | 18 | a | 2 | 21 | c | 1 | 35 | a\n"
-      "2 | 15 | b | 2 | 21 | c | 1 | 35 | a\n"
       "1 | 18 | a | 1 | 20 | a | 2 | 37 | a\n"
-      "2 | 15 | b | 1 | 20 | a | 2 | 37 | a\n"
+      "1 | 18 | a | 2 | 21 | c | 1 | 35 | a\n"
       "1 | 18 | a | 2 | 21 | c | 2 | 37 | a\n"
+      "2 | 15 | b | 1 | 20 | a | 1 | 35 | a\n"
+      "2 | 15 | b | 1 | 20 | a | 2 | 37 | a\n"
+      "2 | 15 | b | 2 | 21 | c | 1 | 35 | a\n"
       "2 | 15 | b | 2 | 21 | c | 2 | 37 | a\n");
   ASSERT_EQ(exec_sql("SELECT * FROM Select_tables_1,Select_tables_2,Select_tables_3 WHERE "
                      "Select_tables_1.id=Select_tables_2.id AND Select_tables_3.res=35;"),
@@ -1504,8 +1504,8 @@ TEST_F(SQLTest, SelectTablesOfficalExample)
       "Select_tables_4.id | Select_tables_4.age | Select_tables_4.u_name | Select_tables_5.id | Select_tables_5.res | "
       "Select_tables_5.u_name\n"
       "1 | 2 | a | 1 | 10 | g\n"
-      "1 | 3 | b | 1 | 10 | g\n"
       "1 | 2 | a | 1 | 11 | f\n"
+      "1 | 3 | b | 1 | 10 | g\n"
       "1 | 3 | b | 1 | 11 | f\n"
       "2 | 2 | c | 2 | 12 | c\n"
       "2 | 4 | d | 2 | 12 | c\n");
@@ -1513,14 +1513,14 @@ TEST_F(SQLTest, SelectTablesOfficalExample)
       "Select_tables_4.id | Select_tables_4.age | Select_tables_4.u_name | Select_tables_5.id | Select_tables_5.res | "
       "Select_tables_5.u_name\n"
       "1 | 2 | a | 1 | 10 | g\n"
-      "1 | 3 | b | 1 | 10 | g\n"
-      "2 | 2 | c | 1 | 10 | g\n"
-      "2 | 4 | d | 1 | 10 | g\n"
       "1 | 2 | a | 1 | 11 | f\n"
+      "1 | 3 | b | 1 | 10 | g\n"
       "1 | 3 | b | 1 | 11 | f\n"
+      "2 | 2 | c | 1 | 10 | g\n"
       "2 | 2 | c | 1 | 11 | f\n"
-      "2 | 4 | d | 1 | 11 | f\n"
       "2 | 2 | c | 2 | 12 | c\n"
+      "2 | 4 | d | 1 | 10 | g\n"
+      "2 | 4 | d | 1 | 11 | f\n"
       "2 | 4 | d | 2 | 12 | c\n");
   ASSERT_EQ(exec_sql("CREATE TABLE Select_tables_6(id int, res int);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("SELECT Select_tables_1.id,Select_tables_6.id from Select_tables_1, Select_tables_6 where "
@@ -1541,8 +1541,8 @@ TEST_F(SQLTest, SelectTablesShouldWork)
   ASSERT_EQ(exec_sql("select * from t, t2;"),
       "t.a | t.b | t2.b | t2.d\n"
       "1 | 1 | 100 | 200\n"
-      "2 | 3 | 100 | 200\n"
       "1 | 1 | 300 | 500\n"
+      "2 | 3 | 100 | 200\n"
       "2 | 3 | 300 | 500\n");
   ASSERT_EQ(exec_sql("create table t3(o int, a int);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into t3 values (999, 888);"), "SUCCESS\n");
@@ -1551,12 +1551,12 @@ TEST_F(SQLTest, SelectTablesShouldWork)
   ASSERT_EQ(exec_sql("select * from t, t2, t3;"),
       "t.a | t.b | t2.b | t2.d | t3.o | t3.a\n"
       "1 | 1 | 100 | 200 | 999 | 888\n"
-      "2 | 3 | 100 | 200 | 999 | 888\n"
-      "1 | 1 | 300 | 500 | 999 | 888\n"
-      "2 | 3 | 300 | 500 | 999 | 888\n"
       "1 | 1 | 100 | 200 | 777 | 666\n"
-      "2 | 3 | 100 | 200 | 777 | 666\n"
+      "1 | 1 | 300 | 500 | 999 | 888\n"
       "1 | 1 | 300 | 500 | 777 | 666\n"
+      "2 | 3 | 100 | 200 | 999 | 888\n"
+      "2 | 3 | 100 | 200 | 777 | 666\n"
+      "2 | 3 | 300 | 500 | 999 | 888\n"
       "2 | 3 | 300 | 500 | 777 | 666\n");
 }
 
@@ -1577,18 +1577,18 @@ TEST_F(SQLTest, SelectTablesColumnsOrderShouldCorrect)
   ASSERT_EQ(exec_sql("select t3.o, t.a, t2.b from t, t2, t3;"),
       "t3.o | t.a | t2.b\n"
       "999 | 1 | 100\n"
-      "999 | 2 | 100\n"
-      "999 | 1 | 300\n"
-      "999 | 2 | 300\n"
       "777 | 1 | 100\n"
-      "777 | 2 | 100\n"
+      "999 | 1 | 300\n"
       "777 | 1 | 300\n"
+      "999 | 2 | 100\n"
+      "777 | 2 | 100\n"
+      "999 | 2 | 300\n"
       "777 | 2 | 300\n");
   ASSERT_EQ(exec_sql("select * from t2, t;"),
       "t2.b | t2.d | t.a | t.b\n"
       "100 | 200 | 1 | 1\n"
-      "300 | 500 | 1 | 1\n"
       "100 | 200 | 2 | 3\n"
+      "300 | 500 | 1 | 1\n"
       "300 | 500 | 2 | 3\n");
 }
 
@@ -1605,8 +1605,8 @@ TEST_F(SQLTest, SelectTablesSingleColumnShouldShowTableName)
   ASSERT_EQ(exec_sql("select t.a from t, t2;"),
       "t.a\n"
       "1\n"
-      "2\n"
       "1\n"
+      "2\n"
       "2\n");
 }
 
@@ -1623,8 +1623,8 @@ TEST_F(SQLTest, SelectTablesBothStarAndColumnsShouldWork)
   ASSERT_EQ(exec_sql("select t.*, t2.b from t, t2;"),
       "t.a | t.b | t2.b\n"
       "1 | 1 | 100\n"
-      "2 | 3 | 100\n"
       "1 | 1 | 300\n"
+      "2 | 3 | 100\n"
       "2 | 3 | 300\n");
 }
 
@@ -1646,8 +1646,8 @@ TEST_F(SQLTest, SelectTablesWithConditionsShouldWork)
   ASSERT_EQ(exec_sql("select * from t, t2, t3 where t3.o <= 777 and t.a >= 2;"),
       "t.a | t.b | t2.b | t2.d | t3.o | t3.a\n"
       "2 | 3 | 100 | 200 | 777 | 666\n"
-      "2 | 3 | 300 | 500 | 777 | 666\n"
       "2 | 3 | 100 | 200 | 777 | 0\n"
+      "2 | 3 | 300 | 500 | 777 | 666\n"
       "2 | 3 | 300 | 500 | 777 | 0\n");
 
   ASSERT_EQ(exec_sql("select * from t, t2, t3 where t3.o <= 777 and t.a >= 2 and "
@@ -1659,8 +1659,8 @@ TEST_F(SQLTest, SelectTablesWithConditionsShouldWork)
   ASSERT_EQ(exec_sql("select * from t, t2, t3 where t.a < t2.b and t.a > t3.a;"),
       "t.a | t.b | t2.b | t2.d | t3.o | t3.a\n"
       "1 | 1 | 100 | 200 | 777 | 0\n"
-      "2 | 3 | 100 | 200 | 777 | 0\n"
       "1 | 1 | 300 | 500 | 777 | 0\n"
+      "2 | 3 | 100 | 200 | 777 | 0\n"
       "2 | 3 | 300 | 500 | 777 | 0\n");
 }
 
@@ -1704,10 +1704,10 @@ TEST_F(SQLTest, SelectMutilTablesShouldWork)
   ASSERT_EQ(exec_sql("select t2.b,t3.a from t3,t2 where t3.a != 100; "),
       "t2.b | t3.a\n"
       "10 | 102\n"
-      "10 | 202\n"
-      "10 | 302\n"
       "20 | 102\n"
+      "10 | 202\n"
       "20 | 202\n"
+      "10 | 302\n"
       "20 | 302\n");
 
   // ASSERT_NE(exec_sql("select *   from t2,t3 where a>b;"), "FAILURE\n");
@@ -1747,8 +1747,8 @@ TEST_F(SQLTest, JoinTablesShouldWork)
   ASSERT_EQ(exec_sql("select * from t, t2 inner join t3 on t3.o <= 777 and t.a >= 2;"),
       "t.a | t.b | t2.b | t2.d | t3.o | t3.a\n"
       "2 | 3 | 100 | 200 | 777 | 666\n"
-      "2 | 3 | 300 | 500 | 777 | 666\n"
       "2 | 3 | 100 | 200 | 777 | 0\n"
+      "2 | 3 | 300 | 500 | 777 | 666\n"
       "2 | 3 | 300 | 500 | 777 | 0\n");
 
   ASSERT_EQ(exec_sql("select * from t "
@@ -1764,8 +1764,8 @@ TEST_F(SQLTest, JoinTablesShouldWork)
                      "inner join t3 on t.a > t3.a;"),
       "t.a | t.b | t2.b | t2.d | t3.o | t3.a\n"
       "1 | 1 | 100 | 200 | 777 | 0\n"
-      "2 | 3 | 100 | 200 | 777 | 0\n"
       "1 | 1 | 300 | 500 | 777 | 0\n"
+      "2 | 3 | 100 | 200 | 777 | 0\n"
       "2 | 3 | 300 | 500 | 777 | 0\n");
 }
 TEST_F(SQLTest, JoinTablesShouldWork2)
@@ -1847,7 +1847,99 @@ TEST_F(SQLTest, DISABLED_JoinTablesVeryLargeJoin)
                      "1=1 inner join join_table_large_6 on join_table_large_5.id=join_table_large_6.id where "
                      "join_table_large_3.num3 "
                      "<10 and join_table_large_5.num5>90;"),
-      "SUCCESS\n");
+      "JOIN_TABLE_LARGE_1.ID | JOIN_TABLE_LARGE_1.NUM1 | JOIN_TABLE_LARGE_2.ID | JOIN_TABLE_LARGE_2.NUM2 | "
+      "JOIN_TABLE_LARGE_3.ID | JOIN_TABLE_LARGE_3.NUM3 | JOIN_TABLE_LARGE_4.ID | JOIN_TABLE_LARGE_4.NUM4 | "
+      "JOIN_TABLE_LARGE_5.ID | JOIN_TABLE_LARGE_5.NUM5 | JOIN_TABLE_LARGE_6.ID | JOIN_TABLE_LARGE_6.NUM6\n"
+      "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 100 | 100 | 100 | 100\n"
+      "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 91 | 91 | 91 | 91\n"
+      "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 92 | 92 | 92 | 92\n"
+      "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 93 | 93 | 93 | 93\n"
+      "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 94 | 94 | 94 | 94\n"
+      "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 95 | 95 | 95 | 95\n"
+      "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 96 | 96 | 96 | 96\n"
+      "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 97 | 97 | 97 | 97\n"
+      "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 98 | 98 | 98 | 98\n"
+      "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 99 | 99 | 99 | 99\n"
+      "2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 100 | 100 | 100 | 100\n"
+      "2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 91 | 91 | 91 | 91\n"
+      "2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 92 | 92 | 92 | 92\n"
+      "2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 93 | 93 | 93 | 93\n"
+      "2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 94 | 94 | 94 | 94\n"
+      "2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 95 | 95 | 95 | 95\n"
+      "2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 96 | 96 | 96 | 96\n"
+      "2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 97 | 97 | 97 | 97\n"
+      "2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 98 | 98 | 98 | 98\n"
+      "2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 99 | 99 | 99 | 99\n"
+      "3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 100 | 100 | 100 | 100\n"
+      "3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 91 | 91 | 91 | 91\n"
+      "3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 92 | 92 | 92 | 92\n"
+      "3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 93 | 93 | 93 | 93\n"
+      "3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 94 | 94 | 94 | 94\n"
+      "3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 95 | 95 | 95 | 95\n"
+      "3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 96 | 96 | 96 | 96\n"
+      "3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 97 | 97 | 97 | 97\n"
+      "3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 98 | 98 | 98 | 98\n"
+      "3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 99 | 99 | 99 | 99\n"
+      "4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 100 | 100 | 100 | 100\n"
+      "4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 91 | 91 | 91 | 91\n"
+      "4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 92 | 92 | 92 | 92\n"
+      "4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 93 | 93 | 93 | 93\n"
+      "4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 94 | 94 | 94 | 94\n"
+      "4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 95 | 95 | 95 | 95\n"
+      "4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 96 | 96 | 96 | 96\n"
+      "4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 97 | 97 | 97 | 97\n"
+      "4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 98 | 98 | 98 | 98\n"
+      "4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 99 | 99 | 99 | 99\n"
+      "5 | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 100 | 100 | 100 | 100\n"
+      "5 | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 91 | 91 | 91 | 91\n"
+      "5 | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 92 | 92 | 92 | 92\n"
+      "5 | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 93 | 93 | 93 | 93\n"
+      "5 | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 94 | 94 | 94 | 94\n"
+      "5 | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 95 | 95 | 95 | 95\n"
+      "5 | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 96 | 96 | 96 | 96\n"
+      "5 | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 97 | 97 | 97 | 97\n"
+      "5 | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 98 | 98 | 98 | 98\n"
+      "5 | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 99 | 99 | 99 | 99\n"
+      "6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 100 | 100 | 100 | 100\n"
+      "6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 91 | 91 | 91 | 91\n"
+      "6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 92 | 92 | 92 | 92\n"
+      "6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 93 | 93 | 93 | 93\n"
+      "6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 94 | 94 | 94 | 94\n"
+      "6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 95 | 95 | 95 | 95\n"
+      "6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 96 | 96 | 96 | 96\n"
+      "6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 97 | 97 | 97 | 97\n"
+      "6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 98 | 98 | 98 | 98\n"
+      "6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 99 | 99 | 99 | 99\n"
+      "7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 100 | 100 | 100 | 100\n"
+      "7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 91 | 91 | 91 | 91\n"
+      "7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 92 | 92 | 92 | 92\n"
+      "7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 93 | 93 | 93 | 93\n"
+      "7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 94 | 94 | 94 | 94\n"
+      "7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 95 | 95 | 95 | 95\n"
+      "7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 96 | 96 | 96 | 96\n"
+      "7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 97 | 97 | 97 | 97\n"
+      "7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 98 | 98 | 98 | 98\n"
+      "7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 99 | 99 | 99 | 99\n"
+      "8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 100 | 100 | 100 | 100\n"
+      "8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 91 | 91 | 91 | 91\n"
+      "8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 92 | 92 | 92 | 92\n"
+      "8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 93 | 93 | 93 | 93\n"
+      "8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 94 | 94 | 94 | 94\n"
+      "8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 95 | 95 | 95 | 95\n"
+      "8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 96 | 96 | 96 | 96\n"
+      "8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 97 | 97 | 97 | 97\n"
+      "8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 98 | 98 | 98 | 98\n"
+      "8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 99 | 99 | 99 | 99\n"
+      "9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 100 | 100 | 100 | 100\n"
+      "9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 91 | 91 | 91 | 91\n"
+      "9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 92 | 92 | 92 | 92\n"
+      "9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 93 | 93 | 93 | 93\n"
+      "9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 94 | 94 | 94 | 94\n"
+      "9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 95 | 95 | 95 | 95\n"
+      "9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 96 | 96 | 96 | 96\n"
+      "9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 97 | 97 | 97 | 97\n"
+      "9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 98 | 98 | 98 | 98\n"
+      "9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 99 | 99 | 99 | 99\n");
 }
 // ##    ## ##     ## ##       ##
 // ###   ## ##     ## ##       ##
