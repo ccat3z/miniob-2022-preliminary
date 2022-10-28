@@ -12,7 +12,7 @@ RC JoinOperator::next()
 {
   RC rc = RC::SUCCESS;
   if (begin_join == false) {
-    left_->next();
+    rc = left_->next();
     begin_join = true;
   }
   while (rc == RC::SUCCESS) {  // 当 left->next() !=RC::SUCCESS 则应该返回RC::E
