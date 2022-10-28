@@ -24,7 +24,8 @@ public:
   }
 
 protected:
-  std::shared_ptr<Expression> expr;
+  std::shared_ptr<AggFuncExpr> expr;
+  RC get_arg(const Tuple &tuple, TupleCell &cell);
 
 private:
   TupleCellSpec spec;

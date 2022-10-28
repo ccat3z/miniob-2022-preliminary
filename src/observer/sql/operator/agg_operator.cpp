@@ -3,6 +3,7 @@
 #include "sql/expr/expression.h"
 #include "sql/expr/tuple.h"
 #include "sql/expr/tuple_cell.h"
+#include "sql/parser/parse_defs.h"
 #include <cstring>
 #include <exception>
 #include <memory>
@@ -26,6 +27,165 @@ public:
 private:
   int cnt = 0;
 };
+
+class MaxAggregator : public Aggregator {
+public:
+  MaxAggregator(std::shared_ptr<AggFuncExpr> expr) : Aggregator(expr)
+  {
+    cell.set_null(true);
+  };
+
+  RC get_cell(TupleCell &cell) override
+  {
+    cell = this->cell;
+    return RC::SUCCESS;
+  }
+
+  RC add_tuple(const Tuple &tuple) override
+  {
+    RC rc = RC::SUCCESS;
+
+    TupleCell number;
+    rc = get_arg(tuple, number);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to get arg");
+      return rc;
+    }
+
+    if (cell.is_null()) {
+      cell = number;
+    } else if (cell.compare(number) < 0) {
+      cell = number;
+    }
+
+    return rc;
+  };
+
+private:
+  TupleCell cell;
+};
+
+class MinAggregator : public Aggregator {
+public:
+  MinAggregator(std::shared_ptr<AggFuncExpr> expr) : Aggregator(expr)
+  {
+    cell.set_null(true);
+  };
+
+  RC get_cell(TupleCell &cell) override
+  {
+    cell = this->cell;
+    return RC::SUCCESS;
+  }
+
+  RC add_tuple(const Tuple &tuple) override
+  {
+    RC rc = RC::SUCCESS;
+
+    TupleCell number;
+    rc = get_arg(tuple, number);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to get arg");
+      return rc;
+    }
+
+    if (cell.is_null()) {
+      cell = number;
+    } else if (cell.compare(number) > 0) {
+      cell = number;
+    }
+
+    return rc;
+  };
+
+private:
+  TupleCell cell;
+};
+
+class AvgAggregator : public Aggregator {
+public:
+  AvgAggregator(std::shared_ptr<AggFuncExpr> expr) : Aggregator(expr){};
+
+  RC get_cell(TupleCell &cell) override
+  {
+    cell.save(total / (float)size);
+    return RC::SUCCESS;
+  }
+
+  RC add_tuple(const Tuple &tuple) override
+  {
+    RC rc = RC::SUCCESS;
+
+    TupleCell number;
+    rc = get_arg(tuple, number);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to get arg");
+      return rc;
+    }
+
+    if (!number.is_null()) {
+      size++;
+      total += number.as_float();
+    }
+
+    return rc;
+  };
+
+private:
+  float total = 0;
+  int size = 0;
+};
+
+class SumAggregator : public Aggregator {
+public:
+  SumAggregator(std::shared_ptr<AggFuncExpr> expr) : Aggregator(expr){};
+
+  RC get_cell(TupleCell &cell) override
+  {
+    cell.save((float)total);
+    return RC::SUCCESS;
+  }
+
+  RC add_tuple(const Tuple &tuple) override
+  {
+    RC rc = RC::SUCCESS;
+
+    TupleCell number;
+    rc = get_arg(tuple, number);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to get arg");
+      return rc;
+    }
+
+    if (!number.is_null()) {
+      total += number.as_float();
+    }
+
+    return rc;
+  };
+
+private:
+  float total = 0;
+};
+
+RC Aggregator::get_arg(const Tuple &tuple, TupleCell &cell)
+{
+  RC rc = RC::SUCCESS;
+  if (expr->args.size() != 1) {
+    LOG_ERROR("Aggregator %s requires one args", expr->toString(true).c_str());
+    return RC::INVALID_ARGUMENT;
+  }
+
+  auto &arg = expr->args[0];
+
+  rc = arg->get_value(tuple, cell);
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Cannot get value from arg expr: %s", arg->toString(true).c_str());
+    return rc;
+  }
+
+  return rc;
+}
 
 RC AggOperator::open()
 {
@@ -66,6 +226,14 @@ RC AggOperator::reduce()
         auto func = expr->agg_func().c_str();
         if (strcasecmp(func, "count") == 0) {
           aggs.emplace_back(std::make_unique<CountAggregator>(expr));
+        } else if (strcasecmp(func, "max") == 0) {
+          aggs.emplace_back(std::make_unique<MaxAggregator>(expr));
+        } else if (strcasecmp(func, "min") == 0) {
+          aggs.emplace_back(std::make_unique<MinAggregator>(expr));
+        } else if (strcasecmp(func, "avg") == 0) {
+          aggs.emplace_back(std::make_unique<AvgAggregator>(expr));
+        } else if (strcasecmp(func, "sum") == 0) {
+          aggs.emplace_back(std::make_unique<SumAggregator>(expr));
         } else {
           LOG_ERROR("Unsupport agg func: %s", func);
           return RC::GENERIC_ERROR;

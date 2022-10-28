@@ -1836,6 +1836,189 @@ TEST_F(SQLTest, DISABLED_ExpressionInSelectTablesShouldWork)
       "3 | 5\n");
 }
 
+//    ###     ######    ######      ######## ##     ## ##    ##  ######
+//   ## ##   ##    ##  ##    ##     ##       ##     ## ###   ## ##    ##
+//  ##   ##  ##        ##           ##       ##     ## ####  ## ##
+// ##     ## ##   #### ##   ####    ######   ##     ## ## ## ## ##
+// ######### ##    ##  ##    ##     ##       ##     ## ##  #### ##
+// ##     ## ##    ##  ##    ##     ##       ##     ## ##   ### ##    ##
+// ##     ##  ######    ######      ##        #######  ##    ##  ######
+
+TEST_F(SQLTest, AggFuncCountShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select count(1) from t;"), "count(1)\n2\n");
+  ASSERT_EQ(exec_sql("select count(*) from t;"), "count(*)\n2\n");
+  ASSERT_EQ(exec_sql("select count(*), count(*) from t;"), "count(*) | count(*)\n2 | 2\n");
+  ASSERT_EQ(exec_sql("select count(a), count(*) from t;"), "count(a) | count(*)\n2 | 2\n");
+}
+
+TEST_F(SQLTest, DISABLED_AggFuncCountEmptyTableShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select count(a) from t;"), "count(a)\n0\n");
+  ASSERT_EQ(exec_sql("select count(*) from t;"), "count(*)\n0\n");
+}
+
+TEST_F(SQLTest, AggFuncMaxShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select max(1) from t;"), "max(1)\n1\n");
+  ASSERT_EQ(exec_sql("select max(a) from t;"), "max(a)\n2\n");
+  // ASSERT_EQ(exec_sql("select max(t.b) from t;"), "max(t.b)\n3\n");
+}
+
+TEST_F(SQLTest, AggFuncMaxShouldWork2)
+{
+  ASSERT_EQ(exec_sql("create table t(a int nullable, b int nullable, d date);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null, null, '2022-10-1');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null, 3, '2022-10-2');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null, 5, '2022-09-2');"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select max(a) from t;"), "max(a)\nNULL\n");
+  ASSERT_EQ(exec_sql("select max(b) from t;"), "max(b)\n5\n");
+  ASSERT_EQ(exec_sql("select max(d) from t;"), "max(d)\n2022-10-02\n");
+}
+
+TEST_F(SQLTest, DISABLED_AggFuncMaxEmptyTableShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select max(a) from t;"), "max(a)\nNULL\n");
+}
+
+TEST_F(SQLTest, AggFuncMinShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select min(1) from t;"), "min(1)\n1\n");
+  ASSERT_EQ(exec_sql("select min(a) from t;"), "min(a)\n1\n");
+  // ASSERT_EQ(exec_sql("select min(t.b) from t;"), "min(t.b)\n1\n");
+}
+
+TEST_F(SQLTest, AggFuncMinShouldWork2)
+{
+  ASSERT_EQ(exec_sql("create table t(a int nullable, b int nullable, d date);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null, null, '2022-10-1');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null, 3, '2022-10-2');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null, 5, '2022-09-2');"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select min(a) from t;"), "min(a)\nNULL\n");
+  ASSERT_EQ(exec_sql("select min(b) from t;"), "min(b)\n3\n");
+  ASSERT_EQ(exec_sql("select min(d) from t;"), "min(d)\n2022-09-02\n");
+}
+
+TEST_F(SQLTest, DISABLED_AggFuncMinEmptyTableShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select min(a) from t;"), "min(a)\nNULL\n");
+}
+
+TEST_F(SQLTest, AggFuncAvgShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b float, d date);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 1.1, '2021-10-31');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3.0, '2021-11-1');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (3, 3.0, '2021-11-2');"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select avg(1) from t;"), "avg(1)\n1\n");
+  ASSERT_EQ(exec_sql("select avg(a) from t;"), "avg(a)\n2\n");
+  ASSERT_EQ(exec_sql("select avg(b) from t;"), "avg(b)\n2.37\n");
+  // ASSERT_EQ(exec_sql("select avg(d) from t;"), "avg(d)\n2021-11-01\n");
+}
+
+TEST_F(SQLTest, AggFuncAvgNumStringShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a char);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values ('1');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values ('2.5');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values ('3');"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select avg(a) from t;"), "avg(a)\n2.17\n");
+}
+
+TEST_F(SQLTest, DISABLED_AggFuncAvgEmptyTableShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b float, d date);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select avg(a) from t;"), "avg(a)\nNULL\n");
+}
+
+TEST_F(SQLTest, AggFuncSumShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b float, d date);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 1.1, '2021-10-31');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3.0, '2021-11-1');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (3, 3.0, '2021-11-2');"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select sum(1) from t;"), "sum(1)\n3\n");
+  ASSERT_EQ(exec_sql("select sum(a) from t;"), "sum(a)\n6\n");
+  ASSERT_EQ(exec_sql("select sum(b) from t;"), "sum(b)\n7.1\n");
+  // ASSERT_EQ(exec_sql("select avg(d) from t;"), "avg(d)\n2021-11-01\n");
+}
+
+TEST_F(SQLTest, AggFuncWithValueShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select count(1) from t;"), "count(1)\n2\n");
+  ASSERT_EQ(exec_sql("select count(1.1) from t;"), "count(1.1)\n2\n");
+  ASSERT_EQ(exec_sql("select count('a') from t;"), "count(a)\n2\n");
+}
+
+TEST_F(SQLTest, AggFuncWithConditionShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+
+  // ASSERT_EQ(exec_sql("select count(1) from t where a > 2;"), "count(1)\n0\n");
+  ASSERT_EQ(exec_sql("select count(1) from t where a > 1;"), "count(1)\n1\n");
+}
+
+TEST_F(SQLTest, AggFuncUnsupportFuncShouldFailure)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select magic(1) from t;"), "FAILURE\n");
+}
+
+TEST_F(SQLTest, DISABLED_AggFuncInvalidCondiionShouldFailure)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+
+  // TODO: Test case
+}
+
+TEST_F(SQLTest, AggFuncInvalidArgumentShouldFailure)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select count(c) from t;"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select max(*) from t;"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select min(*) from t;"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select min() from t;"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select min(a,*) from t;"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select a, count(a) from t;"), "FAILURE\n");
+}
+
 int main(int argc, char **argv)
 {
   srand((unsigned)time(NULL));
