@@ -21,7 +21,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/parser/parse_defs.h"
 #include "sql/stmt/stmt.h"
 #include "storage/common/field.h"
-
+#include "unordered_map"
 class FieldMeta;
 class FilterStmt;
 class Db;
@@ -45,11 +45,30 @@ public:
     return attrs_;
   }
   FilterStmt *filter_stmt() const { return filter_stmt_; }
+  FilterStmt *join_filter_stmt() const
+  {
+    return join_filter_stmt_;
+  }
+  std::unordered_map<std::string, FilterStmt *> table_join_filters()
+  {
+    return table_join_filters_;  // 分别存放每个join 算子的filter条件，如果是没有inner join filter 为空
+  }
+  FilterStmt *get_table_join_filter(std::string table_name)
+  {
+    if (table_join_filters_.find(table_name) != table_join_filters_.end()) {
+      return table_join_filters_[table_name];
+    } else {
+      return nullptr;
+    }
+  }
 
 private:
   std::vector<AttrExpr> attrs_;
   std::vector<Table *> tables_;
   FilterStmt *filter_stmt_ = nullptr;
+  FilterStmt *join_filter_stmt_ = nullptr;
+  std::unordered_map<std::string, FilterStmt *> table_join_filters_;
+
   friend class UpdateStmt;
 };
 

@@ -37,6 +37,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/operator/operator.h"
 #include "sql/operator/table_scan_operator.h"
 #include "sql/operator/index_scan_operator.h"
+#include "sql/operator/join_operator.h"
 #include "sql/operator/predicate_operator.h"
 #include "sql/operator/delete_operator.h"
 #include "sql/operator/project_operator.h"
@@ -428,24 +429,32 @@ IndexScanOperator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
 std::shared_ptr<ProjectOperator> build_operator(const SelectStmt &select_stmt)
 {
   bool multi_table = select_stmt.tables().size() >= 2;
+  std::shared_ptr<Operator> oper;
 
-  auto pred_oper = std::make_shared<PredicateOperator>(select_stmt.filter_stmt());
-
+  // Join
   if (multi_table) {
-    auto decarts_join_oper = std::make_shared<DecartsJoinOperator>();
-    unsigned table_nums = select_stmt.tables().size();
-    for (int i = table_nums - 1; i >= 0; i--) {
-      auto scan_oper = std::make_shared<TableScanOperator>(select_stmt.tables()[i]);
-      decarts_join_oper->add_child(scan_oper);
+    auto table_nums = select_stmt.tables().size();
+    auto left = std::make_shared<TableScanOperator>(select_stmt.tables()[table_nums - 1]);
+    auto right = std::make_shared<TableScanOperator>(select_stmt.tables()[table_nums - 2]);
+    oper = std::make_shared<JoinOperator>(left, right);
+    for (int i = table_nums - 3; i >= 0; i--) {
+      auto scan = std::make_shared<TableScanOperator>(select_stmt.tables()[i]);
+      oper = std::make_shared<JoinOperator>(oper, scan);
     }
 
-    pred_oper->add_child(decarts_join_oper);
+    if (select_stmt.join_filter_stmt()) {
+      auto pred = std::make_shared<PredicateOperator>(select_stmt.join_filter_stmt());
+      pred->add_child(oper);
+      oper = pred;
+    }
   } else {
-    auto scan_oper = std::make_shared<TableScanOperator>(select_stmt.tables()[0]);
-    pred_oper->add_child(scan_oper);
+    oper = std::make_shared<TableScanOperator>(select_stmt.tables()[0]);
   }
 
-  std::shared_ptr<Operator> oper;
+  // Predicate
+  auto pred_oper = std::make_shared<PredicateOperator>(select_stmt.filter_stmt());
+  pred_oper->add_child(oper);
+  oper = pred_oper;
 
   // Aggregator
   {
@@ -468,6 +477,7 @@ std::shared_ptr<ProjectOperator> build_operator(const SelectStmt &select_stmt)
     }
   }
 
+  // Project
   auto project_oper = std::make_shared<ProjectOperator>();
   if (RC::SUCCESS != project_oper->add_projection(select_stmt.attrs(), multi_table)) {
     return nullptr;

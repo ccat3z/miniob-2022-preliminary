@@ -107,6 +107,8 @@ ParserContext *get_context(yyscan_t scanner)
 		ADD
 		MINUS
 		DIV
+		INNER
+		JOIN
 
 %union {
   Condition condition;
@@ -467,9 +469,15 @@ attr_list:
 rel_list:
     /* empty */
     | COMMA ID rel_list {	
-				selects_append_relation(&CONTEXT->ssql->sstr.selection, $2);
-		  }
-    ;
+		selects_append_relation(&CONTEXT->ssql->sstr.selection, $2);
+		selects_append_inner_join(&CONTEXT->ssql->sstr.selection, $2,NULL, 0);
+	}
+	| INNER JOIN ID ON condition_list rel_list{
+		selects_append_relation(&CONTEXT->ssql->sstr.selection, $3);
+		selects_append_join_conditions(&CONTEXT->ssql->sstr.selection, (Condition *) $5->values, $5->len);
+		selects_append_inner_join(&CONTEXT->ssql->sstr.selection, $3,(Condition *) $5->values, $5->len);
+		list_free($5);
+	};
 where:
     /* empty */ { $$ = list_create(sizeof(Condition), MAX_NUM); } 
     | WHERE condition_list {	

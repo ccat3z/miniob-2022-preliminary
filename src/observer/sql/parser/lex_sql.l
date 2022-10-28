@@ -76,6 +76,8 @@ QUOTE            [\'\"]
 [Nn][Oo][Tt]                                         RETURN_TOKEN(NOT);
 [Uu][Nn][Ii][Qq][Uu][Ee]                             RETURN_TOKEN(UNIQUE);
 [Tt][Ee][Xx][Tt]                                     RETURN_TOKEN(TEXT_T);
+[Ii][Nn][Nn][Ee][Rr]                                 RETURN_TOKEN(INNER);  
+[Jj][Oo][Ii][Nn]                                     RETURN_TOKEN(JOIN);  
 [Nn][Uu][Ll][Ll][Aa][Bb][Ll][Ee]                     RETURN_TOKEN(NULLABLE);
 [Nn][Uu][Ll][Ll]                                     RETURN_TOKEN(NULL_VALUE);
 [Ii][Ss]                                             RETURN_TOKEN(IS);

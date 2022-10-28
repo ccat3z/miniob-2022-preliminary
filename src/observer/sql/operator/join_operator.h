@@ -17,22 +17,30 @@ See the Mulan PSL v2 for more details. */
 #include "sql/parser/parse.h"
 #include "sql/operator/operator.h"
 #include "rc.h"
+#include <memory>
 
 // TODO fixme
 class JoinOperator : public Operator
 {
 public:
-  JoinOperator(Operator *left, Operator *right)
-  {}
+  JoinOperator(std::shared_ptr<Operator> left, std::shared_ptr<Operator> right)
+  {
+    left_ = left;
+    right_ = right;
+  }
 
   virtual ~JoinOperator() = default;
 
   RC open() override;
   RC next() override;
   RC close() override;
+  Tuple *current_tuple();
 
 private:
-  Operator *left_ = nullptr;
-  Operator *right_ = nullptr;
+  std::shared_ptr<Operator> left_ = nullptr;
+  std::shared_ptr<Operator> right_ = nullptr;
   bool round_done_ = true;
+  bool begin_join = false;
+  ComplexTuple current_tuple_;
+  Tuple *left_tuple_;
 };

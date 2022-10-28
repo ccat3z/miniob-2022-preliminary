@@ -187,10 +187,21 @@ typedef struct {
   char *name;
 } AttrExpr;
 
+typedef struct _RelJoin {
+  bool inner_join;
+  char *relation_name;
+  size_t condition_num;
+  Condition conditions[MAX_NUM];
+} RelJoin;
+
 // struct of select
 typedef struct {
   size_t attr_num;                // Length of attrs in Select clause
   AttrExpr attributes[MAX_NUM];   // attrs in Select clause
+  size_t relation_join_num;       // length of join relations
+  RelJoin relation_join_list[MAX_NUM];  // relations in From clause includes join
+  Condition join_conditions[MAX_NUM];   // condition in From clause for join
+  size_t join_condition_num;
   size_t relation_num;            // Length of relations in Fro clause
   char *relations[MAX_NUM];       // relations in From clause
   size_t condition_num;           // Length of conditions in Where clause

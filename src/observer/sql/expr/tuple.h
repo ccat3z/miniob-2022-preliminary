@@ -122,6 +122,12 @@ public:
     return ss.str();
   }
 
+  // for debug
+  void print()
+  {
+    LOG_DEBUG(to_string().c_str());
+  }
+
   bool operator<(const Tuple &other) const
   {
     if (cell_num() != other.cell_num()) {

@@ -47,8 +47,10 @@ Tuple *DecartsJoinOperator::current_tuple()
 RC DecartsJoinOperator::get_child_tuples(Operator *child)
 {
   RC rc = RC::SUCCESS;
+  LOG_DEBUG("i am RC DecartsJoinOperator::get_child_tuples");
   while (RC::SUCCESS == (rc = child->next())) {
     // 每次调用current_tuple 它返回的tuple的地址是同一个。
+    LOG_DEBUG("i am RC DecartsJoinOperator::get_child_tuples");
     RowTuple *tuple = dynamic_cast<RowTuple *>(child->current_tuple());
     if (nullptr == tuple) {
       rc = RC::INTERNAL;
@@ -74,6 +76,7 @@ RC DecartsJoinOperator::get_child_tuples(Operator *child)
 }
 void DecartsJoinOperator::decartes_one(RowTuple *tuple)
 {
+  LOG_DEBUG("void DecartsJoinOperator::decartes_one(tuple)");
   if (tuple == nullptr)
     return;
   if (current_tuples.size() == 0) {
