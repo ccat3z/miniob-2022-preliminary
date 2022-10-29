@@ -85,6 +85,15 @@ bool PredicateOperator::do_predicate(Tuple &tuple)
       RC rc = RC::SUCCESS;
       bool found = false;
       rc = right_expr->get_values(tuple, [&](TupleCell &cell) {
+        if (cell.is_null() && left_cell.is_null()) {
+          found = true;
+          return RC::RECORD_EOF;
+        }
+
+        if (cell.is_null() || left_cell.is_null()) {
+          return RC::SUCCESS;
+        }
+
         if (cell.compare(left_cell) == 0) {
           found = true;
           return RC::RECORD_EOF;

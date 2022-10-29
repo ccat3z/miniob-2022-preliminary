@@ -2849,6 +2849,17 @@ TEST_F(SQLTest, InTupleShouldWork)
   ASSERT_EQ(exec_sql("select * from t where a in ();"), "a\n");
 }
 
+TEST_F(SQLTest, InTupleWithNullShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int nullable);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select * from t where a in (1,2,5);"), "a\n2\n");
+  ASSERT_EQ(exec_sql("select * from t where a in ();"), "a\n");
+  ASSERT_EQ(exec_sql("select * from t where a in (null);"), "a\nNULL\n");
+}
+
 TEST_F(SQLTest, NotInTupleShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
@@ -2859,6 +2870,19 @@ TEST_F(SQLTest, NotInTupleShouldWork)
   ASSERT_EQ(exec_sql("select * from t where a not in (1,2,5);"), "a\n3\n");
   ASSERT_EQ(exec_sql("select * from t where a not in (1);"), "a\n2\n3\n");
   ASSERT_EQ(exec_sql("select * from t where a not in ();"), "a\n1\n2\n3\n");
+}
+
+TEST_F(SQLTest, NotInTupleWithNullShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int nullable);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select * from t where a not in (1,2,5);"), "a\nNULL\n");
+  ASSERT_EQ(exec_sql("select * from t where a not in (1);"), "a\n2\nNULL\n");
+  ASSERT_EQ(exec_sql("select * from t where a not in ();"), "a\n1\n2\nNULL\n");
+  ASSERT_EQ(exec_sql("select * from t where a not in (null);"), "a\n1\n2\n");
 }
 
 int main(int argc, char **argv)
