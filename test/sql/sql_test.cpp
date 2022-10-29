@@ -2737,6 +2737,17 @@ TEST_F(SQLTest, SubQueryWithOfficialTestCaseShouldWork)
       "ID | COL1\n");
 }
 
+TEST_F(SQLTest, SubQueryWithOfficialTestCaseShouldWork2)
+{
+  ASSERT_EQ(exec_sql("create table csq_1(id int, col1 int, feat1 float);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table csq_2(id int, col2 int, feat2 float);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table csq_3(id int, col3 int, feat3 float);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select * from csq_1 where (select avg(csq_2.col2) from csq_2 where csq_2.feat2 > (select "
+                     "min(csq_3.feat3) from csq_3)) = col1;"),
+      "id | col1 | feat1\n");
+}
+
 TEST_F(SQLTest, SubQueryWithInvalidReferenceShouldFailure)
 {
   ASSERT_EQ(exec_sql("create table t(a float, b int);"), "SUCCESS\n");

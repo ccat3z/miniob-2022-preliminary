@@ -141,7 +141,7 @@ RC fill_expr(const Table *default_table, const std::unordered_map<std::string, T
     }
 
     for (int i = 0; i < func.arg_num; i++) {
-      rc = fill_expr(default_table, table_map, func.args[i], agg_accept_star);
+      rc = fill_expr(default_table, table_map, func.args[i], agg_accept_star, db);
 
       if (rc != RC::SUCCESS) {
         LOG_ERROR("Failed to fill expr in func");

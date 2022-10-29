@@ -93,7 +93,7 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
 
   std::unique_ptr<Expression> left;
   std::unique_ptr<Expression> right;
-  rc = fill_expr(default_table, *tables, condition.left_expr);
+  rc = fill_expr(default_table, *tables, condition.left_expr, false, db);
   if (rc != RC::SUCCESS) {
     LOG_ERROR("Failed to fill left expr");
     return rc;
