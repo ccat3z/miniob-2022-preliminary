@@ -50,6 +50,8 @@ typedef enum {
   OP_NOT_LIKE,  //"like"  6
   IS_NULL,
   IS_NOT_NULL,
+  OP_IN,
+  OP_NOT_IN,
   NO_OP
 } CompOp;
 

@@ -114,6 +114,7 @@ ParserContext *get_context(yyscan_t scanner)
 		BY
 		HAVING
 		ASC
+		IN
 
 %union {
   Condition condition;
@@ -604,6 +605,8 @@ comOp:
     | NE { $$ = NOT_EQUAL; }
 	| LIKE { $$ = OP_LIKE; }
 	| NOT LIKE { $$ = OP_NOT_LIKE; }
+	| IN { $$ = OP_IN; }
+	| NOT IN { $$ = OP_NOT_IN; }
     ;
 
 expr:

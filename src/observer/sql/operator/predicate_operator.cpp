@@ -13,6 +13,7 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include "common/log/log.h"
+#include "sql/expr/tuple_cell.h"
 #include "sql/operator/predicate_operator.h"
 #include "sql/parser/parse_defs.h"
 #include "storage/record/record.h"
@@ -75,9 +76,33 @@ bool PredicateOperator::do_predicate(Tuple &tuple)
     CompOp comp = filter_unit->comp();
     TupleCell left_cell;
     TupleCell right_cell;
+
     if (RC::SUCCESS != left_expr->get_value(tuple, left_cell)) {
       throw std::invalid_argument("get value failed for filter");
     }
+
+    if (comp == OP_IN || comp == OP_NOT_IN) {
+      RC rc = RC::SUCCESS;
+      bool found = false;
+      rc = right_expr->get_values(tuple, [&](TupleCell &cell) {
+        if (cell.compare(left_cell) == 0) {
+          found = true;
+          return RC::RECORD_EOF;
+        }
+        return RC::SUCCESS;
+      });
+
+      if (found) {
+        return comp == OP_IN ? true : false;
+      }
+
+      if (rc == RC::SUCCESS) {
+        return comp == OP_IN ? false : true;
+      }
+
+      throw std::invalid_argument("Failed to get values for filter");
+    }
+
     if (RC::SUCCESS != right_expr->get_value(tuple, right_cell)) {
       throw std::invalid_argument("get value failed for filter");
     }
