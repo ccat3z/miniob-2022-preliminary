@@ -13,6 +13,7 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include <algorithm>
+#include <cstddef>
 #include <memory>
 #include <ostream>
 #include <string>
@@ -431,33 +432,29 @@ std::shared_ptr<ProjectOperator> build_operator(const SelectStmt &select_stmt)
   bool multi_table = select_stmt.tables().size() >= 2;
   std::shared_ptr<Operator> oper;
 
+  // Tables
+  std::vector<std::pair<std::string, std::shared_ptr<Operator>>> scans;
+  for (int i = select_stmt.tables().size() - 1; i >= 0; i--) {
+    auto &table = select_stmt.tables()[i];
+    auto table_name = table->table_meta().name();
+    auto scan = std::make_shared<TableScanOperator>(table);
+    auto pred = std::make_shared<PredicateOperator>(select_stmt.get_one_table_filter(table_name));
+    pred->add_child(scan);
+    scans.emplace_back(table_name, pred);
+  }
+
   // Join
-  if (multi_table) {
-    auto table_nums = select_stmt.tables().size();
-    auto left_scan = std::make_shared<TableScanOperator>(select_stmt.tables()[table_nums - 1]);
-    auto left = std::make_shared<PredicateOperator>(select_stmt.get_one_table_filter(select_stmt.tables()[table_nums - 1]->name()));
-    left->add_child(left_scan);
-
-    auto right_scan = std::make_shared<TableScanOperator>(select_stmt.tables()[table_nums - 2]);
-    auto right = std::make_shared<PredicateOperator>(select_stmt.get_one_table_filter(select_stmt.tables()[table_nums - 2]->name()));
-    right->add_child(right_scan);
-
-    oper = std::make_shared<JoinOperator>(left, right);
-
-    auto pred = std::make_shared<PredicateOperator>(
-        select_stmt.get_table_join_filter(select_stmt.tables()[table_nums - 2]->name()));
+  if (scans.size() > 1) {
+    oper = std::make_shared<JoinOperator>(scans[0].second, scans[1].second);
+    auto pred = std::make_shared<PredicateOperator>(select_stmt.get_table_join_filter(scans[1].first));
     pred->add_child(oper);
     oper = pred;
 
-    for (int i = table_nums - 3; i >= 0; i--) {
-      auto table_name = select_stmt.tables()[i]->name();
-      auto scan = std::make_shared<TableScanOperator>(select_stmt.tables()[i]);
-      auto pred = std::make_shared<PredicateOperator>(select_stmt.get_one_table_filter(table_name));
-      pred->add_child(scan);
-      oper = std::make_shared<JoinOperator>(oper, pred);
+    for (size_t i = 2; i < scans.size(); i++) {
+      oper = std::make_shared<JoinOperator>(oper, scans[i].second);
 
-      if (i != 0) {
-        auto pred = std::make_shared<PredicateOperator>(select_stmt.get_table_join_filter(table_name));
+      if (i != scans.size() - 1) {
+        auto pred = std::make_shared<PredicateOperator>(select_stmt.get_table_join_filter(scans[i].first));
         pred->add_child(oper);
         oper = pred;
       }
