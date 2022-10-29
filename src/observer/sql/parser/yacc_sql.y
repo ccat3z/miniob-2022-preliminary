@@ -109,6 +109,11 @@ ParserContext *get_context(yyscan_t scanner)
 		DIV
 		INNER
 		JOIN
+		GROUP
+		ORDER
+		BY
+		HAVING
+		ASC
 
 %union {
   Condition condition;
@@ -153,6 +158,11 @@ ParserContext *get_context(yyscan_t scanner)
 %type <list> update_set_list;
 %type <boolean> attr_def_nullable;
 %type <select> select_stmt;
+%type <list> order_by;
+%type <list> order_by_list;
+%type <boolean> order_direct;
+%type <list> group_by;
+%type <list> having;
 
 %left ADD MINUS
 %left STAR DIV
@@ -436,7 +446,7 @@ select:
 	;
 
 select_stmt:				/*  select 语句的语法解析树*/
-    SELECT attr_list FROM ID rel_list where
+    SELECT attr_list FROM ID rel_list where group_by having order_by
 		{
 			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
 
@@ -445,6 +455,15 @@ select_stmt:				/*  select 语句的语法解析树*/
 
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, (AttrExpr *) $2->values, $2->len);
 			list_free($2);
+
+			selects_append_havings(&CONTEXT->ssql->sstr.selection, (Condition *) $8->values, $8->len);
+			list_free($8);
+
+			selects_append_groups(&CONTEXT->ssql->sstr.selection, (UnionExpr *) $7->values, $7->len);
+			list_free($7);
+
+			selects_append_orders(&CONTEXT->ssql->sstr.selection, (OrderExpr *) $9->values, $9->len);
+			list_free($9);
 
 			$$ = CONTEXT->ssql->sstr.selection;
   			CONTEXT->ssql->sstr.selection.relation_join_num = 0;
@@ -497,6 +516,49 @@ where:
 		$$ = $2;
 	}
     ;
+group_by:
+	{ $$ = list_create(sizeof(UnionExpr), 0); }
+	| GROUP BY expr_list
+	{
+	  $$ = $3;
+	}
+	;
+having:
+	{ $$ = list_create(sizeof(Condition), 0); }
+	| HAVING condition_list
+	{
+	  $$ = $2;
+	}
+	;
+order_by:
+	{ $$ = list_create(sizeof(OrderExpr), 0); }
+	| ORDER BY order_by_list
+	{
+	  $$ = $3;
+	}
+	;
+order_by_list:
+	expr order_direct {
+		$$ = list_create(sizeof(OrderExpr), MAX_NUM);
+		OrderExpr order;
+		order.expr = $1;
+		order.asc = $2;
+		list_prepend($$, &order);
+	}
+	| expr order_direct COMMA order_by_list {
+		$$ = $4;
+		OrderExpr order;
+		order.expr = $1;
+		order.asc = $2;
+		list_prepend($$, &order);
+	}
+
+order_direct:
+	{ $$ = true; }
+	| ASC { $$ = true; }
+	| DESC { $$ = false; }
+	;
+
 condition_list:
 	condition {
 		$$ = list_create(sizeof(Condition), MAX_NUM);

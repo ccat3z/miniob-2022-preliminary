@@ -273,6 +273,28 @@ void selects_append_relation(Selects *selects, const char *relation_name)
 {
   selects->relations[selects->relation_num++] = strdup(relation_name);
 }
+
+void selects_append_havings(Selects *selects, Condition conditions[], size_t size)
+{
+  selects->havings = (Condition *)malloc(sizeof(Condition) * size);
+  memcpy(selects->havings, conditions, sizeof(Condition) * size);
+  selects->having_num = size;
+}
+
+void selects_append_orders(Selects *selects, OrderExpr exprs[], size_t size)
+{
+  selects->orders = (OrderExpr *)malloc(sizeof(OrderExpr) * size);
+  memcpy(selects->orders, exprs, sizeof(OrderExpr) * size);
+  selects->order_num = size;
+}
+
+void selects_append_groups(Selects *selects, UnionExpr exprs[], size_t size)
+{
+  selects->groups = (UnionExpr *)malloc(sizeof(UnionExpr) * size);
+  memcpy(selects->groups, exprs, sizeof(UnionExpr) * size);
+  selects->group_num = size;
+}
+
 void selects_append_inner_join(
     Selects *selects, const char *relation_name, Condition conditions[], size_t condition_num)
 {  // 将所有的conditions 变成inner—join-lists[i]
@@ -324,6 +346,24 @@ void selects_destroy(Selects *selects)
     condition_destroy(&selects->conditions[i]);
   }
   selects->condition_num = 0;
+
+  for (size_t i = 0; i < selects->having_num; i++) {
+    condition_destroy(&selects->havings[i]);
+  }
+  selects->having_num = 0;
+  free(selects->havings);
+
+  for (size_t i = 0; i < selects->group_num; i++) {
+    expr_destroy(&selects->groups[i]);
+  }
+  selects->group_num = 0;
+  free(selects->groups);
+
+  for (size_t i = 0; i < selects->order_num; i++) {
+    expr_destroy(&selects->orders[i].expr);
+  }
+  selects->order_num = 0;
+  free(selects->orders);
 }
 
 void inserts_init(Inserts *inserts, const char *relation_name, Value values[], size_t value_num)

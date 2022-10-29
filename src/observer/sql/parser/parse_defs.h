@@ -201,6 +201,11 @@ typedef struct _RelJoin {
   Condition conditions[MAX_NUM];
 } RelJoin;
 
+typedef struct {
+  UnionExpr expr;
+  bool asc;
+} OrderExpr;
+
 // struct of select
 typedef struct _Selects {
   size_t attr_num;                // Length of attrs in Select clause
@@ -213,6 +218,12 @@ typedef struct _Selects {
   char *relations[MAX_NUM];       // relations in From clause
   size_t condition_num;           // Length of conditions in Where clause
   Condition conditions[MAX_NUM];  // conditions in Where clause
+  size_t group_num;
+  UnionExpr *groups;
+  size_t order_num;
+  OrderExpr *orders;
+  size_t having_num;
+  Condition *havings;
 } Selects;
 
 // struct of insert
@@ -359,6 +370,9 @@ void selects_init(Selects *selects, ...);
 void selects_append_attribute(Selects *selects, AttrExpr *rel_attr, size_t attr_len);
 void selects_append_relation(Selects *selects, const char *relation_name);
 void selects_append_conditions(Selects *selects, Condition conditions[], size_t condition_num);
+void selects_append_havings(Selects *selects, Condition conditions[], size_t size);
+void selects_append_orders(Selects *selects, OrderExpr exprs[], size_t size);
+void selects_append_groups(Selects *selects, UnionExpr exprs[], size_t size);
 void selects_destroy(Selects *selects);
 
 void inserts_init(Inserts *inserts, const char *relation_name, Value values[], size_t value_num);

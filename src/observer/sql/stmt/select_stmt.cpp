@@ -318,6 +318,37 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
       one_table_filters[table_name]->add_filter_units(filter_unit);
     }
   }
+
+  // Group by
+  for (size_t i = 0; i < select_sql.group_num; i++) {
+    rc = fill_expr(default_table, table_map, select_sql.groups[i]);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to fill group by expr");
+      return rc;
+    }
+    select_stmt->groups_.emplace_back(select_sql.groups[i]);
+  }
+
+  // Having
+  if (select_sql.group_num != 0) {
+    rc = FilterStmt::create(
+        db, default_table, &table_map, select_sql.havings, select_sql.having_num, select_stmt->having_filter_);
+    if (rc != RC::SUCCESS) {
+      LOG_WARN("cannot construct filter stmt for having");
+      return rc;
+    }
+  }
+
+  // Order by
+  for (size_t i = 0; i < select_sql.order_num; i++) {
+    rc = fill_expr(default_table, table_map, select_sql.orders[i].expr);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to fill order by expr");
+      return rc;
+    }
+    select_stmt->orders_.emplace_back(select_sql.orders[i]);
+  }
+
   // everything alright
   select_stmt->tables_.swap(tables);
   select_stmt->attrs_.swap(attrs);

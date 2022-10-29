@@ -72,6 +72,19 @@ public:
     }
   }
 
+  FilterStmt *having() const
+  {
+    return having_filter_;
+  }
+  const std::vector<UnionExpr> &groups() const
+  {
+    return groups_;
+  }
+  const std::vector<OrderExpr> &orders() const
+  {
+    return orders_;
+  }
+
 private:
   std::vector<AttrExpr> attrs_;
   std::vector<Table *> tables_;
@@ -79,6 +92,10 @@ private:
   FilterStmt *join_filter_stmt_ = nullptr;
   std::unordered_map<std::string, FilterStmt *> table_join_filters_;
   std::unordered_map<std::string, FilterStmt *> one_table_filters_;
+
+  FilterStmt *having_filter_ = nullptr;
+  std::vector<UnionExpr> groups_;
+  std::vector<OrderExpr> orders_;
 
   friend class UpdateStmt;
 };
