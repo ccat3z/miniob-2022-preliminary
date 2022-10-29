@@ -41,7 +41,7 @@ public:
   virtual ExprType type() const = 0;
   virtual std::string toString(bool show_table) const = 0;
 
-  bool operator=(const Expression &other)
+  bool operator==(const Expression &other)
   {
     return toString(true) == other.toString(true);
   }
