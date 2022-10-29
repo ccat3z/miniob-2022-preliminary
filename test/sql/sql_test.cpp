@@ -2419,6 +2419,165 @@ TEST_F(SQLTest, AggFuncInvalidArgumentShouldFailure)
   ASSERT_EQ(exec_sql("select sum(a, a) from t;"), "FAILURE\n");
 }
 
+TEST_F(SQLTest, AggFuncHavingShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t (a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select count(b) from t having count(b) < 1;"), "count(b)\n");
+  ASSERT_EQ(exec_sql("select count(b) from t having count(b) > 1;"),
+      "count(b)\n"
+      "3\n");
+}
+
+TEST_F(SQLTest, AggFuncInvalidHavingShouldFailure)
+{
+  ASSERT_EQ(exec_sql("create table t (a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select count(b) from t having count(a) < 1;"), "FAILURE\n");
+}
+
+//  #######  ########  ########  ######## ########
+// ##     ## ##     ## ##     ## ##       ##     ##
+// ##     ## ##     ## ##     ## ##       ##     ##
+// ##     ## ########  ##     ## ######   ########
+// ##     ## ##   ##   ##     ## ##       ##   ##
+// ##     ## ##    ##  ##     ## ##       ##    ##
+//  #######  ##     ## ########  ######## ##     ##
+
+TEST_F(SQLTest, DISABLED_OrderBySingleAttrShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (100, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t order by a asc;"),
+      "a | b\n"
+      "1 | 1\n"
+      "2 | 3\n"
+      "100 | 3\n");
+  ASSERT_EQ(exec_sql("select * from t order by a;"),
+      "a | b\n"
+      "1 | 1\n"
+      "2 | 3\n"
+      "100 | 3\n");
+  ASSERT_EQ(exec_sql("select * from t order by a desc;"),
+      "a | b\n"
+      "100 | 3\n"
+      "2 | 3\n"
+      "1 | 1\n");
+}
+
+TEST_F(SQLTest, DISABLED_OrderByMultiAttrShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int, c int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 10, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 10, 2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 1, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t order by a desc, b asc;"),
+      "a | b | c\n"
+      "2 | 1 | 3\n"
+      "2 | 10 | 1\n"
+      "1 | 10 | 2\n");
+  ASSERT_EQ(exec_sql("select * from t order by a, b;"),
+      "a | b | c\n"
+      "1 | 10 | 2\n"
+      "2 | 1 | 3\n"
+      "2 | 10 | 1\n");
+  ASSERT_EQ(exec_sql("select * from t order by b, a;"),
+      "a | b | c\n"
+      "2 | 1 | 3\n"
+      "1 | 10 | 2\n"
+      "2 | 10 | 1\n");
+}
+
+TEST_F(SQLTest, DISABLED_OrderByInvalidAttrShouldFailure)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (100, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t order by c asc;"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select * from t order by a, c;"), "FAILURE\n");
+}
+
+//  ######   ########   #######  ##     ## ########
+// ##    ##  ##     ## ##     ## ##     ## ##     ##
+// ##        ##     ## ##     ## ##     ## ##     ##
+// ##   #### ########  ##     ## ##     ## ########
+// ##    ##  ##   ##   ##     ## ##     ## ##
+// ##    ##  ##    ##  ##     ## ##     ## ##
+//  ######   ##     ##  #######   #######  ##
+
+TEST_F(SQLTest, GroupByShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t (a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select a, count(b) from t group by a;"),
+      "a | count(b)\n"
+      "1 | 2\n"
+      "2 | 1\n");
+}
+
+TEST_F(SQLTest, GroupByMultiKeysShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t (a int, b int, c int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 3, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 3, 2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3, 3);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select a, count(*) from t group by a, b;"),
+      "a | count(*)\n"
+      "1 | 2\n"
+      "2 | 1\n");
+}
+
+TEST_F(SQLTest, GroupByNullShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t (a int nullable, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (NULL, 3);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select a, count(b) from t group by a;"),
+      "a | count(b)\n"
+      "1 | 2\n"
+      "NULL | 1\n");
+}
+
+TEST_F(SQLTest, GroupByHavingShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t (a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select a, count(b) from t group by a having count(b) > 1;"),
+      "a | count(b)\n"
+      "1 | 2\n");
+  ASSERT_EQ(exec_sql("select a, count(b) from t group by a having a > 1;"),
+      "a | count(b)\n"
+      "2 | 1\n");
+}
+
+TEST_F(SQLTest, GroupByInvalidHavingShouldFailure)
+{
+  ASSERT_EQ(exec_sql("create table t (a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select a, count(b) from t group by a having b > 1;"), "FAILURE\n");
+}
+
 int main(int argc, char **argv)
 {
   srand((unsigned)time(NULL));
