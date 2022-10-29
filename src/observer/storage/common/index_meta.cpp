@@ -122,8 +122,12 @@ FieldMeta IndexMeta::mixed_field_meta() const
 
   FieldMeta field;
   size_t len = 0;
-  for (auto &field : fields_)
+  for (auto &field : fields_) {
     len += field.len();
+    if (field.nullable()) {
+      len += sizeof(bool);
+    }
+  }
   field.init(name_.c_str(), MIXED, 0, len, false);
   return field;
 }
@@ -134,7 +138,21 @@ std::string IndexMeta::extract_key(const char *record) const
   key.reserve(fields_.size() * 4);
 
   for (auto &field : fields_) {
-    key.append(record + field.offset(), field.len());
+    if (field.nullable()) {
+      bool is_null = field.is_null(record);
+      key.append((char *)&is_null, sizeof(bool));
+
+      if (is_null) {
+        char zero[field.len()];
+        for (size_t i = 0; i < field.len(); i++)
+          zero[i] = 0;
+        key.append(zero, field.len());
+      } else {
+        key.append(record + field.offset(), field.len());
+      }
+    } else {
+      key.append(record + field.offset(), field.len());
+    }
   }
 
   return key;

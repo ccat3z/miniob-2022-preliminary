@@ -2070,6 +2070,21 @@ TEST_F(SQLTest, NullInsertWithIndexShouldWork)
       "1 | 1\n");
 }
 
+TEST_F(SQLTest, NullInsertWithUniqueIndexShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int nullable, c int nullable);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create unique index t_b on t(b);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, null, null);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, null, 1);"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 0, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t;"),
+      "a | b | c\n"
+      "1 | NULL | NULL\n"
+      "1 | 0 | 1\n"
+      "1 | 1 | 1\n");
+}
+
 TEST_F(SQLTest, NullCompareWithNullShouldAlwaysFalse)
 {
   ASSERT_EQ(exec_sql("create table t(a int, b int nullable);"), "SUCCESS\n");
