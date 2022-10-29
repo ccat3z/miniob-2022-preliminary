@@ -19,6 +19,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/stmt/filter_stmt.h"
 #include "storage/common/field.h"
 #include <regex>
+#include <stdexcept>
 
 RC PredicateOperator::open()
 {
@@ -74,8 +75,12 @@ bool PredicateOperator::do_predicate(Tuple &tuple)
     CompOp comp = filter_unit->comp();
     TupleCell left_cell;
     TupleCell right_cell;
-    left_expr->get_value(tuple, left_cell);
-    right_expr->get_value(tuple, right_cell);
+    if (RC::SUCCESS != left_expr->get_value(tuple, left_cell)) {
+      throw std::invalid_argument("get value failed for filter");
+    }
+    if (RC::SUCCESS != right_expr->get_value(tuple, right_cell)) {
+      throw std::invalid_argument("get value failed for filter");
+    }
 
     if (comp == IS_NULL) {
       return left_cell.is_null();
