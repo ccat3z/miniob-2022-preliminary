@@ -498,6 +498,12 @@ std::shared_ptr<ProjectOperator> build_operator(const SelectStmt &select_stmt)
     }
   }
 
+  if (select_stmt.having()) {
+    auto pred = std::make_shared<PredicateOperator>(select_stmt.having());
+    pred->add_child(oper);
+    oper = pred;
+  }
+
   // Project
   auto project_oper = std::make_shared<ProjectOperator>();
   if (RC::SUCCESS != project_oper->add_projection(select_stmt.attrs(), multi_table)) {
