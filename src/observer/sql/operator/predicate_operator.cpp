@@ -76,35 +76,46 @@ bool PredicateOperator::do_predicate(Tuple &tuple, const FilterUnit *filter_unit
     throw std::invalid_argument("get value failed for filter");
   }
 
-  if (comp == OP_IN || comp == OP_NOT_IN) {
+  if (comp == OP_IN) {
     RC rc = RC::SUCCESS;
-    bool found = false;
+
+    bool res = false;
     rc = right_expr->get_values(tuple, [&](TupleCell &cell) {
-      if (cell.is_null() && left_cell.is_null()) {
-        found = true;
-        return RC::RECORD_EOF;
-      }
-
       if (cell.is_null() || left_cell.is_null()) {
-        return RC::SUCCESS;
+        res = res || false;
+      } else {
+        res = res || cell.compare(left_cell) == 0;
       }
 
-      if (cell.compare(left_cell) == 0) {
-        found = true;
-        return RC::RECORD_EOF;
-      }
       return RC::SUCCESS;
     });
 
-    if (found) {
-      return comp == OP_IN ? true : false;
+    if (rc != RC::SUCCESS) {
+      throw std::invalid_argument("Failed to get values for filter");
     }
 
-    if (rc == RC::SUCCESS) {
-      return comp == OP_IN ? false : true;
+    return res;
+  }
+
+  if (comp == OP_NOT_IN) {
+    RC rc = RC::SUCCESS;
+
+    bool res = true;
+    rc = right_expr->get_values(tuple, [&](TupleCell &cell) {
+      if (cell.is_null() || left_cell.is_null()) {
+        res = res && false;
+      } else {
+        res = res && (cell.compare(left_cell) != 0);
+      }
+
+      return RC::SUCCESS;
+    });
+
+    if (rc != RC::SUCCESS) {
+      throw std::invalid_argument("Failed to get values for filter");
     }
 
-    throw std::invalid_argument("Failed to get values for filter");
+    return res;
   }
 
   if (RC::SUCCESS != right_expr->get_value(tuple, right_cell)) {
