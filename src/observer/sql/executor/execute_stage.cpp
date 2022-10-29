@@ -42,6 +42,8 @@ See the Mulan PSL v2 for more details. */
 #include "sql/operator/delete_operator.h"
 #include "sql/operator/project_operator.h"
 #include "sql/operator/decarts_join_operator.h"
+#include "sql/operator/order_operator.h"
+
 #include "sql/parser/parse_defs.h"
 #include "sql/stmt/stmt.h"
 #include "sql/stmt/select_stmt.h"
@@ -506,7 +508,14 @@ std::shared_ptr<ProjectOperator> build_operator(const SelectStmt &select_stmt)
     pred->add_child(oper);
     oper = pred;
   }
+  // order
 
+  const std::vector<OrderExpr> orders = select_stmt.orders();
+  if (orders.size() > 0) {
+    auto order = std::make_shared<OrderOperator>(orders);
+    order->add_child(oper);
+    oper = order;
+  }
   // Project
   auto project_oper = std::make_shared<ProjectOperator>();
   if (RC::SUCCESS != project_oper->add_projection(select_stmt.attrs(), multi_table)) {

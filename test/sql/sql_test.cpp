@@ -2463,8 +2463,9 @@ TEST_F(SQLTest, AggFuncInvalidHavingShouldFailure)
 // ##     ## ##    ##  ##     ## ##       ##    ##
 //  #######  ##     ## ########  ######## ##     ##
 
-TEST_F(SQLTest, DISABLED_OrderBySingleAttrShouldWork)
+TEST_F(SQLTest, OrderBySingleAttrShouldWork)
 {
+
   ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into t values (100, 3);"), "SUCCESS\n");
@@ -2486,7 +2487,7 @@ TEST_F(SQLTest, DISABLED_OrderBySingleAttrShouldWork)
       "1 | 1\n");
 }
 
-TEST_F(SQLTest, DISABLED_OrderByMultiAttrShouldWork)
+TEST_F(SQLTest, OrderByMultiAttrShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t(a int, b int, c int);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into t values (2, 10, 1);"), "SUCCESS\n");
@@ -2509,7 +2510,7 @@ TEST_F(SQLTest, DISABLED_OrderByMultiAttrShouldWork)
       "2 | 10 | 1\n");
 }
 
-TEST_F(SQLTest, DISABLED_OrderByInvalidAttrShouldFailure)
+TEST_F(SQLTest, OrderByInvalidAttrShouldFailure)
 {
   ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
