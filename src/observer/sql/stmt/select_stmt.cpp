@@ -330,7 +330,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
   }
 
   // Having
-  if (select_sql.group_num != 0) {
+  if (select_sql.having_num != 0) {
     rc = FilterStmt::create(
         db, default_table, &table_map, select_sql.havings, select_sql.having_num, select_stmt->having_filter_);
     if (rc != RC::SUCCESS) {
