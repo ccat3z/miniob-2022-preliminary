@@ -420,7 +420,7 @@ update:			/*  update 语句的语法解析树*/
     ;
 
 update_set_list:
-	ID EQ value
+	ID EQ expr
 	{
 		$$ = list_create(sizeof(KeyValue), MAX_NUM);
 		KeyValue kv;
@@ -428,7 +428,7 @@ update_set_list:
 		kv.value = $3;
 		list_prepend($$, &kv);
 	}
-	| ID EQ value COMMA update_set_list
+	| ID EQ expr COMMA update_set_list
 	{
 		$$ = $5;
 		KeyValue kv;

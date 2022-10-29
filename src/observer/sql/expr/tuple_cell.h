@@ -58,6 +58,7 @@ public:
   }
 
   bool try_cast(const AttrType &type) const;
+  bool try_best_cast(const AttrType &type);
 
   // Force convert to float
   float as_float() const;

@@ -36,6 +36,19 @@ RC UpdateStmt::create(Db *db, const Updates &update, Stmt *&stmt)
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
 
+  // Fill union expr
+  {
+    std::unordered_map<std::string, Table *> tables;
+    tables[table->name()] = table;
+    for (size_t i = 0; i < update.kv_num; i++) {
+      RC rc = fill_expr(table, tables, update.kvs[i].value, false, db);
+      if (rc != RC::SUCCESS) {
+        LOG_ERROR("Failed to fill value %d in update", i);
+        return rc;
+      }
+    }
+  }
+
   auto update_stmt = new UpdateStmt();
   update_stmt->table_ = table;
   for (int i = 0; i < update.kv_num; i++) {

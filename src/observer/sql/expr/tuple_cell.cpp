@@ -19,6 +19,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/time/datetime.h"
 #include "util/comparator.h"
 #include "util/util.h"
+#include <cstdint>
 #include <cstdlib>
 #include <string>
 
@@ -132,4 +133,77 @@ float TupleCell::as_float() const
     default:
       return 0;
   }
+}
+
+bool TupleCell::try_best_cast(const AttrType &type)
+{
+  if (this->attr_type_ == type)
+    return true;
+
+  switch (this->attr_type_) {
+    case INTS: {
+      const auto &val = *(int32_t *)data_;
+      switch (type) {
+        case FLOATS:
+          save(float(val));
+          break;
+        case CHARS:
+          save(std::to_string(val));
+          break;
+        default:
+          return false;
+      }
+    } break;
+    case FLOATS: {
+      const auto &val = *(float *)data_;
+      switch (type) {
+        case INTS:
+          save(int(std::round(val)));
+          break;
+        case CHARS: {
+          char str[10];
+          std::snprintf(str, 10, "%.2g", val);
+          save((const char *)str);
+          break;
+        }
+        default:
+          return false;
+      }
+    } break;
+    case CHARS: {
+      const auto val = (char *)data_;
+      switch (type) {
+        case INTS:
+          save(std::atoi(val));
+          break;
+        case FLOATS:
+          save((float)std::atof(val));
+          break;
+        case DATE: {
+          common::Date date;
+          if (!date.parse((char *)this->data_))
+            return false;
+
+          save(date.julian(), DATE);
+        } break;
+        case TEXT: {
+          auto &lbp = LargeBlockPool::instance();
+          auto id = lbp->find_next_free();
+          if (lbp->set(id, val, strlen(val) + 1) != RC::SUCCESS)
+            return false;
+          save(id, TEXT);
+        } break;
+        default:
+          return false;
+      }
+    } break;
+    case TYPE_NULL:
+      // NULL can be anything
+      break;
+    default:
+      return false;
+  }
+
+  this->attr_type_ = type;
+  return true;
 }

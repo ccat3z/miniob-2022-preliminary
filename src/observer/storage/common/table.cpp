@@ -24,6 +24,8 @@ See the Mulan PSL v2 for more details. */
 
 #include "common/defs.h"
 #include "rc.h"
+#include "sql/expr/expression.h"
+#include "sql/expr/tuple.h"
 #include "storage/common/field_meta.h"
 #include "storage/common/table.h"
 #include "storage/common/table_meta.h"
@@ -720,16 +722,30 @@ RC Table::update_record(Trx *trx, const std::vector<KeyValue *> &kvs, std::vecto
     if (field == nullptr) {
       return RC::SCHEMA_FIELD_MISSING;
     }
-    if (!kv->value.try_cast(field->type())) {
-      LOG_ERROR("Got invaild value type: %d, expected: %d", kv->value.type, field->type());
-      return RC::SCHEMA_FIELD_TYPE_MISMATCH;
-    }
     fields.emplace_back(field);
   }
 
-  // Update date
+  std::vector<std::unique_ptr<Expression>> exprs;
+  for (auto &kv : kvs) {
+    exprs.emplace_back();
+    RC rc = create_expression(exprs.back(), kv->value);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Update: failed to create expression");
+      return rc;
+    }
+  }
+
+  // Do update
+
   std::map<RID, std::unique_ptr<char, decltype(free) *>> recoveries;
   RC rc = RC::SUCCESS;
+
+  // Buffers for eval expr
+  std::vector<TupleCell> buf;
+  buf.resize(exprs.size());
+  RowTuple tuple;
+  tuple.set_schema(this, table_meta_.field_metas());
+
   for (const auto &rid : matched_rids) {
     auto old_record = std::unique_ptr<char, decltype(free) *>((char *)malloc(table_meta_.record_size()), free);
 
@@ -745,13 +761,29 @@ RC Table::update_record(Trx *trx, const std::vector<KeyValue *> &kvs, std::vecto
         return rc;
       }
 
-      // Update record
+      // Backup record
       memcpy(old_record.get(), record.data(), table_meta_.record_size());
       recoveries.emplace(rid, std::move(old_record));
 
-      for (size_t i = 0; i < fields.size(); i++) {
-        memcpy(record.data() + fields[i]->offset(), kvs[i]->value.data, fields[i]->len());
-        rc = fields[i]->set_null(record.data(), kvs[i]->value.is_null);
+      // Eval new data
+      tuple.set_record(&record);
+      for (size_t i = 0; i < exprs.size(); i++) {
+        rc = exprs[i]->get_value(tuple, buf[i]);
+        if (rc != RC::SUCCESS) {
+          LOG_ERROR("Failed to eval expr %d", i);
+          return rc;
+        }
+
+        if (!buf[i].try_best_cast(fields[i]->type())) {
+          LOG_ERROR("Got invaild value type: %d, expected: %d", buf[i].attr_type(), fields[i]->type());
+          return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+        }
+      }
+
+      // Update record
+      for (size_t i = 0; i < buf.size(); i++) {
+        memcpy(record.data() + fields[i]->offset(), buf[i].data(), fields[i]->len());
+        rc = fields[i]->set_null(record.data(), buf[i].is_null());
         if (rc != RC::SUCCESS) {
           LOG_ERROR("Cannot set null for field %s", fields[i]->name());
           return rc;

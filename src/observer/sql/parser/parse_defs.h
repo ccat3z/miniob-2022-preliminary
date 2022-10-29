@@ -246,7 +246,7 @@ typedef struct {
 // struct of update
 typedef struct {
   char *name;   // Attribute name
-  Value value;  // Value
+  UnionExpr value;  // Value
 } KeyValue;
 
 typedef struct {

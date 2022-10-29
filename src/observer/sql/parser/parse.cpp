@@ -432,7 +432,7 @@ void updates_destroy(Updates *updates)
 
   for (int i = 0; i < updates->kv_num; i++) {
     free(updates->kvs[i].name);
-    value_destroy(&updates->kvs[i].value);
+    expr_destroy(&updates->kvs[i].value);
   }
   free(updates->kvs);
   updates->kvs = nullptr;

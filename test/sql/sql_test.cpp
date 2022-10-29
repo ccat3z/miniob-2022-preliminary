@@ -795,6 +795,64 @@ TEST_F(SQLTest, DISABLED_UpdateWithInvalidValueShouldFailure)
       "2 | 5\n");
 }
 
+TEST_F(SQLTest, UpdateFunctionShouldSuccess)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, s char);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 'aa');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (0, 'bb');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (0, 'ccc');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (0, 'd');"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("update t set a = length(s) where a = 0;"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t;"),
+      "a | s\n"
+      "1 | aa\n"
+      "2 | bb\n"
+      "3 | ccc\n"
+      "1 | d\n");
+}
+
+TEST_F(SQLTest, UpdateSubQueryShouldSuccess)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, v float);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 0);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 0);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (3, 0);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("create table t2(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (3);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("update t set v = (select count(*) from t2 where t2.a = t.a) where a <= 2;"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t;"),
+      "a | v\n"
+      "1 | 3\n"
+      "2 | 2\n"
+      "3 | 0\n");
+}
+
+TEST_F(SQLTest, UpdateMultiValueSubQueryShouldFailure)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, v float);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 0);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 0);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (3, 0);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("create table t2(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (3);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("update t set v = (select t2.a from t2 where t2.a = t.a) where a <= 2;"), "FAILURE\n");
+}
+
 // ########     ###    ######## ########
 // ##     ##   ## ##      ##    ##
 // ##     ##  ##   ##     ##    ##
