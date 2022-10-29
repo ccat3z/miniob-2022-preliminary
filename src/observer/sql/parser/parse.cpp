@@ -269,8 +269,11 @@ void selects_append_attribute(Selects *selects, AttrExpr *rel_attr, size_t attr_
   }
   selects->attr_num = attr_len;
 }
-void selects_append_relation(Selects *selects, const char *relation_name)
+void selects_append_relation(Selects *selects, const char *relation_name, const char *alias)
 {
+  if (alias != nullptr) {
+    selects->rel_alias[selects->relation_num] = strdup(alias);
+  }
   selects->relations[selects->relation_num++] = strdup(relation_name);
 }
 

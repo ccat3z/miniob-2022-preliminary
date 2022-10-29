@@ -221,6 +221,7 @@ typedef struct _Selects {
   size_t join_condition_num;
   size_t relation_num;            // Length of relations in Fro clause
   char *relations[MAX_NUM];       // relations in From clause
+  char *rel_alias[MAX_NUM];       // relations in From clause
   size_t condition_num;           // Length of conditions in Where clause
   Condition *conditions;          // conditions in Where clause
   size_t group_num;
@@ -373,7 +374,7 @@ void attr_info_destroy(AttrInfo *attr_info);
 
 void selects_init(Selects *selects, ...);
 void selects_append_attribute(Selects *selects, AttrExpr *rel_attr, size_t attr_len);
-void selects_append_relation(Selects *selects, const char *relation_name);
+void selects_append_relation(Selects *selects, const char *relation_name, const char *alias);
 void selects_append_conditions(Selects *selects, Condition conditions[], size_t condition_num);
 void selects_append_havings(Selects *selects, Condition conditions[], size_t size);
 void selects_append_orders(Selects *selects, OrderExpr exprs[], size_t size);

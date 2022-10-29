@@ -166,6 +166,7 @@ ParserContext *get_context(yyscan_t scanner)
 %type <boolean> order_direct;
 %type <list> group_by;
 %type <list> having;
+%type <string> rel_as;
 
 %left ADD MINUS
 %left STAR DIV
@@ -449,24 +450,24 @@ select:
 	;
 
 select_stmt:				/*  select 语句的语法解析树*/
-    SELECT attr_list FROM ID rel_list where group_by having order_by
+    SELECT attr_list FROM ID rel_as rel_list where group_by having order_by
 		{
-			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
+			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4, $5);
 
-			selects_append_conditions(&CONTEXT->ssql->sstr.selection, (Condition *) $6->values, $6->len);
-			list_free($6);
+			selects_append_conditions(&CONTEXT->ssql->sstr.selection, (Condition *) $7->values, $7->len);
+			list_free($7);
 
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, (AttrExpr *) $2->values, $2->len);
 			list_free($2);
 
-			selects_append_havings(&CONTEXT->ssql->sstr.selection, (Condition *) $8->values, $8->len);
+			selects_append_havings(&CONTEXT->ssql->sstr.selection, (Condition *) $9->values, $9->len);
+			list_free($9);
+
+			selects_append_groups(&CONTEXT->ssql->sstr.selection, (UnionExpr *) $8->values, $8->len);
 			list_free($8);
 
-			selects_append_groups(&CONTEXT->ssql->sstr.selection, (UnionExpr *) $7->values, $7->len);
-			list_free($7);
-
-			selects_append_orders(&CONTEXT->ssql->sstr.selection, (OrderExpr *) $9->values, $9->len);
-			list_free($9);
+			selects_append_orders(&CONTEXT->ssql->sstr.selection, (OrderExpr *) $10->values, $10->len);
+			list_free($10);
 
 			$$ = CONTEXT->ssql->sstr.selection;
   			CONTEXT->ssql->sstr.selection.relation_join_num = 0;
@@ -508,16 +509,23 @@ attr_list:
 
 rel_list:
     /* empty */
-    | COMMA ID rel_list {	
-		selects_append_relation(&CONTEXT->ssql->sstr.selection, $2);
+    | COMMA ID rel_as rel_list {	
+		selects_append_relation(&CONTEXT->ssql->sstr.selection, $2, $3);
 		selects_append_inner_join(&CONTEXT->ssql->sstr.selection, $2,NULL, 0);
 	}
-	| INNER JOIN ID ON condition_list rel_list{
-		selects_append_relation(&CONTEXT->ssql->sstr.selection, $3);
-		selects_append_join_conditions(&CONTEXT->ssql->sstr.selection, (Condition *) $5->values, $5->len);
-		selects_append_inner_join(&CONTEXT->ssql->sstr.selection, $3,(Condition *) $5->values, $5->len);
-		list_free($5);
+	| INNER JOIN ID rel_as ON condition_list rel_list{
+		selects_append_relation(&CONTEXT->ssql->sstr.selection, $3, $4);
+		selects_append_join_conditions(&CONTEXT->ssql->sstr.selection, (Condition *) $6->values, $6->len);
+		selects_append_inner_join(&CONTEXT->ssql->sstr.selection, $3,(Condition *) $6->values, $6->len);
+		list_free($6);
 	};
+
+rel_as:
+	{ $$ = NULL; }
+	| ID { $$ = $1; }
+	| AS ID { $$ = $2; }
+	;
+
 where:
     /* empty */ { $$ = list_create(sizeof(Condition), MAX_NUM); } 
     | WHERE condition_list {	

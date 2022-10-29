@@ -2195,6 +2195,71 @@ TEST_F(SQLTest, AliasColumnShouldWork2)
       "2 | 3 | 300 | 500\n");
 }
 
+TEST_F(SQLTest, AliasTableShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 2);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("create table t2(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (1, 2);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select * from t as u;"), "a | b\n1 | 2\n");
+  ASSERT_EQ(exec_sql("select u.a, u.b from t as u;"), "a | b\n1 | 2\n");
+  ASSERT_EQ(exec_sql("select * from t as u, t2 as v;"), "u.a | u.b | v.a | v.b\n1 | 2 | 1 | 2\n");
+}
+
+TEST_F(SQLTest, AliasTableShouldAvailableInCondition)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 2);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select * from t as u where u.a > 0;"), "a | b\n1 | 2\n");
+}
+
+TEST_F(SQLTest, AliasTableInvalidNameInConditionShouldFailure)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 2);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select * from t as u where t.a > 0;"), "FAILURE\n");
+}
+
+TEST_F(SQLTest, AliasTableShouldAvailableInSubquery)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (5, 6);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table t2(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (3, 4);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select * from t as u where exists (select t2.a from t2 where u.a > t2.a);"), "a | b\n5 | 6\n");
+}
+
+TEST_F(SQLTest, AliasTableInSubqueryCanOverwriteParent)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (3, 5);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table t2(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (3, 4);"), "SUCCESS\n");
+
+  ASSERT_EQ(
+      exec_sql("select * from t as u where exists (select a from t2 as u where a = 3);"), "a | b\n1 | 2\n3 | 5\n");
+  ASSERT_EQ(
+      exec_sql("select * from t as u where exists (select u.a from t2 as u where u.a = 3);"), "a | b\n1 | 2\n3 | 5\n");
+}
+
+TEST_F(SQLTest, AliasDuplicateTableShouldFailure)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (3, 5);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table t2(a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t2 values (3, 4);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select * from t as u, t2 as u;"), "FAILURE\n");
+}
+
 // ######## ##     ## ##    ##  ######  ######## ####  #######  ##    ##
 // ##       ##     ## ###   ## ##    ##    ##     ##  ##     ## ###   ##
 // ##       ##     ## ####  ## ##          ##     ##  ##     ## ####  ##

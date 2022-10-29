@@ -272,6 +272,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::share
   // collect tables in `from` statement
   std::vector<Table *> tables;
   std::unordered_map<std::string, Table *> table_map;
+  std::set<std::string> table_names;
 
   if (ctx) {
     table_map = ctx->table_map;
@@ -291,7 +292,16 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::share
     }
 
     tables.push_back(table);
-    table_map.insert(std::pair<std::string, Table *>(table_name, table));
+
+    auto alias = select_sql.rel_alias[i];
+    auto display_table_name = alias ? alias : table_name;
+    if (table_names.count(display_table_name) > 0) {
+      LOG_ERROR("Duplicated table alias");
+      return RC::INVALID_ARGUMENT;
+    }
+
+    table_names.emplace(display_table_name);
+    table_map[display_table_name] = table;
   }
 
   // collect query fields in `select` statement
