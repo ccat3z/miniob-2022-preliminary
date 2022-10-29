@@ -17,6 +17,8 @@ See the Mulan PSL v2 for more details. */
 #include "sql/parser/parse.h"
 #include "sql/operator/operator.h"
 #include "rc.h"
+#include <memory>
+#include <vector>
 
 class OrderOperator : public Operator {
 public:
@@ -42,5 +44,6 @@ private:
   bool hasordered = false;
   std::vector<ComplexTuple *> current_tuples_;
   std::vector<OrderExpr> order_stmts_;
+  std::vector<std::unique_ptr<Expression>> order_exprs_;
   int current_index = -1;  // 当前访问的tuple 在tuples 中的index
 };

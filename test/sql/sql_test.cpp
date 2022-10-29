@@ -2619,6 +2619,24 @@ TEST_F(SQLTest, OrderByInvalidAttrShouldFailure)
   ASSERT_EQ(exec_sql("select * from t order by a, c;"), "FAILURE\n");
 }
 
+TEST_F(SQLTest, OrderByNullShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int nullable, b int nullable, c int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null, null, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null, 1, 2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t order by a asc, b asc;"),
+      "a | b | c\n"
+      "NULL | NULL | 1\n"
+      "NULL | 1 | 2\n"
+      "2 | 3 | 3\n");
+  ASSERT_EQ(exec_sql("select * from t order by a desc, b desc;"),
+      "a | b | c\n"
+      "2 | 3 | 3\n"
+      "NULL | 1 | 2\n"
+      "NULL | NULL | 1\n");
+}
+
 //  ######   ########   #######  ##     ## ########
 // ##    ##  ##     ## ##     ## ##     ## ##     ##
 // ##        ##     ## ##     ## ##     ## ##     ##
