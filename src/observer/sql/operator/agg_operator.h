@@ -50,6 +50,7 @@ private:
   std::vector<std::shared_ptr<Expression>> key_exprs;
 
   RC reduce();
+  RC init_aggs(const Tuple &key);
   bool reduced = false;
 
   std::map<MemoryTuple, std::vector<std::unique_ptr<Aggregator>>> aggregators;

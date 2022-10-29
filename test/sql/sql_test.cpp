@@ -2339,7 +2339,7 @@ TEST_F(SQLTest, AggFuncCountNonShouldSkip)
   ASSERT_EQ(exec_sql("select count(b) from t;"), "count(b)\n2\n");
 }
 
-TEST_F(SQLTest, DISABLED_AggFuncCountEmptyTableShouldWork)
+TEST_F(SQLTest, AggFuncCountEmptyTableShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("select count(a) from t;"), "count(a)\n0\n");
@@ -2369,7 +2369,7 @@ TEST_F(SQLTest, AggFuncMaxShouldWork2)
   ASSERT_EQ(exec_sql("select max(d) from t;"), "max(d)\n2022-10-02\n");
 }
 
-TEST_F(SQLTest, DISABLED_AggFuncMaxEmptyTableShouldWork)
+TEST_F(SQLTest, AggFuncMaxEmptyTableShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
 
@@ -2399,7 +2399,7 @@ TEST_F(SQLTest, AggFuncMinShouldWork2)
   ASSERT_EQ(exec_sql("select min(d) from t;"), "min(d)\n2022-09-02\n");
 }
 
-TEST_F(SQLTest, DISABLED_AggFuncMinEmptyTableShouldWork)
+TEST_F(SQLTest, AggFuncMinEmptyTableShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
 
@@ -2439,7 +2439,7 @@ TEST_F(SQLTest, AggFuncAvgNumNullShouldBeNull)
   ASSERT_EQ(exec_sql("select avg(a) from t;"), "avg(a)\nNULL\n");
 }
 
-TEST_F(SQLTest, DISABLED_AggFuncAvgEmptyTableShouldWork)
+TEST_F(SQLTest, AggFuncAvgEmptyTableShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t(a int, b float, d date);"), "SUCCESS\n");
 
@@ -2760,9 +2760,28 @@ TEST_F(SQLTest, SubQueryWithOfficialTestCaseShouldWork2)
   ASSERT_EQ(exec_sql("create table csq_2(id int, col2 int, feat2 float);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("create table csq_3(id int, col3 int, feat3 float);"), "SUCCESS\n");
 
-  ASSERT_EQ(exec_sql("select * from csq_1 where (select avg(csq_2.col2) from csq_2 where csq_2.feat2 > (select "
+  ASSERT_EQ(exec_sql("insert into csq_1 values(1, 4, 11.2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into csq_1 values(2, 2, 12);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into csq_1 values(3, 3, 13.5);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("insert into csq_2 values(1, 4, 11.2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into csq_2 values(2, 2, 12);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into csq_2 values(3, 3, 13.5);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("insert into csq_3 values(1, 4, 11.2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into csq_3 values(2, 2, 12);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into csq_3 values(3, 3, 13.5);"), "SUCCESS\n");
+
+  ASSERT_NE(exec_sql("select * from csq_1 where (select avg(csq_2.col2) from csq_2 where csq_2.feat2 > (select "
                      "min(csq_3.feat3) from csq_3)) = col1;"),
-      "id | col1 | feat1\n");
+      "FAILURE\n");
+  ASSERT_NE(
+      exec_sql(
+          "select * from csq_1 where feat1 <> (select avg(csq_2.feat2) from csq_2 where csq_2.feat2 > csq_1.feat1);"),
+      "FAILURE\n");
+  ASSERT_NE(exec_sql("select * from csq_1 where (select max(csq_2.feat2) from csq_2) > feat1 or (select "
+                     "min(csq_3.col3) from csq_3) < col1;"),
+      "FAILURE\n");
 }
 
 TEST_F(SQLTest, SubQueryWithInvalidReferenceShouldFailure)

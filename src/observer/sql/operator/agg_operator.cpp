@@ -236,9 +236,46 @@ RC AggOperator::close()
   return rc;
 }
 
+RC AggOperator::init_aggs(const Tuple &key)
+{
+  auto &aggs = aggregators[key];
+  if (aggs.empty()) {
+    for (auto &expr : exprs) {
+      auto func = expr->agg_func().c_str();
+      if (strcasecmp(func, "count") == 0) {
+        aggs.emplace_back(std::make_unique<CountAggregator>(expr));
+      } else if (strcasecmp(func, "max") == 0) {
+        aggs.emplace_back(std::make_unique<MaxAggregator>(expr));
+      } else if (strcasecmp(func, "min") == 0) {
+        aggs.emplace_back(std::make_unique<MinAggregator>(expr));
+      } else if (strcasecmp(func, "avg") == 0) {
+        aggs.emplace_back(std::make_unique<AvgAggregator>(expr));
+      } else if (strcasecmp(func, "sum") == 0) {
+        aggs.emplace_back(std::make_unique<SumAggregator>(expr));
+      } else {
+        LOG_ERROR("Unsupport agg func: %s", func);
+        return RC::GENERIC_ERROR;
+      }
+    }
+  }
+
+  return RC::SUCCESS;
+}
+
 RC AggOperator::reduce()
 {
   RC rc = RC::SUCCESS;
+
+  if (key_exprs.size() == 0) {
+    MemoryTuple key;
+    rc = init_aggs(key);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to init agg exprs");
+      return rc;
+    }
+    keys.emplace_back(key);
+  }
+
   while (RC::SUCCESS == (rc = children_[0]->next())) {
     auto tuple = children_[0]->current_tuple();
 
@@ -257,22 +294,10 @@ RC AggOperator::reduce()
 
     auto &aggs = aggregators[key];
     if (aggs.empty()) {
-      for (auto &expr : exprs) {
-        auto func = expr->agg_func().c_str();
-        if (strcasecmp(func, "count") == 0) {
-          aggs.emplace_back(std::make_unique<CountAggregator>(expr));
-        } else if (strcasecmp(func, "max") == 0) {
-          aggs.emplace_back(std::make_unique<MaxAggregator>(expr));
-        } else if (strcasecmp(func, "min") == 0) {
-          aggs.emplace_back(std::make_unique<MinAggregator>(expr));
-        } else if (strcasecmp(func, "avg") == 0) {
-          aggs.emplace_back(std::make_unique<AvgAggregator>(expr));
-        } else if (strcasecmp(func, "sum") == 0) {
-          aggs.emplace_back(std::make_unique<SumAggregator>(expr));
-        } else {
-          LOG_ERROR("Unsupport agg func: %s", func);
-          return RC::GENERIC_ERROR;
-        }
+      rc = init_aggs(key);
+      if (rc != RC::SUCCESS) {
+        LOG_ERROR("Failed to init agg exprs");
+        return rc;
       }
       keys.emplace_back(key);
     }
