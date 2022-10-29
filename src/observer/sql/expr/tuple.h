@@ -146,9 +146,24 @@ public:
         throw std::invalid_argument("failed to compare tuple");
       }
 
-      auto res = this_cell.compare(other_cell);
-      if (res < 0)
+      // HACK
+      // Generally two NULL cannot be compared. But two NULL are equal in key
+      // tuple. Now we compare only the key tuple.
+      if (this_cell.is_null() && other_cell.is_null()) {
+        continue;
+      } else if (this_cell.is_null() && !other_cell.is_null()) {
         return true;
+      } else if (!this_cell.is_null() && other_cell.is_null()) {
+        return false;
+      }
+
+      auto res = this_cell.compare(other_cell);
+      if (res == 0)
+        continue;
+      else if (res < 0)
+        return true;
+      else
+        return false;
     }
 
     return false;
@@ -170,6 +185,15 @@ public:
       rc = other.cell_at(i, other_cell);
       if (rc != RC::SUCCESS) {
         throw std::invalid_argument("failed to compare tuple");
+      }
+
+      // HACK
+      // Generally two NULL cannot be compared. But two NULL are equal in key
+      // tuple. Now we compare only the key tuple.
+      if (this_cell.is_null() && other_cell.is_null()) {
+        continue;
+      } else if (this_cell.is_null() || other_cell.is_null()) {
+        return false;
       }
 
       auto res = this_cell.compare(other_cell);
