@@ -8,6 +8,7 @@
 #include <exception>
 #include <memory>
 #include <strings.h>
+#include <vector>
 
 class CountAggregator : public Aggregator {
 public:
@@ -219,6 +220,16 @@ RC AggOperator::reduce()
 
     // Build group key
     MemoryTuple key;
+    for (auto &key_expr : key_exprs) {
+      TupleCell cell;
+      rc = key_expr->get_value(*tuple, cell);
+      if (rc != RC::SUCCESS) {
+        LOG_ERROR("Failed to get key: %s", key_expr->toString(true).c_str());
+        return rc;
+      }
+
+      key.append_cell(cell, TupleCellSpec(key_expr));
+    }
 
     auto &aggs = aggregators[key];
     if (aggs.empty()) {
@@ -260,16 +271,14 @@ RC AggOperator::reduce()
 
 RC AggOperator::next()
 {
-  if (reduced) {
-    return RC::RECORD_EOF;
-  }
-
   RC rc = RC::SUCCESS;
-  rc = reduce();
-  reduced = true;
-  if (rc != RC::SUCCESS) {
-    LOG_ERROR("Failed to reduce");
-    return rc;
+  if (!reduced) {
+    rc = reduce();
+    reduced = true;
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to reduce");
+      return rc;
+    }
   }
 
   if (++idx >= (int)keys.size()) {
@@ -317,4 +326,20 @@ RC AggOperator::add_agg_expr(const FuncExpr &expr)
   }
 
   return RC::SUCCESS;
+}
+
+RC AggOperator::add_groups(const std::vector<UnionExpr> &exprs)
+{
+  RC rc = RC::SUCCESS;
+  for (auto &expr : exprs) {
+    std::unique_ptr<Expression> expression;
+    rc = create_expression(expression, expr);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to create expression for group expr");
+      return rc;
+    }
+    key_exprs.emplace_back(expression.release());
+  }
+
+  return rc;
 }

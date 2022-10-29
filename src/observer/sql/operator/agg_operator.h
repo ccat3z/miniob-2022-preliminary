@@ -43,9 +43,11 @@ public:
   }
 
   RC add_agg_expr(const FuncExpr &expr);
+  RC add_groups(const std::vector<UnionExpr> &exprs);
 
 private:
   std::vector<std::shared_ptr<AggFuncExpr>> exprs;
+  std::vector<std::shared_ptr<Expression>> key_exprs;
 
   RC reduce();
   bool reduced = false;

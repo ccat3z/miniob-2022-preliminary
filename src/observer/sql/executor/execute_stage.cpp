@@ -486,10 +486,13 @@ std::shared_ptr<ProjectOperator> build_operator(const SelectStmt &select_stmt)
       }
     }
 
-    if (agg_exprs.size() > 0) {
+    if (agg_exprs.size() > 0 || !select_stmt.groups().empty()) {
       auto agg = std::make_shared<AggOperator>();
       for (auto &expr : agg_exprs) {
         agg->add_agg_expr(expr);
+      }
+      if (RC::SUCCESS != agg->add_groups(select_stmt.groups())) {
+        return nullptr;
       }
       agg->add_child(pred_oper);
       oper = agg;
