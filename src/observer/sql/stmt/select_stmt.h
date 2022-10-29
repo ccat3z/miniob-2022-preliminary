@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 #pragma once
 
 #include <unordered_map>
+#include <functional>
 #include <vector>
 
 #include "rc.h"
@@ -84,9 +85,14 @@ public:
   {
     return orders_;
   }
+  const std::vector<UnionExpr> extra_exprs() const
+  {
+    return extra_exprs_;
+  }
 
 private:
   std::vector<AttrExpr> attrs_;
+  std::vector<UnionExpr> extra_exprs_;
   std::vector<Table *> tables_;
   FilterStmt *filter_stmt_ = nullptr;
   FilterStmt *join_filter_stmt_ = nullptr;
@@ -102,3 +108,4 @@ private:
 
 RC fill_expr(const Table *default_table, const std::unordered_map<std::string, Table *> &table_map,
     const UnionExpr &expr, bool allow_star = false);
+RC walk_expr(const UnionExpr &expr, std::function<RC(const UnionExpr &expr)> walk);

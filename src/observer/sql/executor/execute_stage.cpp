@@ -485,6 +485,11 @@ std::shared_ptr<ProjectOperator> build_operator(const SelectStmt &select_stmt)
         agg_exprs.emplace_back(attr.expr.value.func);
       }
     }
+    for (auto &expr : select_stmt.extra_exprs()) {
+      if (expr.type == EXPR_AGG) {
+        agg_exprs.emplace_back(expr.value.func);
+      }
+    }
 
     if (agg_exprs.size() > 0 || !select_stmt.groups().empty()) {
       auto agg = std::make_shared<AggOperator>();

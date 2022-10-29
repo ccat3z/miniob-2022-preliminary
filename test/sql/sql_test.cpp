@@ -2440,7 +2440,11 @@ TEST_F(SQLTest, AggFuncHavingShouldWork)
   ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
 
   ASSERT_EQ(exec_sql("select count(b) from t having count(b) < 1;"), "count(b)\n");
+  ASSERT_EQ(exec_sql("select count(b) from t having count(a) < 1;"), "count(b)\n");
   ASSERT_EQ(exec_sql("select count(b) from t having count(b) > 1;"),
+      "count(b)\n"
+      "3\n");
+  ASSERT_EQ(exec_sql("select count(b) from t having count(a) > 1;"),
       "count(b)\n"
       "3\n");
 }
@@ -2452,7 +2456,7 @@ TEST_F(SQLTest, AggFuncInvalidHavingShouldFailure)
   ASSERT_EQ(exec_sql("insert into t values (1, 3);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
 
-  ASSERT_EQ(exec_sql("select count(b) from t having count(a) < 1;"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select count(b) from t having count(c) < 1;"), "FAILURE\n");
 }
 
 //  #######  ########  ########  ######## ########
@@ -2577,6 +2581,12 @@ TEST_F(SQLTest, GroupByHavingShouldWork)
       "a | count(b)\n"
       "1 | 2\n");
   ASSERT_EQ(exec_sql("select a, count(b) from t group by a having a > 1;"),
+      "a | count(b)\n"
+      "2 | 1\n");
+  ASSERT_EQ(exec_sql("select a, count(b) from t group by a having count(a) >= 2;"),
+      "a | count(b)\n"
+      "1 | 2\n");
+  ASSERT_EQ(exec_sql("select a, count(b) from t group by a having count(*) = 1;"),
       "a | count(b)\n"
       "2 | 1\n");
 }

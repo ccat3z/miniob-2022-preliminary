@@ -134,6 +134,26 @@ RC fill_expr(const Table *default_table, const std::unordered_map<std::string, T
   return rc;
 }
 
+RC walk_expr(const UnionExpr &expr, std::function<RC(const UnionExpr &expr)> walk)
+{
+  RC rc = RC::SUCCESS;
+  switch (expr.type) {
+    case EXPR_AGG:
+    case EXPR_FUNC: {
+      for (size_t i = 0; rc && i < expr.value.func.arg_num; i++) {
+        rc = walk_expr(expr.value.func.args[i], walk);
+      }
+      if (rc != RC::SUCCESS) {
+        return rc;
+      }
+    } break;
+    default:
+      break;
+  }
+
+  return walk(expr);
+}
+
 /// Expand * attr and replace value.attr with value.field
 static RC expand_attr(const std::vector<Table *> &tables, const std::unordered_map<std::string, Table *> &table_map,
     AttrExpr &attr, std::vector<AttrExpr> &attrs)
@@ -336,6 +356,24 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
     if (rc != RC::SUCCESS) {
       LOG_WARN("cannot construct filter stmt for having");
       return rc;
+    }
+
+    // Extract agg funcs
+    for (size_t i = 0; i < select_sql.having_num; i++) {
+      auto cond = select_sql.havings[i];
+      auto left = cond.left_expr;
+      auto right = cond.right_expr;
+
+      walk_expr(left, [&](const UnionExpr &expr) {
+        if (expr.type == EXPR_AGG)
+          select_stmt->extra_exprs_.emplace_back(expr);
+        return RC::SUCCESS;
+      });
+      walk_expr(right, [&](const UnionExpr &expr) {
+        if (expr.type == EXPR_AGG)
+          select_stmt->extra_exprs_.emplace_back(expr);
+        return RC::SUCCESS;
+      });
     }
   }
 
