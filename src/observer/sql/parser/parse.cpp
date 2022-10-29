@@ -163,6 +163,13 @@ void value_destroy(Value *value)
   value->data = nullptr;
 }
 
+void expr_init_selects(UnionExpr *expr, Selects *select)
+{
+  expr->type = EXPR_SELECT;
+  expr->value.select = (Selects *)malloc(sizeof(Selects));
+  *expr->value.select = *select;
+}
+
 void expr_destroy(UnionExpr *expr)
 {
   switch (expr->type) {
@@ -176,6 +183,11 @@ void expr_destroy(UnionExpr *expr)
     case EXPR_FUNC:
     case EXPR_AGG:
       func_destroy(&expr->value.func);
+      break;
+    case EXPR_SELECT:
+      selects_destroy(expr->value.select);
+      free(expr->value.select);
+      expr->value.select = nullptr;
       break;
     default:
       throw std::logic_error("Unreachable code");

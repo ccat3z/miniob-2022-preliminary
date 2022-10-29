@@ -122,6 +122,7 @@ ParserContext *get_context(yyscan_t scanner)
   List *list;
   CompOp comp_op;
   AttrExpr attr;
+  Selects select;
 }
 
 %token <number> NUMBER
@@ -151,6 +152,7 @@ ParserContext *get_context(yyscan_t scanner)
 %type <expr> expr;
 %type <list> update_set_list;
 %type <boolean> attr_def_nullable;
+%type <select> select_stmt;
 
 %left ADD MINUS
 %left STAR DIV
@@ -425,8 +427,16 @@ update_set_list:
 	}
 	;
 
-select:				/*  select 语句的语法解析树*/
-    SELECT attr_list FROM ID rel_list where SEMICOLON
+select:
+	select_stmt SEMICOLON
+	{
+		CONTEXT->ssql->sstr.selection = $1;
+		CONTEXT->ssql->flag=SCF_SELECT;//"select";
+	}
+	;
+
+select_stmt:				/*  select 语句的语法解析树*/
+    SELECT attr_list FROM ID rel_list where
 		{
 			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
 
@@ -436,7 +446,10 @@ select:				/*  select 语句的语法解析树*/
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, (AttrExpr *) $2->values, $2->len);
 			list_free($2);
 
-			CONTEXT->ssql->flag=SCF_SELECT;//"select";
+			$$ = CONTEXT->ssql->sstr.selection;
+  			CONTEXT->ssql->sstr.selection.relation_join_num = 0;
+  			CONTEXT->ssql->sstr.selection.relation_num = 0;     
+  			CONTEXT->ssql->sstr.selection.join_condition_num = 0;
 	}
 	;
 
@@ -581,6 +594,9 @@ expr:
 	}
 	| LBRACE expr RBRACE {
 		$$ = $2;
+	}
+	| LBRACE select_stmt RBRACE {
+		expr_init_selects(&$$, &$2);
 	}
 	;
 

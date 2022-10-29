@@ -103,7 +103,7 @@ typedef struct {
   size_t len;
 } List;
 
-typedef enum { EXPR_VALUE, EXPR_ATTR, EXPR_FUNC, EXPR_AGG, EXPR_RUNTIME_ATTR } UnionExprType;
+typedef enum { EXPR_VALUE, EXPR_ATTR, EXPR_FUNC, EXPR_AGG, EXPR_RUNTIME_ATTR, EXPR_SELECT } UnionExprType;
 
 struct _UnionExpr;
 
@@ -115,19 +115,23 @@ typedef struct {
 
 #ifdef __cplusplus
 class Field;
+class SelectStmt;
 #endif
 
+struct _Selects;
 typedef struct _UnionExpr {
   union {
     Value value;
     RelAttr attr;
     FuncExpr func;
+    struct _Selects *select;
   } value;
 
 #ifdef __cplusplus
   union {
-    mutable Field *field;  // HACK: Executor will fill field to replace attr
-  } hack;
+    mutable Field *field;
+    mutable SelectStmt *select;
+  } hack;  // HACK: Filled by exectuor
 #else
   void *field;
 #endif
@@ -198,7 +202,7 @@ typedef struct _RelJoin {
 } RelJoin;
 
 // struct of select
-typedef struct {
+typedef struct _Selects {
   size_t attr_num;                // Length of attrs in Select clause
   AttrExpr attributes[MAX_NUM];   // attrs in Select clause
   size_t relation_join_num;       // length of join relations
@@ -338,6 +342,7 @@ void value_init_float(Value *value, float v);
 void value_init_string(Value *value, const char *v);
 void value_destroy(Value *value);
 
+void expr_init_selects(UnionExpr *expr, Selects *select);
 void expr_destroy(UnionExpr *expr);
 void func_init_1(FuncExpr *func, const char *name, UnionExpr *arg);
 void func_init_2(FuncExpr *func, const char *name, UnionExpr *arg1, UnionExpr *arg2);

@@ -143,8 +143,9 @@ union YYSTYPE
   List *list;
   CompOp comp_op;
   AttrExpr attr;
+  Selects select;
 
-#line 148 "yacc_sql.tab.h"
+#line 149 "yacc_sql.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
