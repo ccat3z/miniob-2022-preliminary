@@ -22,6 +22,7 @@ See the Mulan PSL v2 for more details. */
 #include <cstring>
 #include <memory>
 #include <stdexcept>
+#include <strings.h>
 #include <vector>
 
 RC FieldExpr::get_value(const Tuple &tuple, TupleCell &cell) const
@@ -34,6 +35,84 @@ RC ValueExpr::get_value(const Tuple &tuple, TupleCell & cell) const
   cell = tuple_cell_;
   return RC::SUCCESS;
 }
+
+class TupleExpr : public Expression {
+public:
+  TupleExpr(const FuncExpr &expr)
+  {
+    for (size_t i = 0; i < expr.arg_num; i++) {
+      args.emplace_back(create(expr.args[i]));
+    }
+  }
+
+  ExprType type() const override
+  {
+    return ExprType::EVAL;
+  };
+
+  RC get_value(const Tuple &tuple, TupleCell &cell) const override
+  {
+    RC rc = RC::SUCCESS;
+    bool got = false;
+
+    rc = get_values(tuple, [&](TupleCell &c) {
+      if (got) {
+        LOG_ERROR("Got multi values");
+        return RC::INVALID_ARGUMENT;
+      }
+
+      cell = c;
+      got = true;
+      return RC::SUCCESS;
+    });
+
+    if (got) {
+      return rc;
+    } else {
+      LOG_ERROR("Failed to get any cell from query");
+      return RC::GENERIC_ERROR;
+    }
+  }
+
+  RC get_values(const Tuple &tuple, std::function<RC(TupleCell &cell)> on_cell) const override
+  {
+    RC rc = RC::SUCCESS;
+    TupleCell cell;
+    for (auto &arg : args) {
+      rc = arg->get_value(tuple, cell);
+      if (rc != RC::SUCCESS) {
+        LOG_ERROR("tuple eval failed");
+        return rc;
+      }
+
+      rc = on_cell(cell);
+      if (rc != RC::SUCCESS) {
+        LOG_ERROR("tuple iter on_cell failed");
+        return rc;
+      }
+    }
+    return rc;
+  };
+
+  std::string toString(bool show_table) const override
+  {
+    std::stringstream ss;
+    ss << "(";
+    bool first = true;
+    for (auto &arg : args) {
+      ss << arg->toString(show_table);
+      if (first) {
+        ss << ",";
+        first = false;
+      }
+    }
+    ss << ")";
+    return ss.str();
+  }
+
+private:
+  std::vector<std::unique_ptr<Expression>> args;
+};
 
 std::unique_ptr<Expression> Expression::create(const UnionExpr &union_expr)
 {
@@ -51,8 +130,10 @@ std::unique_ptr<Expression> Expression::create(const UnionExpr &union_expr)
     case EXPR_FUNC: {
       auto &name = union_expr.value.func.name;
       // TODO: ignore case
-      if (strcmp(name, "length") == 0) {
+      if (strcasecmp(name, "length") == 0) {
         expr = new LengthFuncExpr(union_expr.value.func);
+      } else if (strcasecmp(name, "tuple") == 0) {
+        expr = new TupleExpr(union_expr.value.func);
       } else {
         throw std::invalid_argument(std::string("Unsupport func: ") + name);
       }

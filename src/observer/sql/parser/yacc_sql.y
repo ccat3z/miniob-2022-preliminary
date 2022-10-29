@@ -662,8 +662,15 @@ expr:
 		$$.type = EXPR_FUNC;
 		func_init_2(&$$.value.func, "/", &$1, &$3);
 	}
-	| LBRACE expr RBRACE {
-		$$ = $2;
+	| LBRACE RBRACE
+	{
+		$$.type = EXPR_FUNC;
+		func_init(&$$.value.func, "tuple", NULL, 0);
+	}
+	| LBRACE expr_list RBRACE
+	{
+		$$.type = EXPR_FUNC;
+		func_init(&$$.value.func, "tuple", (UnionExpr *) $2->values, $2->len);
 	}
 	| LBRACE select_stmt RBRACE {
 		expr_init_selects(&$$, &$2);

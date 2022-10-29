@@ -2802,6 +2802,38 @@ TEST_F(SQLTest, SubQueryCanReferenceTableInParentQuery)
   ASSERT_EQ(exec_sql("select * from t where a <> (select avg(b) from t2 where b >= a);"), "a\n1\n2\n");
 }
 
+// #### ##    ##
+//  ##  ###   ##
+//  ##  ####  ##
+//  ##  ## ## ##
+//  ##  ##  ####
+//  ##  ##   ###
+// #### ##    ##
+
+TEST_F(SQLTest, InTupleShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (3);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select * from t where a in (1,2,5);"), "a\n1\n2\n");
+  ASSERT_EQ(exec_sql("select * from t where a in (1);"), "a\n1\n");
+  ASSERT_EQ(exec_sql("select * from t where a in ();"), "a\n");
+}
+
+TEST_F(SQLTest, NotInTupleShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (3);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select * from t where a not in (1,2,5);"), "a\n3\n");
+  ASSERT_EQ(exec_sql("select * from t where a not in (1);"), "a\n2\n3\n");
+  ASSERT_EQ(exec_sql("select * from t where a not in ();"), "a\n1\n2\n3\n");
+}
+
 int main(int argc, char **argv)
 {
   srand((unsigned)time(NULL));
