@@ -115,6 +115,7 @@ ParserContext *get_context(yyscan_t scanner)
 		HAVING
 		ASC
 		IN
+		OR
 
 %union {
   Condition condition;
@@ -568,10 +569,17 @@ order_direct:
 condition_list:
 	condition {
 		$$ = list_create(sizeof(Condition), MAX_NUM);
+		$1.is_and = true;
 		list_prepend($$, &$1);
 	}
     | condition AND condition_list {
 		$$ = $3;
+		$1.is_and = true;
+		list_prepend($$, &$1);
+	}
+    | condition OR condition_list {
+		$$ = $3;
+		$1.is_and = false;
 		list_prepend($$, &$1);
 	}
     ;

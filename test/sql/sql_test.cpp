@@ -23,6 +23,7 @@
 #include <pthread.h>
 #include <sys/un.h>
 #include <thread>
+#include <utility>
 #include <vector>
 #include <tuple>
 #include <sstream>
@@ -2883,6 +2884,34 @@ TEST_F(SQLTest, NotInTupleWithNullShouldWork)
   ASSERT_EQ(exec_sql("select * from t where a not in (1);"), "a\n2\nNULL\n");
   ASSERT_EQ(exec_sql("select * from t where a not in ();"), "a\n1\n2\nNULL\n");
   ASSERT_EQ(exec_sql("select * from t where a not in (null);"), "a\n1\n2\n");
+}
+
+//  #######  ########
+// ##     ## ##     ##
+// ##     ## ##     ##
+// ##     ## ########
+// ##     ## ##   ##
+// ##     ## ##    ##
+//  #######  ##     ##
+
+TEST_F(SQLTest, OrShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1);"), "SUCCESS\n");
+
+  std::vector<std::pair<std::string, bool>> cases = {
+      {"1>1", false},
+      {"1>1 or 1=1", true},
+      {"1=1 or 1>1", true},
+      {"1>1 and 1<1 or 1=1", true},
+      {"1=1 or 1>1 and 1<1", true},
+      {"1>1 and 1<1 or 1>1 and 1<1 or 1=1", true},
+      {"1>1 and 1<1 or 1>1 and 1<1 or 1>1 and 1<1", false},
+  };
+
+  for (auto &it : cases) {
+    ASSERT_EQ(exec_sql("select * from t where "s + it.first + ";"), it.second ? "a\n1\n" : "a\n");
+  }
 }
 
 int main(int argc, char **argv)

@@ -65,6 +65,7 @@ public:
   {
     return right_;
   }
+  bool is_and = true;
 
 private:
   CompOp comp_ = NO_OP;

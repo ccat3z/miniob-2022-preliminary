@@ -121,13 +121,14 @@ extern int yydebug;
     HAVING = 316,                  /* HAVING  */
     ASC = 317,                     /* ASC  */
     IN = 318,                      /* IN  */
-    NUMBER = 319,                  /* NUMBER  */
-    FLOAT = 320,                   /* FLOAT  */
-    ID = 321,                      /* ID  */
-    PATH = 322,                    /* PATH  */
-    SSS = 323,                     /* SSS  */
-    STAR = 324,                    /* STAR  */
-    STRING_V = 325                 /* STRING_V  */
+    OR = 319,                      /* OR  */
+    NUMBER = 320,                  /* NUMBER  */
+    FLOAT = 321,                   /* FLOAT  */
+    ID = 322,                      /* ID  */
+    PATH = 323,                    /* PATH  */
+    SSS = 324,                     /* SSS  */
+    STAR = 325,                    /* STAR  */
+    STRING_V = 326                 /* STRING_V  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -136,7 +137,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 119 "yacc_sql.y"
+#line 120 "yacc_sql.y"
 
   Condition condition;
   UnionExpr expr;
@@ -151,7 +152,7 @@ union YYSTYPE
   AttrExpr attr;
   Selects select;
 
-#line 155 "yacc_sql.tab.h"
+#line 156 "yacc_sql.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

@@ -121,6 +121,7 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
   filter_unit->set_comp(comp);
   filter_unit->set_left(left.release());
   filter_unit->set_right(right.release());
+  filter_unit->is_and = condition.is_and;
 
   return rc;
 }

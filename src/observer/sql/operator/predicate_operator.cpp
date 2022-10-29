@@ -64,119 +64,114 @@ Tuple * PredicateOperator::current_tuple()
   return children_[0]->current_tuple();
 }
 
-bool PredicateOperator::do_predicate(Tuple &tuple)
+bool PredicateOperator::do_predicate(Tuple &tuple, const FilterUnit *filter_unit)
 {
-  if (filter_stmt_ == nullptr || filter_stmt_->filter_units().empty()) {
-    return true;
+  Expression *left_expr = filter_unit->left();
+  Expression *right_expr = filter_unit->right();
+  CompOp comp = filter_unit->comp();
+  TupleCell left_cell;
+  TupleCell right_cell;
+
+  if (RC::SUCCESS != left_expr->get_value(tuple, left_cell)) {
+    throw std::invalid_argument("get value failed for filter");
   }
 
-  for (const FilterUnit *filter_unit : filter_stmt_->filter_units()) {
-    Expression *left_expr = filter_unit->left();
-    Expression *right_expr = filter_unit->right();
-    CompOp comp = filter_unit->comp();
-    TupleCell left_cell;
-    TupleCell right_cell;
+  if (comp == OP_IN || comp == OP_NOT_IN) {
+    RC rc = RC::SUCCESS;
+    bool found = false;
+    rc = right_expr->get_values(tuple, [&](TupleCell &cell) {
+      if (cell.is_null() && left_cell.is_null()) {
+        found = true;
+        return RC::RECORD_EOF;
+      }
 
-    if (RC::SUCCESS != left_expr->get_value(tuple, left_cell)) {
-      throw std::invalid_argument("get value failed for filter");
-    }
-
-    if (comp == OP_IN || comp == OP_NOT_IN) {
-      RC rc = RC::SUCCESS;
-      bool found = false;
-      rc = right_expr->get_values(tuple, [&](TupleCell &cell) {
-        if (cell.is_null() && left_cell.is_null()) {
-          found = true;
-          return RC::RECORD_EOF;
-        }
-
-        if (cell.is_null() || left_cell.is_null()) {
-          return RC::SUCCESS;
-        }
-
-        if (cell.compare(left_cell) == 0) {
-          found = true;
-          return RC::RECORD_EOF;
-        }
+      if (cell.is_null() || left_cell.is_null()) {
         return RC::SUCCESS;
-      });
-
-      if (found) {
-        return comp == OP_IN ? true : false;
       }
 
-      if (rc == RC::SUCCESS) {
-        return comp == OP_IN ? false : true;
+      if (cell.compare(left_cell) == 0) {
+        found = true;
+        return RC::RECORD_EOF;
       }
+      return RC::SUCCESS;
+    });
 
-      throw std::invalid_argument("Failed to get values for filter");
+    if (found) {
+      return comp == OP_IN ? true : false;
     }
 
-    if (RC::SUCCESS != right_expr->get_value(tuple, right_cell)) {
-      throw std::invalid_argument("get value failed for filter");
+    if (rc == RC::SUCCESS) {
+      return comp == OP_IN ? false : true;
     }
 
-    if (comp == IS_NULL) {
-      return left_cell.is_null();
-    }
+    throw std::invalid_argument("Failed to get values for filter");
+  }
 
-    if (comp == IS_NOT_NULL) {
-      return !left_cell.is_null();
-    }
+  if (RC::SUCCESS != right_expr->get_value(tuple, right_cell)) {
+    throw std::invalid_argument("get value failed for filter");
+  }
 
-    if (left_cell.is_null() || right_cell.is_null()) {
+  if (comp == IS_NULL) {
+    return left_cell.is_null();
+  }
+
+  if (comp == IS_NOT_NULL) {
+    return !left_cell.is_null();
+  }
+
+  if (left_cell.is_null() || right_cell.is_null()) {
+    return false;
+  }
+
+  if (comp == OP_LIKE || comp == OP_NOT_LIKE) {
+    if (left_cell.attr_type() != CHARS || right_cell.attr_type() != CHARS) {
+      LOG_WARN("like support CHARS only");
       return false;
     }
 
-    if (comp == OP_LIKE || comp == OP_NOT_LIKE) {
-      if (left_cell.attr_type() != CHARS || right_cell.attr_type() != CHARS) {
-        LOG_WARN("like support CHARS only");
-        return false;
-      }
+    std::string target;
+    std::string like_expr;
 
-      std::string target;
-      std::string like_expr;
-
-      // TODO: Check invalid like op
-      if (left_expr->type() == ExprType::FIELD) {
-        target = left_cell.data();
-        like_expr = right_cell.data();
-      } else {
-        target = right_cell.data();
-        like_expr = left_cell.data();
-      }
-
-      std::string regex_expr = "^";
-      regex_expr.reserve(7);
-      for (const auto c : like_expr) {
-        switch (c) {
-          case '%':
-            regex_expr.append(".*");
-            break;
-          case '_':
-            regex_expr.push_back('.');
-            break;
-          default:
-            regex_expr.push_back(c);
-            break;
-        }
-      }
-      regex_expr.push_back('$');
-
-      std::regex regex(regex_expr, std::regex_constants::icase);
-      auto res = std::regex_match(target.begin(), target.end(), regex);
-
-      if (comp == OP_LIKE && !res)
-        return false;
-      else if (comp == OP_NOT_LIKE && res)
-        return false;
-
-      continue;
+    // TODO: Check invalid like op
+    if (left_expr->type() == ExprType::FIELD) {
+      target = left_cell.data();
+      like_expr = right_cell.data();
+    } else {
+      target = right_cell.data();
+      like_expr = left_cell.data();
     }
 
-    const int compare = left_cell.compare(right_cell);
-    bool filter_result = false;
-    switch (comp) {
+    std::string regex_expr = "^";
+    regex_expr.reserve(7);
+    for (const auto c : like_expr) {
+      switch (c) {
+        case '%':
+          regex_expr.append(".*");
+          break;
+        case '_':
+          regex_expr.push_back('.');
+          break;
+        default:
+          regex_expr.push_back(c);
+          break;
+      }
+    }
+    regex_expr.push_back('$');
+
+    std::regex regex(regex_expr, std::regex_constants::icase);
+    auto res = std::regex_match(target.begin(), target.end(), regex);
+
+    if (comp == OP_LIKE && !res)
+      return false;
+    else if (comp == OP_NOT_LIKE && res)
+      return false;
+
+    return true;
+  }
+
+  const int compare = left_cell.compare(right_cell);
+  bool filter_result = false;
+  switch (comp) {
     case EQUAL_TO: {
       filter_result = (0 == compare); 
     } break;
@@ -198,12 +193,30 @@ bool PredicateOperator::do_predicate(Tuple &tuple)
     default: {
       LOG_WARN("invalid compare type: %d", comp);
     } break;
-    }
-    if (!filter_result) {
-      return false;
+  }
+
+  return filter_result;
+}
+
+bool PredicateOperator::do_predicate(Tuple &tuple)
+{
+  if (filter_stmt_ == nullptr || filter_stmt_->filter_units().empty()) {
+    return true;
+  }
+
+  bool res = true;
+  for (const FilterUnit *filter_unit : filter_stmt_->filter_units()) {
+    res = res && do_predicate(tuple, filter_unit);
+
+    if (!filter_unit->is_and) {
+      if (res) {
+        return true;
+      }
+      res = true;
     }
   }
-  return true;
+
+  return res;
 }
 
 // int PredicateOperator::tuple_cell_num() const

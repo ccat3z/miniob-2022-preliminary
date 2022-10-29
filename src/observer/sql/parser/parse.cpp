@@ -309,7 +309,8 @@ void selects_append_inner_join(
 }
 void selects_append_join_conditions(Selects *selects, Condition conditions[], size_t condition_num)
 {
-  assert(condition_num <= sizeof(selects->join_conditions) / sizeof(selects->join_conditions[0]));
+  selects->join_conditions =
+      (Condition *)realloc(selects->join_conditions, sizeof(Condition) * (selects->join_condition_num + condition_num));
   for (size_t i = 0; i < condition_num; i++) {
     selects->join_conditions[i + selects->join_condition_num] = conditions[i];
   }
@@ -317,7 +318,7 @@ void selects_append_join_conditions(Selects *selects, Condition conditions[], si
 }
 void selects_append_conditions(Selects *selects, Condition conditions[], size_t condition_num)
 {
-  assert(condition_num <= sizeof(selects->conditions) / sizeof(selects->conditions[0]));
+  selects->conditions = (Condition *)malloc(sizeof(Condition) * condition_num);
   for (size_t i = 0; i < condition_num; i++) {
     selects->conditions[i] = conditions[i];
   }
@@ -342,10 +343,12 @@ void selects_destroy(Selects *selects)
     condition_destroy(&selects->join_conditions[i]);
   }
   selects->join_condition_num = 0;
+  free(selects->join_conditions);
   for (size_t i = 0; i < selects->condition_num; i++) {
     condition_destroy(&selects->conditions[i]);
   }
   selects->condition_num = 0;
+  free(selects->conditions);
 
   for (size_t i = 0; i < selects->having_num; i++) {
     condition_destroy(&selects->havings[i]);
