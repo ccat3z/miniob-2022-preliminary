@@ -479,6 +479,11 @@ select_attr:
 		$$.expr = $1;
 		$$.name = NULL;
 	}
+	| expr ID
+	{
+		$$.expr = $1;
+		$$.name = $2;
+	}
 	| expr AS ID
 	{
 		$$.expr = $1;
