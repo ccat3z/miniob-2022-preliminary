@@ -125,7 +125,10 @@ public:
 
   RC get_cell(TupleCell &cell) override
   {
-    cell.save(total / (float)size);
+    if (size == 0)
+      cell.set_null(true);
+    else
+      cell.save(total / (float)size);
     return RC::SUCCESS;
   }
 
@@ -159,7 +162,10 @@ public:
 
   RC get_cell(TupleCell &cell) override
   {
-    cell.save((float)total);
+    if (size == 0)
+      cell.set_null(true);
+    else
+      cell.save((float)total);
     return RC::SUCCESS;
   }
 
@@ -176,6 +182,7 @@ public:
 
     if (!number.is_null()) {
       total += number.as_float();
+      size++;
     }
 
     return rc;
@@ -183,6 +190,7 @@ public:
 
 private:
   float total = 0;
+  size_t size = 0;
 };
 
 RC Aggregator::get_arg(const Tuple &tuple, TupleCell &cell)

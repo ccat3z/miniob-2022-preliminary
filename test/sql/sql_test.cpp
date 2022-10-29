@@ -2354,6 +2354,16 @@ TEST_F(SQLTest, AggFuncAvgNumStringShouldWork)
   ASSERT_EQ(exec_sql("select avg(a) from t;"), "avg(a)\n2.17\n");
 }
 
+TEST_F(SQLTest, AggFuncAvgNumNullShouldBeNull)
+{
+  ASSERT_EQ(exec_sql("create table t(a int nullable);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select avg(a) from t;"), "avg(a)\nNULL\n");
+}
+
 TEST_F(SQLTest, DISABLED_AggFuncAvgEmptyTableShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t(a int, b float, d date);"), "SUCCESS\n");
@@ -2372,6 +2382,16 @@ TEST_F(SQLTest, AggFuncSumShouldWork)
   ASSERT_EQ(exec_sql("select sum(a) from t;"), "sum(a)\n6\n");
   ASSERT_EQ(exec_sql("select sum(b) from t;"), "sum(b)\n7.1\n");
   // ASSERT_EQ(exec_sql("select avg(d) from t;"), "avg(d)\n2021-11-01\n");
+}
+
+TEST_F(SQLTest, AggFuncSumNullShouldBeNull)
+{
+  ASSERT_EQ(exec_sql("create table t(a int nullable);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select sum(a) from t;"), "sum(a)\nNULL\n");
 }
 
 TEST_F(SQLTest, AggFuncWithValueShouldWork)
