@@ -16,6 +16,7 @@ See the Mulan PSL v2 for more details. */
 
 #include <unordered_map>
 #include <functional>
+#include <memory>
 #include <vector>
 
 #include "rc.h"
@@ -28,8 +29,12 @@ class FilterStmt;
 class Db;
 class Table;
 
-class SelectStmt : public Stmt
-{
+class SelectCtx {
+public:
+  std::unordered_map<std::string, Table *> table_map;
+};
+
+class SelectStmt : public Stmt {
 public:
 
   SelectStmt() = default;
@@ -37,7 +42,7 @@ public:
 
   StmtType type() const override { return StmtType::SELECT; }
 public:
-  static RC create(Db *db, const Selects &select_sql, Stmt *&stmt);
+  static RC create(Db *db, const Selects &select_sql, Stmt *&stmt, std::shared_ptr<SelectCtx> ctx = nullptr);
 
 public:
   const std::vector<Table *> &tables() const { return tables_; }
@@ -107,5 +112,5 @@ private:
 };
 
 RC fill_expr(const Table *default_table, const std::unordered_map<std::string, Table *> &table_map,
-    const UnionExpr &expr, bool allow_star = false);
+    const UnionExpr &expr, bool allow_star = false, Db *db = nullptr);
 RC walk_expr(const UnionExpr &expr, std::function<RC(const UnionExpr &expr)> walk);

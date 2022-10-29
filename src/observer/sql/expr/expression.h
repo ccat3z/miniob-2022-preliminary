@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
@@ -24,6 +25,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include "rc.h"
 #include "sql/parser/parse_defs.h"
+#include "sql/stmt/select_stmt.h"
 #include "storage/common/field.h"
 #include "sql/expr/tuple_cell.h"
 
@@ -38,6 +40,11 @@ public:
   virtual ~Expression() = default;
   
   virtual RC get_value(const Tuple &tuple, TupleCell &cell) const = 0;
+  virtual RC get_values(const Tuple &tuple, std::function<RC(TupleCell &cell)> cells) const
+  {
+    LOG_ERROR("%s not support get_values", toString(true).c_str());
+    return RC::GENERIC_ERROR;
+  };
   virtual ExprType type() const = 0;
   virtual std::string toString(bool show_table) const = 0;
 
@@ -244,6 +251,38 @@ public:
 private:
   std::string table;
   std::string field;
+};
+
+class ContextOperator;
+class ProjectOperator;
+class SelectStmt;
+class SelectExpr : public Expression {
+public:
+  SelectExpr(const SelectStmt *select) : select(select)
+  {
+    std::stringstream ss;
+    ss << "Q#" << (int64_t)select;
+    query_name = ss.str();
+  }
+
+  RC get_value(const Tuple &tuple, TupleCell &cell) const override;
+  RC get_values(const Tuple &tuple, std::function<RC(TupleCell &cell)> on_cell) const override;
+
+  ExprType type() const override
+  {
+    return ExprType::EVAL;
+  };
+
+  std::string toString(bool show_table) const override
+  {
+    return query_name;
+  }
+
+private:
+  std::string query_name;
+  mutable std::shared_ptr<ProjectOperator> oper;
+  mutable std::shared_ptr<ContextOperator> ctx_oper;
+  const SelectStmt *select;
 };
 
 RC create_expression(std::unique_ptr<Expression> &expr, const UnionExpr &union_expr) noexcept;

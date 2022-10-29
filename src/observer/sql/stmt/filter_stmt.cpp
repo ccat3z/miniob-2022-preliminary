@@ -105,7 +105,7 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
     return rc;
   }
 
-  rc = fill_expr(default_table, *tables, condition.right_expr);
+  rc = fill_expr(default_table, *tables, condition.right_expr, false, db);
   if (rc != RC::SUCCESS) {
     LOG_ERROR("Failed to fill right expr");
     return rc;

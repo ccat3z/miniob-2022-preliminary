@@ -19,9 +19,11 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include "common/lang/string.h"
 #include "storage/common/db.h"
+#include "storage/common/field_meta.h"
 #include "storage/common/table.h"
 #include <cstddef>
 #include <cstring>
+#include <memory>
 #include <set>
 #include <strings.h>
 #include <vector>
@@ -51,7 +53,7 @@ static void wildcard_fields(Table *table, std::vector<AttrExpr> &attrs)
 }
 
 RC fill_expr(const Table *default_table, const std::unordered_map<std::string, Table *> &table_map,
-    const UnionExpr &expr, bool allow_star)
+    const UnionExpr &expr, bool allow_star, Db *db)
 {
   RC rc = RC::SUCCESS;
 
@@ -76,9 +78,27 @@ RC fill_expr(const Table *default_table, const std::unordered_map<std::string, T
         tables.emplace(kv.second);
       }
       if (tables.size() != 1) {
-        // TODO: select a,b from t1,t2; Find a table.
-        LOG_WARN("invalid. I do not know the attr's table. attr=%s", relattr.attribute_name);
-        return RC::SCHEMA_FIELD_MISSING;
+        for (auto can_table : tables) {
+          if (table == can_table)
+            continue;
+
+          auto field_meta = can_table->table_meta().field(relattr.attribute_name);
+          if (!field_meta) {
+            continue;
+          }
+
+          if (table != nullptr) {
+            LOG_WARN("Match multiple keys. I do not know the attr's table. attr=%s", relattr.attribute_name);
+            return RC::SCHEMA_FIELD_MISSING;
+          }
+
+          table = can_table;
+        }
+
+        if (!table) {
+          LOG_WARN("invalid. I do not know the attr's table. attr=%s", relattr.attribute_name);
+          return RC::SCHEMA_FIELD_MISSING;
+        }
       } else {
         table = default_table;
       }
@@ -129,6 +149,24 @@ RC fill_expr(const Table *default_table, const std::unordered_map<std::string, T
       }
     }
     return rc;
+  }
+
+  if (expr.type == EXPR_SELECT) {
+    if (db == nullptr) {
+      LOG_ERROR("Cannot build select expr without db");
+      return RC::INTERNAL;
+    }
+
+    auto ctx = std::make_shared<SelectCtx>();
+    ctx->table_map = table_map;
+
+    Stmt *stmt;
+    RC rc = SelectStmt::create(db, *expr.value.select, stmt, ctx);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to create stmt for select expr");
+      return rc;
+    }
+    expr.hack.select = (SelectStmt *)stmt;
   }
 
   return rc;
@@ -224,7 +262,7 @@ static RC expand_attr(const std::vector<Table *> &tables, const std::unordered_m
   return RC::SUCCESS;
 }
 
-RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
+RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::shared_ptr<SelectCtx> ctx)
 {
   if (nullptr == db) {
     LOG_WARN("invalid argument. db is null");
@@ -234,6 +272,11 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
   // collect tables in `from` statement
   std::vector<Table *> tables;
   std::unordered_map<std::string, Table *> table_map;
+
+  if (ctx) {
+    table_map = ctx->table_map;
+  }
+
   for (size_t i = 0; i < select_sql.relation_num; i++) {
     const char *table_name = select_sql.relations[i];
     if (nullptr == table_name) {
@@ -262,7 +305,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
         rc = expand_attr(tables, table_map, attr_expr, attrs);
         break;
       default:
-        rc = fill_expr(tables[0], table_map, attr_expr.expr);
+        rc = fill_expr(tables[0], table_map, attr_expr.expr, false, db);
         attrs.emplace_back(attr_expr);
         break;
     }

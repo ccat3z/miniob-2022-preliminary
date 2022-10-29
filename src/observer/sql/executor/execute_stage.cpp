@@ -427,7 +427,7 @@ IndexScanOperator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
   return oper;
 }
 
-std::shared_ptr<ProjectOperator> build_operator(const SelectStmt &select_stmt)
+std::shared_ptr<ProjectOperator> build_operator(const SelectStmt &select_stmt, std::shared_ptr<Operator> context)
 {
   bool multi_table = select_stmt.tables().size() >= 2;
   std::shared_ptr<Operator> oper;
@@ -441,6 +441,10 @@ std::shared_ptr<ProjectOperator> build_operator(const SelectStmt &select_stmt)
     auto pred = std::make_shared<PredicateOperator>(select_stmt.get_one_table_filter(table_name));
     pred->add_child(scan);
     scans.emplace_back(table_name, pred);
+  }
+
+  if (context != nullptr) {
+    scans.emplace_back("", context);
   }
 
   // Join

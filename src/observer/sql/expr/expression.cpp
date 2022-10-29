@@ -14,11 +14,15 @@ See the Mulan PSL v2 for more details. */
 
 #include "sql/expr/expression.h"
 #include "common/log/log.h"
+#include "sql/executor/execute_stage.h"
 #include "sql/expr/tuple.h"
+#include "sql/expr/tuple_cell.h"
+#include "sql/operator/operator.h"
 #include "sql/parser/parse_defs.h"
 #include <cstring>
 #include <memory>
 #include <stdexcept>
+#include <vector>
 
 RC FieldExpr::get_value(const Tuple &tuple, TupleCell &cell) const
 {
@@ -58,6 +62,9 @@ std::unique_ptr<Expression> Expression::create(const UnionExpr &union_expr)
     } break;
     case EXPR_RUNTIME_ATTR: {
       expr = new RuntimeAttrExpr(union_expr.value.attr);
+    } break;
+    case EXPR_SELECT: {
+      expr = new SelectExpr(union_expr.hack.select);
     } break;
     default:
       LOG_ERROR("Unsupport expr type: %d", union_expr.type);
@@ -110,4 +117,98 @@ RC LengthFuncExpr::get_value(const Tuple &tuple, TupleCell &cell) const
 RC AggFuncExpr::get_value(const Tuple &tuple, TupleCell &cell) const
 {
   return tuple.find_cell(*this, cell);
+}
+
+RC SelectExpr::get_value(const Tuple &tuple, TupleCell &cell) const
+{
+  RC rc = RC::SUCCESS;
+  bool got = false;
+
+  rc = get_values(tuple, [&](TupleCell &c) {
+    if (got) {
+      LOG_ERROR("Got multi values");
+      return RC::INVALID_ARGUMENT;
+    }
+
+    cell = c;
+    got = true;
+    return RC::SUCCESS;
+  });
+
+  if (got) {
+    return rc;
+  } else {
+    LOG_ERROR("Failed to get any cell from query");
+    return RC::GENERIC_ERROR;
+  }
+}
+
+class ContextOperator : public Operator {
+public:
+  virtual RC open() override
+  {
+    return RC::SUCCESS;
+  }
+
+  virtual RC next() override
+  {
+    if (readed)
+      return RC::RECORD_EOF;
+
+    readed = true;
+    return RC::SUCCESS;
+  }
+
+  virtual RC close() override
+  {
+    readed = false;
+    return RC::SUCCESS;
+  }
+
+  Tuple *current_tuple() override
+  {
+    return &tuple;
+  }
+
+  MemoryTuple tuple;
+  bool readed = false;
+};
+
+RC SelectExpr::get_values(const Tuple &tuple, std::function<RC(TupleCell &cell)> on_cell) const
+{
+  if (oper == nullptr) {
+    ctx_oper = std::make_shared<ContextOperator>();
+    oper = build_operator(*select, ctx_oper);
+    if (!oper) {
+      LOG_ERROR("Failed to build operator");
+      return RC::INVALID_ARGUMENT;
+    }
+  }
+
+  ctx_oper->tuple = tuple;
+  if (oper->tuple_cell_num() != 1) {
+    LOG_ERROR("Sub query can only have 1 column");
+    return RC::INVALID_ARGUMENT;
+  }
+
+  RC rc = exec_operator(*oper, [&](Tuple &tuple) {
+    TupleCell cell;
+    RC rc = tuple.cell_at(0, cell);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to get cell");
+      return rc;
+    }
+    rc = on_cell(cell);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("on_cell() failed");
+      return rc;
+    }
+    return rc;
+  });
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to exec query");
+    return rc;
+  }
+
+  return rc;
 }
