@@ -116,6 +116,7 @@ ParserContext *get_context(yyscan_t scanner)
 		ASC
 		IN
 		OR
+		EXISTS
 
 %union {
   Condition condition;
@@ -606,6 +607,28 @@ condition:
 		null_expr.value.value = null;
 
 		condition_init(&$$, IS_NOT_NULL, &$1, &null_expr);
+	}
+	| EXISTS expr
+	{
+		Value null;
+		value_init_null(&null);
+
+		UnionExpr null_expr;
+		null_expr.type = EXPR_VALUE;
+		null_expr.value.value = null;
+
+		condition_init(&$$, OP_EXISTS, &null_expr, &$2);
+	}
+	| NOT EXISTS expr
+	{
+		Value null;
+		value_init_null(&null);
+
+		UnionExpr null_expr;
+		null_expr.type = EXPR_VALUE;
+		null_expr.value.value = null;
+
+		condition_init(&$$, OP_NOT_EXISTS, &null_expr, &$3);
 	}
 	;
 

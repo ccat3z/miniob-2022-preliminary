@@ -2933,6 +2933,31 @@ TEST_F(SQLTest, OrShouldWork)
   }
 }
 
+// ######## ##     ## ####  ######  ########  ######
+// ##        ##   ##   ##  ##    ##    ##    ##    ##
+// ##         ## ##    ##  ##          ##    ##
+// ######      ###     ##   ######     ##     ######
+// ##         ## ##    ##        ##    ##          ##
+// ##        ##   ##   ##  ##    ##    ##    ##    ##
+// ######## ##     ## ####  ######     ##     ######
+
+TEST_F(SQLTest, ExistsShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t(a int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1);"), "SUCCESS\n");
+
+  std::vector<std::pair<std::string, bool>> cases = {
+      {"exists (1)", true},
+      {"not exists ()", true},
+      {"exists ()", false},
+      {"not exists (1)", false},
+  };
+
+  for (auto &it : cases) {
+    ASSERT_EQ(exec_sql("select * from t where "s + it.first + ";"), it.second ? "a\n1\n" : "a\n");
+  }
+}
+
 int main(int argc, char **argv)
 {
   srand((unsigned)time(NULL));

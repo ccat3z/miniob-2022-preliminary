@@ -118,6 +118,22 @@ bool PredicateOperator::do_predicate(Tuple &tuple, const FilterUnit *filter_unit
     return res;
   }
 
+  if (comp == OP_EXISTS || comp == OP_NOT_EXISTS) {
+    bool res = false;
+
+    RC rc = right_expr->get_values(tuple, [&](TupleCell &cell) {
+      res = true;
+
+      return RC::SUCCESS;
+    });
+
+    if (rc != RC::SUCCESS) {
+      throw std::invalid_argument("Failed to get values for filter");
+    }
+
+    return comp == OP_EXISTS ? res : !res;
+  }
+
   if (RC::SUCCESS != right_expr->get_value(tuple, right_cell)) {
     throw std::invalid_argument("get value failed for filter");
   }

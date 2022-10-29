@@ -52,6 +52,8 @@ typedef enum {
   IS_NOT_NULL,
   OP_IN,
   OP_NOT_IN,
+  OP_EXISTS,
+  OP_NOT_EXISTS,
   NO_OP
 } CompOp;
 
