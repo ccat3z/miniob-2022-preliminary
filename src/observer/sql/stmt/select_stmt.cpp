@@ -13,6 +13,7 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include "sql/stmt/select_stmt.h"
+#include "sql/expr/expression.h"
 #include "sql/parser/parse_defs.h"
 #include "sql/stmt/filter_stmt.h"
 #include "common/log/log.h"
@@ -289,12 +290,41 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
     }
     table_join_filters.emplace(table_name, inner_join_filter_stmt);
   }
+  // collect one_table_filter from filter_stmt
+  std::unordered_map<std::string, FilterStmt *> one_table_filters;
+  const std::vector<FilterUnit *> units = filter_stmt->filter_units();
+  for (size_t i = 0; i < units.size(); i++) {
+    // 判断filter_stmt 中每个unit 是否独属于一个table，如果是，则加入one_table_filters
+    FilterUnit *filter_unit = units[i];
+    Expression *left = filter_unit->left();
+    Expression *right = filter_unit->right();
+    if (!((left->type() == ExprType::FIELD && right->type() == ExprType::VALUE) ||
+            (left->type() == ExprType::VALUE && right->type() == ExprType::FIELD))) {
+      continue;
+    }
+    std::string table_name;
+    if (left->type() == ExprType::FIELD) {
+      FieldExpr *field_expr = (FieldExpr *)(left);
+      table_name = field_expr->table_name();
+    } else {
+      FieldExpr *field_expr = (FieldExpr *)(right);
+      table_name = field_expr->table_name();
+    }
+    if (one_table_filters.find(table_name) == one_table_filters.end()) {
+      FilterStmt *tmp_stmt = new FilterStmt();
+      tmp_stmt->add_filter_units(filter_unit);
+      one_table_filters.emplace(table_name, tmp_stmt);
+    } else {
+      one_table_filters[table_name]->add_filter_units(filter_unit);
+    }
+  }
   // everything alright
   select_stmt->tables_.swap(tables);
   select_stmt->attrs_.swap(attrs);
   select_stmt->filter_stmt_ = filter_stmt;
   select_stmt->join_filter_stmt_ = join_filter_stmt;
   select_stmt->table_join_filters_.swap(table_join_filters);
+  select_stmt->one_table_filters_.swap(one_table_filters);
   stmt = select_stmt;
   return RC::SUCCESS;
 }

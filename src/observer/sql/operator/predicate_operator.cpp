@@ -43,6 +43,7 @@ RC PredicateOperator::next()
       break;
     }
     LOG_DEBUG("PredicateOperator::current_tuple():tuple->cell_num():%d", tuple->cell_num());
+    tuple->print();
     if (do_predicate(static_cast<Tuple &>(*tuple))) {
       return rc;
     }

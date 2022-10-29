@@ -434,12 +434,33 @@ std::shared_ptr<ProjectOperator> build_operator(const SelectStmt &select_stmt)
   // Join
   if (multi_table) {
     auto table_nums = select_stmt.tables().size();
-    auto left = std::make_shared<TableScanOperator>(select_stmt.tables()[table_nums - 1]);
-    auto right = std::make_shared<TableScanOperator>(select_stmt.tables()[table_nums - 2]);
+    auto left_scan = std::make_shared<TableScanOperator>(select_stmt.tables()[table_nums - 1]);
+    auto left = std::make_shared<PredicateOperator>(select_stmt.get_one_table_filter(select_stmt.tables()[table_nums - 1]->name()));
+    left->add_child(left_scan);
+
+    auto right_scan = std::make_shared<TableScanOperator>(select_stmt.tables()[table_nums - 2]);
+    auto right = std::make_shared<PredicateOperator>(select_stmt.get_one_table_filter(select_stmt.tables()[table_nums - 2]->name()));
+    right->add_child(right_scan);
+
     oper = std::make_shared<JoinOperator>(left, right);
+
+    auto pred = std::make_shared<PredicateOperator>(
+        select_stmt.get_table_join_filter(select_stmt.tables()[table_nums - 2]->name()));
+    pred->add_child(oper);
+    oper = pred;
+
     for (int i = table_nums - 3; i >= 0; i--) {
+      auto table_name = select_stmt.tables()[i]->name();
       auto scan = std::make_shared<TableScanOperator>(select_stmt.tables()[i]);
-      oper = std::make_shared<JoinOperator>(oper, scan);
+      auto pred = std::make_shared<PredicateOperator>(select_stmt.get_one_table_filter(table_name));
+      pred->add_child(scan);
+      oper = std::make_shared<JoinOperator>(oper, pred);
+
+      if (i != 0) {
+        auto pred = std::make_shared<PredicateOperator>(select_stmt.get_table_join_filter(table_name));
+        pred->add_child(oper);
+        oper = pred;
+      }
     }
 
     if (select_stmt.join_filter_stmt()) {

@@ -53,10 +53,20 @@ public:
   {
     return table_join_filters_;  // 分别存放每个join 算子的filter条件，如果是没有inner join filter 为空
   }
-  FilterStmt *get_table_join_filter(std::string table_name)
+  FilterStmt *get_table_join_filter(std::string table_name) const
   {
-    if (table_join_filters_.find(table_name) != table_join_filters_.end()) {
-      return table_join_filters_[table_name];
+    auto it = table_join_filters_.find(table_name);
+    if (it != table_join_filters_.end()) {
+      return it->second;
+    } else {
+      return nullptr;
+    }
+  }
+  FilterStmt *get_one_table_filter(std::string table_name) const
+  {
+    auto it = one_table_filters_.find(table_name);
+    if (one_table_filters_.find(table_name) != one_table_filters_.end()) {
+      return it->second;
     } else {
       return nullptr;
     }
@@ -68,6 +78,7 @@ private:
   FilterStmt *filter_stmt_ = nullptr;
   FilterStmt *join_filter_stmt_ = nullptr;
   std::unordered_map<std::string, FilterStmt *> table_join_filters_;
+  std::unordered_map<std::string, FilterStmt *> one_table_filters_;
 
   friend class UpdateStmt;
 };
