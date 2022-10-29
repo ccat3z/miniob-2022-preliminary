@@ -208,6 +208,7 @@ private:
   std::vector<std::unique_ptr<Expression>> args;
   std::string name;
   friend class Aggregator;
+  friend class CountAggregator;
 };
 
 class RuntimeAttrExpr : public Expression {

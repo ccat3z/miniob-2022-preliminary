@@ -12,21 +12,37 @@
 
 class CountAggregator : public Aggregator {
 public:
-  CountAggregator(std::shared_ptr<AggFuncExpr> expr) : Aggregator(expr){};
+  CountAggregator(std::shared_ptr<AggFuncExpr> expr) : Aggregator(expr)
+  {
+    eval_arg = expr->args[0]->toString(false) != "*";
+  };
   RC get_cell(TupleCell &cell) override
   {
     cell.save(cnt);
     return RC::SUCCESS;
   }
 
-  RC add_tuple(const Tuple &) override
+  RC add_tuple(const Tuple &tuple) override
   {
-    cnt++;
+    if (eval_arg) {
+      TupleCell cell;
+      RC rc = get_arg(tuple, cell);
+      if (rc != RC::SUCCESS) {
+        LOG_ERROR("count: get arg failed");
+        return rc;
+      }
+      if (!cell.is_null())
+        cnt++;
+    } else {
+      cnt++;
+    }
+
     return RC::SUCCESS;
   };
 
 private:
   int cnt = 0;
+  bool eval_arg = false;
 };
 
 class MaxAggregator : public Aggregator {

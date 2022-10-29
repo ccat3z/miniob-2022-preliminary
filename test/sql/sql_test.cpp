@@ -2251,6 +2251,19 @@ TEST_F(SQLTest, AggFuncCountShouldWork)
   ASSERT_EQ(exec_sql("select count(a), count(*) from t;"), "count(a) | count(*)\n2 | 2\n");
 }
 
+TEST_F(SQLTest, AggFuncCountNonShouldSkip)
+{
+  ASSERT_EQ(exec_sql("create table t(a int nullable, b int nullable);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 1);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (null, null);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select count(1) from t;"), "count(1)\n3\n");
+  ASSERT_EQ(exec_sql("select count(*) from t;"), "count(*)\n3\n");
+  ASSERT_EQ(exec_sql("select count(a) from t;"), "count(a)\n1\n");
+  ASSERT_EQ(exec_sql("select count(b) from t;"), "count(b)\n2\n");
+}
+
 TEST_F(SQLTest, DISABLED_AggFuncCountEmptyTableShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
