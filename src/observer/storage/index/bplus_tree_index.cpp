@@ -91,7 +91,7 @@ RC BplusTreeIndex::close()
 
 RC BplusTreeIndex::can_insert_entry(const char *record, const RID *rid)
 {
-  auto key = index_meta_.extract_key(record);
+  auto key = index_meta_.extract_key(record, rid);
   if (this->index_meta_.unique()) {
     std::list<RID> rids;
     RC rc;
@@ -116,13 +116,13 @@ RC BplusTreeIndex::insert_entry(const char *record, const RID *rid)
     LOG_ERROR("Cannot insert entry: %s", strrc(rc));
     return rc;
   }
-  auto key = index_meta_.extract_key(record);
+  auto key = index_meta_.extract_key(record, rid);
   return index_handler_.insert_entry(key.c_str(), rid);
 }
 
 RC BplusTreeIndex::delete_entry(const char *record, const RID *rid)
 {
-  auto key = index_meta_.extract_key(record);
+  auto key = index_meta_.extract_key(record, rid);
   return index_handler_.delete_entry(key.c_str(), rid);
 }
 

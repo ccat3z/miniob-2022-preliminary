@@ -22,6 +22,7 @@ See the Mulan PSL v2 for more details. */
 
 class TableMeta;
 class FieldMeta;
+struct RID;
 
 namespace Json {
 class Value;
@@ -47,7 +48,7 @@ public:
     return unique_;
   }
 
-  std::string extract_key(const char *record) const;
+  std::string extract_key(const char *record, const RID *rid) const;
 
 public:
   void to_json(Json::Value &json_value) const;

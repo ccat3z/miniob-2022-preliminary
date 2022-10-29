@@ -19,8 +19,10 @@ See the Mulan PSL v2 for more details. */
 #include "common/lang/string.h"
 #include "common/log/log.h"
 #include "rc.h"
+#include "storage/record/record.h"
 #include "json/json.h"
 #include <cstddef>
+#include <cstdint>
 #include <vector>
 
 const static Json::StaticString FIELD_NAME("name");
@@ -117,7 +119,7 @@ const std::vector<FieldMeta> &IndexMeta::fields() const
 
 FieldMeta IndexMeta::mixed_field_meta() const
 {
-  if (fields_.size() == 1)
+  if (fields_.size() == 1 && !fields_[0].nullable())
     return fields_[0];
 
   FieldMeta field;
@@ -125,30 +127,34 @@ FieldMeta IndexMeta::mixed_field_meta() const
   for (auto &field : fields_) {
     len += field.len();
     if (field.nullable()) {
-      len += sizeof(bool);
+      len += sizeof(RID);
     }
   }
   field.init(name_.c_str(), MIXED, 0, len, false);
   return field;
 }
 
-std::string IndexMeta::extract_key(const char *record) const
+static inline void append_zero(std::string &str, size_t size)
+{
+  char zero[size];
+  for (size_t i = 0; i < size; i++)
+    zero[i] = 0;
+  str.append(zero, size);
+}
+
+std::string IndexMeta::extract_key(const char *record, const RID *rid) const
 {
   std::string key;
   key.reserve(fields_.size() * 4);
 
   for (auto &field : fields_) {
     if (field.nullable()) {
-      bool is_null = field.is_null(record);
-      key.append((char *)&is_null, sizeof(bool));
-
-      if (is_null) {
-        char zero[field.len()];
-        for (size_t i = 0; i < field.len(); i++)
-          zero[i] = 0;
-        key.append(zero, field.len());
-      } else {
+      if (!field.is_null(record)) {
+        append_zero(key, sizeof(RID));
         key.append(record + field.offset(), field.len());
+      } else {
+        key.append((char *)rid, sizeof(RID));
+        append_zero(key, field.len());
       }
     } else {
       key.append(record + field.offset(), field.len());
