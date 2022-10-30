@@ -2369,6 +2369,21 @@ TEST_F(SQLTest, ExpressionInConditionShouldWork)
   ASSERT_EQ(exec_sql("select * from t where -a = -2;"), "a | b\n2 | 3\n");
 }
 
+TEST_F(SQLTest, ExpressionInConditionWithoutSpaceShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t (a int, b int);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from t where a+b=5;"), "a | b\n2 | 3\n");
+  ASSERT_EQ(exec_sql("select * from t where a-b=-1;"), "a | b\n2 | 3\n");
+  ASSERT_EQ(exec_sql("select * from t where a-b=a+b-a*b;"), "a | b\n2 | 3\n");
+  ASSERT_EQ(exec_sql("select * from t where b/a=1.5;"), "a | b\n2 | 3\n");
+  ASSERT_EQ(exec_sql("select * from t where 2=a+b-a*(b-b/a);"), "a | b\n2 | 3\n");
+  ASSERT_EQ(exec_sql("select * from t where 1+1>2;"), "a | b\n");
+  ASSERT_EQ(exec_sql("select * from t where a-2>0;"), "a | b\n");
+  ASSERT_EQ(exec_sql("select * from t where a--2=4;"), "a | b\n2 | 3\n");
+  ASSERT_EQ(exec_sql("select * from t where -a=-2;"), "a | b\n2 | 3\n");
+}
+
 TEST_F(SQLTest, ExpressionInSelectShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t (a int, b int);"), "SUCCESS\n");
