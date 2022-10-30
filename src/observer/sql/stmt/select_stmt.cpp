@@ -90,7 +90,12 @@ RC fill_expr(const Table *default_table, const std::unordered_map<std::string, T
 
           if (table != nullptr) {
             LOG_WARN("Match multiple keys. I do not know the attr's table. attr=%s", relattr.attribute_name);
-            return RC::SCHEMA_FIELD_MISSING;
+            if (default_table != nullptr) {
+              table = default_table;
+              break;
+            } else {
+              return RC::SCHEMA_FIELD_MISSING;
+            }
           }
 
           table = can_table;
