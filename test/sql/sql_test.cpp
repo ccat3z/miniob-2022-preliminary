@@ -2386,6 +2386,9 @@ TEST_F(SQLTest, FuncRoundShouldWork)
       {"round(-1.54, 1)", "-1.5"},
       {"round(-1.55, 1)", "-1.6"},
       {"round(-1.55, 1)", "-1.6"},
+      {"round(1.45)", "1"},
+      {"round(1.55)", "2"},
+      {"round(1.65)", "2"},
   };
 
   for (auto &it : cases) {
@@ -2397,7 +2400,6 @@ TEST_F(SQLTest, FuncInvalidRoundShouldFaiure)
 {
   std::vector<std::string> cases = {
       "round()",
-      "round(1.54)",
       "round(1.54, 2, 3)",
   };
 

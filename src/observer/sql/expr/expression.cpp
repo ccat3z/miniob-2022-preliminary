@@ -246,18 +246,20 @@ class RoundExpression : public Expression {
 public:
   RoundExpression(const FuncExpr &expr)
   {
-    if (expr.arg_num != 2) {
+    if (expr.arg_num == 2) {
+      exprs.emplace_back(create(expr.args[0]));
+      exprs.emplace_back(create(expr.args[1]));
+    } else if (expr.arg_num == 1) {
+      exprs.emplace_back(create(expr.args[0]));
+    } else {
       throw std::invalid_argument("round expr only accept 2 arg");
     }
-
-    exprs.emplace_back(create(expr.args[0]));
-    exprs.emplace_back(create(expr.args[1]));
   }
 
   RC get_value(const Tuple &tuple, TupleCell &cell) const override
   {
     float num;
-    int precision;
+    int precision = 0;
 
     {
       RC rc = RC::SUCCESS;
@@ -278,7 +280,7 @@ public:
       }
     }
 
-    {
+    if (exprs.size() == 2) {
       RC rc = RC::SUCCESS;
       const int *val;
 
