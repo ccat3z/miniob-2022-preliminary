@@ -2353,6 +2353,19 @@ TEST_F(SQLTest, FuncWithNonTableShouldWork)
       "9 | 9\n");
 }
 
+TEST_F(SQLTest, FuncOfficialCase)
+{
+  ASSERT_EQ(exec_sql("create table function_table (id int, name text, score float);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into function_table values (1, '12345', 23457);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into function_table values (2, '123456', 32);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into function_table values (3, '123456', 1919);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select id, length(name), round(score) from function_table where id<4;"),
+      "id | length(name) | round(score)\n"
+      "1 | 5 | 23457\n"
+      "2 | 6 | 32\n"
+      "3 | 6 | 1919\n");
+}
+
 TEST_F(SQLTest, FuncLengthOnTextShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t (s char, f float, d date, t text);"), "SUCCESS\n");

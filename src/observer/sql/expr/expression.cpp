@@ -318,8 +318,11 @@ public:
   std::string toString(bool show_table, bool show_table_alias = false) const override
   {
     std::stringstream ss;
-    ss << "round(" << exprs[0]->toString(show_table, show_table_alias) << ","
-       << exprs[1]->toString(show_table, show_table_alias) << ")";
+    ss << "round(" << exprs[0]->toString(show_table, show_table_alias);
+    if (exprs.size() == 2) {
+      ss << "," << exprs[1]->toString(show_table, show_table_alias);
+    }
+    ss << ")";
     return ss.str();
   }
 
