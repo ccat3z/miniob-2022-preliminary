@@ -2867,7 +2867,43 @@ TEST_F(SQLTest, SubQueryCanReferenceTableInParentQuery)
 
   ASSERT_EQ(exec_sql("select * from t where a <> (select avg(b) from t2 where b >= a);"), "a\n1\n2\n");
 }
+TEST_F(SQLTest, SubQueryQuery)
+{
+  ASSERT_EQ(exec_sql("CREATE TABLE ssq_1(id int, col1 int nullable, feat1 float);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("CREATE TABLE ssq_2(id int, col2 int nullable, feat2 float);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("CREATE TABLE ssq_3(id int, col3 int nullable, feat3 float);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("CREATE TABLE ssq_4(id int, col4 int nullable, feat4 float);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into ssq_4 values(1,4,11.2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into ssq_4 values(2,3,12);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into ssq_4 values(3,NULL,13.5);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into ssq_4 values(4,11,11.2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into ssq_4 values(5,11,11.2);"), "SUCCESS\n");
 
+  ASSERT_EQ(exec_sql("insert into ssq_1 values(1,4,11);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into ssq_1 values(3,3,12);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into ssq_1 values(2,NULL,12.5);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from ssq_1 where feat1 = (select ssq_4.col4 from ssq_4 where ssq_4.id=2);"),
+      "id | col1 | feat1\n");
+  ASSERT_EQ(exec_sql("select ssq_4.col4 from ssq_4 where ssq_4.id=4;"), "col4\n11\n");
+  // 子查询返回null 时
+  ASSERT_EQ(exec_sql("select * from ssq_1 where (select ssq_4.col4 from ssq_4 where ssq_4.id=3) < feat1;"),
+      "id | col1 | feat1\n");
+  ASSERT_EQ(exec_sql("select * from ssq_1 where (select ssq_4.col4 from ssq_4 where ssq_4.id=2) < feat1;"),
+      "id | col1 | feat1\n1 | 4 | 11\n3 | 3 | 12\n2 | NULL | 12.5\n");
+  // 当子查询的查询不是最后一条数据的时候，正常执行
+  ASSERT_EQ(exec_sql("select * from ssq_1 where (select ssq_4.col4 from ssq_4 where ssq_4.id=4) <= feat1;"),
+      "id | col1 | feat1\n1 | 4 | 11\n3 | 3 | 12\n2 | NULL | 12.5\n");
+  ASSERT_EQ(exec_sql("select * from ssq_1 where (select ssq_4.col4 from ssq_4 where ssq_4.id=4) = feat1;"),
+      "id | col1 | feat1\n"
+      "1 | 4 | 11\n");
+  // 删除最后一条数据,再执行相同的查询，返回Failure
+  ASSERT_EQ(exec_sql("delete from ssq_4 where id = 5;"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select * from ssq_1 where (select ssq_4.col4 from ssq_4 where ssq_4.id=4) <= feat1;"),
+      "id | col1 | feat1\n1 | 4 | 11\n3 | 3 | 12\n2 | NULL | 12.5\n");
+  ASSERT_EQ(exec_sql("select * from ssq_1 where (select ssq_4.col4 from ssq_4 where ssq_4.id=4) = feat1;"),
+      "id | col1 | feat1\n"
+      "1 | 4 | 11\n");
+}
 // #### ##    ##
 //  ##  ###   ##
 //  ##  ####  ##
