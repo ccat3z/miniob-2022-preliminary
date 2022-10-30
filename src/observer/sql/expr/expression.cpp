@@ -94,13 +94,13 @@ public:
     return rc;
   };
 
-  std::string toString(bool show_table) const override
+  std::string toString(bool show_table, bool show_table_alias = false) const override
   {
     std::stringstream ss;
     ss << "(";
     bool first = true;
     for (auto &arg : args) {
-      ss << arg->toString(show_table);
+      ss << arg->toString(show_table, show_table_alias);
       if (first) {
         ss << ",";
         first = false;
@@ -120,9 +120,7 @@ std::unique_ptr<Expression> Expression::create(const UnionExpr &union_expr)
   switch (union_expr.type) {
     case EXPR_ATTR: {
       auto &field = *union_expr.hack.field;
-      auto table = field.table();
-      auto field_meta = field.meta();
-      expr = new FieldExpr(table, field_meta);
+      expr = new FieldExpr(field);
     } break;
     case EXPR_VALUE: {
       expr = new ValueExpr(union_expr.value.value);

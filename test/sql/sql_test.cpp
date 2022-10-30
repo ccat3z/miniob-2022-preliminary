@@ -2197,15 +2197,18 @@ TEST_F(SQLTest, AliasColumnShouldWork2)
 
 TEST_F(SQLTest, AliasTableShouldWork)
 {
-  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
-  ASSERT_EQ(exec_sql("insert into t values (1, 2);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("create table t(a int, b int, s char);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (1, 2, 'aa');"), "SUCCESS\n");
 
   ASSERT_EQ(exec_sql("create table t2(a int, b int);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into t2 values (1, 2);"), "SUCCESS\n");
 
-  ASSERT_EQ(exec_sql("select * from t as u;"), "a | b\n1 | 2\n");
+  ASSERT_EQ(exec_sql("select * from t as u;"), "a | b | s\n1 | 2 | aa\n");
   ASSERT_EQ(exec_sql("select u.a, u.b from t as u;"), "a | b\n1 | 2\n");
-  ASSERT_EQ(exec_sql("select * from t as u, t2 as v;"), "u.a | u.b | v.a | v.b\n1 | 2 | 1 | 2\n");
+  ASSERT_EQ(exec_sql("select * from t as u, t2 as v;"), "u.a | u.b | u.s | v.a | v.b\n1 | 2 | aa | 1 | 2\n");
+  ASSERT_EQ(exec_sql("select u.a, v.b from t as u, t2 as v;"), "u.a | v.b\n1 | 2\n");
+  ASSERT_EQ(exec_sql("select count(u.a) from t as u, t2 as v;"), "count(u.a)\n1\n");
+  ASSERT_EQ(exec_sql("select length(u.s) from t as u, t2 as v;"), "length(u.s)\n2\n");
 }
 
 TEST_F(SQLTest, AliasTableShouldAvailableInCondition)

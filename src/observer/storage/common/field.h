@@ -43,7 +43,19 @@ public:
   {
     this->field_ = field;
   }
+  void set_alias(const std::string &alias)
+  {
+    this->alias = alias;
+  }
+  const char *table_alias() const
+  {
+    if (!alias.empty())
+      return alias.c_str();
+    return table_->name();
+  }
+
 private:
   const Table *table_ = nullptr;
   const FieldMeta *field_ = nullptr;
+  std::string alias;
 };

@@ -46,7 +46,7 @@ public:
     return RC::GENERIC_ERROR;
   };
   virtual ExprType type() const = 0;
-  virtual std::string toString(bool show_table) const = 0;
+  virtual std::string toString(bool show_table, bool show_table_alias = false) const = 0;
 
   bool operator==(const Expression &other)
   {
@@ -64,6 +64,8 @@ class FieldExpr : public Expression
 public:
   FieldExpr() = default;
   FieldExpr(const Table *table, const FieldMeta *field) : field_(table, field)
+  {}
+  FieldExpr(const Field &field) : field_(field)
   {}
 
   virtual ~FieldExpr() = default;
@@ -95,10 +97,10 @@ public:
 
   RC get_value(const Tuple &tuple, TupleCell &cell) const override;
 
-  std::string toString(bool show_table) const override
+  std::string toString(bool show_table, bool show_table_alias = false) const override
   {
     if (show_table) {
-      return std::string(field_.table_name()) + "." + field_.field_name();
+      return std::string(show_table_alias ? field_.table_alias() : field_.table_name()) + "." + field_.field_name();
     } else {
       return field_.field_name();
     }
@@ -131,7 +133,7 @@ public:
     cell = tuple_cell_;
   }
 
-  std::string toString(bool show_table) const override
+  std::string toString(bool show_table, bool show_table_alias = false) const override
   {
     std::stringstream ss;
     tuple_cell_.to_string(ss);
@@ -160,10 +162,10 @@ public:
     return ExprType::EVAL;
   };
 
-  std::string toString(bool show_table) const override
+  std::string toString(bool show_table, bool show_table_alias = false) const override
   {
     std::stringstream ss;
-    ss << "length(" << arg->toString(show_table) << ")";
+    ss << "length(" << arg->toString(show_table, show_table_alias) << ")";
     return ss.str();
   }
 
@@ -188,7 +190,7 @@ public:
     return ExprType::EVAL;
   };
 
-  std::string toString(bool show_table) const override
+  std::string toString(bool show_table, bool show_table_alias = false) const override
   {
     std::stringstream ss;
     ss << name << "(";
@@ -200,7 +202,7 @@ public:
       else
         ss << ",";
 
-      ss << arg->toString(show_table);
+      ss << arg->toString(show_table, show_table_alias);
     }
     ss << ")";
     return ss.str();
@@ -239,7 +241,7 @@ public:
     return ExprType::EVAL;
   };
 
-  std::string toString(bool show_table) const override
+  std::string toString(bool show_table, bool show_table_alias = false) const override
   {
     if (show_table && !table.empty()) {
       return std::string(table) + "." + field;
@@ -273,7 +275,7 @@ public:
     return ExprType::EVAL;
   };
 
-  std::string toString(bool show_table) const override
+  std::string toString(bool show_table, bool show_table_alias = false) const override
   {
     return query_name;
   }

@@ -26,6 +26,7 @@ See the Mulan PSL v2 for more details. */
 #include <memory>
 #include <set>
 #include <strings.h>
+#include <unordered_map>
 #include <vector>
 
 SelectStmt::~SelectStmt()
@@ -273,6 +274,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::share
   std::vector<Table *> tables;
   std::unordered_map<std::string, Table *> table_map;
   std::set<std::string> table_names;
+  std::unordered_map<const Table *, std::string> alias_dict;
 
   if (ctx) {
     table_map = ctx->table_map;
@@ -301,6 +303,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::share
     }
 
     table_names.emplace(display_table_name);
+    alias_dict[table] = display_table_name;
     table_map[display_table_name] = table;
   }
 
@@ -323,6 +326,22 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::share
     if (rc != RC::SUCCESS) {
       return rc;
     }
+  }
+
+  // Set alias
+  for (auto &attr : attrs) {
+    walk_expr(attr.expr, [&](const UnionExpr &expr) {
+      if (expr.type != EXPR_ATTR) {
+        return RC::SUCCESS;
+      }
+
+      auto &field = expr.hack.field;
+      auto it = alias_dict.find(field->table());
+      if (it != alias_dict.end()) {
+        field->set_alias(it->second);
+      }
+      return RC::SUCCESS;
+    });
   }
 
   LOG_INFO("got %d tables in from stmt and %d fields in query stmt", tables.size(), attrs.size());
