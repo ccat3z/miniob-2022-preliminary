@@ -2354,7 +2354,7 @@ TEST_F(SQLTest, FuncInvalidArgsShouldFailure)
 // ##        ##   ##  ##        ##    ##
 // ######## ##     ## ##        ##     ##
 
-TEST_F(SQLTest, DISABLED_ExpressionInConditionShouldWork)
+TEST_F(SQLTest, ExpressionInConditionShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t (a int, b int);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
@@ -2364,12 +2364,12 @@ TEST_F(SQLTest, DISABLED_ExpressionInConditionShouldWork)
   ASSERT_EQ(exec_sql("select * from t where b / a = 1.5;"), "a | b\n2 | 3\n");
   ASSERT_EQ(exec_sql("select * from t where 2 = a + b - a * (b - b / a);"), "a | b\n2 | 3\n");
   ASSERT_EQ(exec_sql("select * from t where 1 + 1 > 2;"), "a | b\n");
-  ASSERT_EQ(exec_sql("select * from t where a-2 > 0;"), "a | b\n");
+  ASSERT_EQ(exec_sql("select * from t where a - 2 > 0;"), "a | b\n");
   ASSERT_EQ(exec_sql("select * from t where a - -2 = 4;"), "a | b\n2 | 3\n");
   ASSERT_EQ(exec_sql("select * from t where -a = -2;"), "a | b\n2 | 3\n");
 }
 
-TEST_F(SQLTest, DISABLED_ExpressionInSelectShouldWork)
+TEST_F(SQLTest, ExpressionInSelectShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t (a int, b int);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");
@@ -2381,7 +2381,7 @@ TEST_F(SQLTest, DISABLED_ExpressionInSelectShouldWork)
   ASSERT_EQ(exec_sql("select a,3*a from t;"), "a | 3*a\n2 | 6\n");
 }
 
-TEST_F(SQLTest, DISABLED_ExpressionInSelectTablesShouldWork)
+TEST_F(SQLTest, ExpressionInSelectTablesShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t (a int, b int);"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into t values (2, 3);"), "SUCCESS\n");

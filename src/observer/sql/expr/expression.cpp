@@ -20,6 +20,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/operator/operator.h"
 #include "sql/parser/parse_defs.h"
 #include <cstring>
+#include <functional>
 #include <memory>
 #include <stdexcept>
 #include <strings.h>
@@ -100,11 +101,12 @@ public:
     ss << "(";
     bool first = true;
     for (auto &arg : args) {
-      ss << arg->toString(show_table, show_table_alias);
-      if (first) {
+      if (!first) {
         ss << ",";
+      } else {
         first = false;
       }
+      ss << arg->toString(show_table, show_table_alias);
     }
     ss << ")";
     return ss.str();
@@ -112,6 +114,116 @@ public:
 
 private:
   std::vector<std::unique_ptr<Expression>> args;
+};
+
+class NegExpression : public Expression {
+public:
+  NegExpression(const FuncExpr &expr)
+  {
+    if (expr.arg_num != 1) {
+      throw std::invalid_argument("- only accept 1 arg");
+    }
+
+    arg = create(expr.args[0]);
+  }
+
+  RC get_value(const Tuple &tuple, TupleCell &cell) const override
+  {
+    RC rc = arg->get_value(tuple, cell);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("neg: failed to get cell");
+      return rc;
+    }
+
+    if (!cell.try_best_cast(FLOATS)) {
+      LOG_ERROR("neg: only accept number");
+      return rc;
+    }
+
+    const float *num;
+    rc = cell.safe_get(num);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("neg: failed to get float");
+      return rc;
+    }
+
+    cell.save(-*num);
+    return RC::SUCCESS;
+  }
+
+  ExprType type() const override
+  {
+    return ExprType::EVAL;
+  };
+
+  std::string toString(bool show_table, bool show_table_alias = false) const override
+  {
+    std::stringstream ss;
+    ss << "-" << arg->toString(show_table, show_table_alias);
+    return ss.str();
+  }
+
+private:
+  std::unique_ptr<Expression> arg;
+};
+
+class CalcExpression : public Expression {
+public:
+  CalcExpression(const FuncExpr &expr, std::string op, std::function<float(float, float)> calc) : calc(calc), op(op)
+  {
+    if (expr.arg_num != 2) {
+      throw std::invalid_argument("calc expr only accept 2 arg");
+    }
+
+    exprs.emplace_back(create(expr.args[0]));
+    exprs.emplace_back(create(expr.args[1]));
+  }
+
+  RC get_value(const Tuple &tuple, TupleCell &cell) const override
+  {
+    float f[2];
+
+    for (int i = 0; i < 2; i++) {
+      RC rc = exprs[i]->get_value(tuple, cell);
+      if (rc != RC::SUCCESS) {
+        LOG_ERROR("%s: failed to get cell", op.c_str());
+        return rc;
+      }
+
+      if (!cell.try_best_cast(FLOATS)) {
+        LOG_ERROR("%s: only accept number", op.c_str());
+        return rc;
+      }
+
+      const float *num;
+      rc = cell.safe_get(num);
+      if (rc != RC::SUCCESS) {
+        LOG_ERROR("%s: failed to get float", op.c_str());
+        return rc;
+      }
+      f[i] = *num;
+    }
+
+    cell.save(calc(f[0], f[1]));
+    return RC::SUCCESS;
+  }
+
+  ExprType type() const override
+  {
+    return ExprType::EVAL;
+  };
+
+  std::string toString(bool show_table, bool show_table_alias = false) const override
+  {
+    std::stringstream ss;
+    ss << exprs[0]->toString(show_table, show_table_alias) << op << exprs[1]->toString(show_table, show_table_alias);
+    return ss.str();
+  }
+
+private:
+  std::vector<std::unique_ptr<Expression>> exprs;
+  std::function<float(float, float)> calc;
+  std::string op;
 };
 
 std::unique_ptr<Expression> Expression::create(const UnionExpr &union_expr)
@@ -132,6 +244,16 @@ std::unique_ptr<Expression> Expression::create(const UnionExpr &union_expr)
         expr = new LengthFuncExpr(union_expr.value.func);
       } else if (strcasecmp(name, "tuple") == 0) {
         expr = new TupleExpr(union_expr.value.func);
+      } else if (strcasecmp(name, "neg") == 0) {
+        expr = new NegExpression(union_expr.value.func);
+      } else if (strcasecmp(name, "+") == 0) {
+        expr = new CalcExpression(union_expr.value.func, name, [](float a, float b) { return a + b; });
+      } else if (strcasecmp(name, "-") == 0) {
+        expr = new CalcExpression(union_expr.value.func, name, [](float a, float b) { return a - b; });
+      } else if (strcasecmp(name, "*") == 0) {
+        expr = new CalcExpression(union_expr.value.func, name, [](float a, float b) { return a * b; });
+      } else if (strcasecmp(name, "/") == 0) {
+        expr = new CalcExpression(union_expr.value.func, name, [](float a, float b) { return a / b; });
       } else {
         throw std::invalid_argument(std::string("Unsupport func: ") + name);
       }
