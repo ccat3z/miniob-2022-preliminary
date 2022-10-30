@@ -178,7 +178,7 @@ RC walk_expr(const UnionExpr &expr, std::function<RC(const UnionExpr &expr)> wal
   switch (expr.type) {
     case EXPR_AGG:
     case EXPR_FUNC: {
-      for (size_t i = 0; rc && i < expr.value.func.arg_num; i++) {
+      for (int i = 0; rc == RC::SUCCESS && i < expr.value.func.arg_num; i++) {
         rc = walk_expr(expr.value.func.args[i], walk);
       }
       if (rc != RC::SUCCESS) {
