@@ -13,6 +13,7 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include "sql/expr/tuple_cell.h"
+#include "sql/parser/parse_defs.h"
 #include "storage/common/field.h"
 #include "storage/default/large_block_pool.h"
 #include "common/log/log.h"
@@ -192,6 +193,18 @@ bool TupleCell::try_best_cast(const AttrType &type)
           if (lbp->set(id, val, strlen(val) + 1) != RC::SUCCESS)
             return false;
           save(id, TEXT);
+        } break;
+        default:
+          return false;
+      }
+    } break;
+    case TEXT: {
+      auto blk_id = *(uint32_t *)this->data_;
+      switch (type) {
+        case CHARS: {
+          auto &lbp = LargeBlockPool::instance();
+          auto blk = lbp->get(blk_id);
+          save((char *)blk->data);
         } break;
         default:
           return false;
