@@ -2492,6 +2492,16 @@ TEST_F(SQLTest, ExpressionNonShouldWork)
   ASSERT_EQ(exec_sql("select a from t where 1/0 >= 1;"), "a\n");
 }
 
+TEST_F(SQLTest, ExpressionOnAggShouldWork)
+{
+  ASSERT_EQ(
+      exec_sql("create table exp_table (id float, col1 float, col2 float, col3 float, col4 float);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into exp_table values (1, 2, 3, 4, 5);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into exp_table values (1, 2, 3, 4, 5);"), "SUCCESS\n");
+
+  ASSERT_NE(exec_sql("select min(col1)+avg(col2)*max(col3)/(max(col4)-2) from exp_table where id<>13/3;"), "FAILURE\n");
+}
+
 //    ###     ######    ######      ######## ##     ## ##    ##  ######
 //   ## ##   ##    ##  ##    ##     ##       ##     ## ###   ## ##    ##
 //  ##   ##  ##        ##           ##       ##     ## ####  ## ##

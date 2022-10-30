@@ -489,14 +489,20 @@ std::shared_ptr<ProjectOperator> build_operator(const SelectStmt &select_stmt, s
   {
     std::vector<FuncExpr> agg_exprs;
     for (auto &attr : select_stmt.attrs()) {
-      if (attr.expr.type == EXPR_AGG) {
-        agg_exprs.emplace_back(attr.expr.value.func);
-      }
+      walk_expr(attr.expr, [&](const UnionExpr &expr) {
+        if (expr.type == EXPR_AGG) {
+          agg_exprs.emplace_back(expr.value.func);
+        }
+        return RC::SUCCESS;
+      });
     }
     for (auto &expr : select_stmt.extra_exprs()) {
-      if (expr.type == EXPR_AGG) {
-        agg_exprs.emplace_back(expr.value.func);
-      }
+      walk_expr(expr, [&](const UnionExpr &expr) {
+        if (expr.type == EXPR_AGG) {
+          agg_exprs.emplace_back(expr.value.func);
+        }
+        return RC::SUCCESS;
+      });
     }
 
     if (agg_exprs.size() > 0 || !select_stmt.groups().empty()) {
