@@ -2196,6 +2196,15 @@ TEST_F(SQLTest, AliasColumnShouldWork2)
       "2 | 3 | 300 | 500\n");
 }
 
+TEST_F(SQLTest, AliasColumnOnStarShouldFailure)
+{
+  ASSERT_EQ(exec_sql("create table t(a int, b int);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select * as alias from t;"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select *.* as alias from t;"), "FAILURE\n");
+  ASSERT_EQ(exec_sql("select t.* as alias from t;"), "FAILURE\n");
+}
+
 TEST_F(SQLTest, AliasTableShouldWork)
 {
   ASSERT_EQ(exec_sql("create table t(a int, b int, s char);"), "SUCCESS\n");

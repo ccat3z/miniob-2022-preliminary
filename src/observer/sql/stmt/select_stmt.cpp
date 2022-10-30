@@ -216,6 +216,10 @@ static RC expand_attr(const std::vector<Table *> &tables, const std::unordered_m
 
   // *
   if (common::is_blank(relation_attr.relation_name) && 0 == strcmp(relation_attr.attribute_name, "*")) {
+    if (!common::is_blank(attr.name)) {
+      LOG_ERROR("Cannot set alias on * column");
+      return RC::INVALID_ARGUMENT;
+    }
     for (int i = tables.size() - 1; i >= 0; i--) {
       Table *table = tables[i];
       wildcard_fields(table, attrs);
@@ -237,6 +241,10 @@ static RC expand_attr(const std::vector<Table *> &tables, const std::unordered_m
       }
 
       // *.*
+      if (!common::is_blank(attr.name)) {
+        LOG_ERROR("Cannot set alias on * column");
+        return RC::INVALID_ARGUMENT;
+      }
       for (Table *table : tables) {
         wildcard_fields(table, attrs);
       }
@@ -245,6 +253,11 @@ static RC expand_attr(const std::vector<Table *> &tables, const std::unordered_m
 
     // t.*
     if (0 == strcmp(field_name, "*")) {
+      if (!common::is_blank(attr.name)) {
+        LOG_ERROR("Cannot set alias on * column");
+        return RC::INVALID_ARGUMENT;
+      }
+
       auto iter = table_map.find(table_name);
       if (iter == table_map.end()) {
         LOG_WARN("no such table in from list: %s", table_name);
