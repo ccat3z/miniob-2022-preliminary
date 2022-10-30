@@ -14,12 +14,14 @@ See the Mulan PSL v2 for more details. */
 
 #include "sql/expr/expression.h"
 #include "common/log/log.h"
+#include "common/time/datetime.h"
 #include "sql/executor/execute_stage.h"
 #include "sql/expr/tuple.h"
 #include "sql/expr/tuple_cell.h"
 #include "sql/operator/operator.h"
 #include "sql/parser/parse_defs.h"
 #include <cmath>
+#include <cstdint>
 #include <cstring>
 #include <functional>
 #include <memory>
@@ -240,6 +242,167 @@ private:
   std::string op;
 };
 
+class RoundExpression : public Expression {
+public:
+  RoundExpression(const FuncExpr &expr)
+  {
+    if (expr.arg_num != 2) {
+      throw std::invalid_argument("round expr only accept 2 arg");
+    }
+
+    exprs.emplace_back(create(expr.args[0]));
+    exprs.emplace_back(create(expr.args[1]));
+  }
+
+  RC get_value(const Tuple &tuple, TupleCell &cell) const override
+  {
+    float num;
+    int precision;
+
+    {
+      RC rc = RC::SUCCESS;
+      const float *val;
+      if (RC::SUCCESS != (rc = exprs[0]->get_value(tuple, cell))) {
+        LOG_ERROR("round(): failed to get cell");
+        return rc;
+      } else if (cell.is_null()) {
+        return RC::SUCCESS;
+      } else if (!cell.try_best_cast(FLOATS)) {
+        LOG_ERROR("round(): only accept number");
+        return RC::INVALID_ARGUMENT;
+      } else if (RC::SUCCESS != (rc = cell.safe_get(val))) {
+        LOG_ERROR("round(): failed to get value from cell");
+        return rc;
+      } else {
+        num = *val;
+      }
+    }
+
+    {
+      RC rc = RC::SUCCESS;
+      const int *val;
+
+      if (RC::SUCCESS != (rc = exprs[1]->get_value(tuple, cell))) {
+        LOG_ERROR("round(): failed to get cell");
+        return rc;
+      } else if (cell.is_null()) {
+        return RC::SUCCESS;
+      } else if (!cell.try_best_cast(INTS)) {
+        LOG_ERROR("round(): only accept number");
+        return RC::INVALID_ARGUMENT;
+      } else if (RC::SUCCESS != (rc = cell.safe_get(val))) {
+        LOG_ERROR("round(): failed to get value from cell");
+        return rc;
+      } else {
+        precision = *val;
+      }
+    }
+
+    float scale = std::pow(10, precision);
+    if (num < 0)
+      scale = -scale;
+    num *= scale;
+    num = int(num + .5);
+    num /= scale;
+    cell.save(num);
+    return RC::SUCCESS;
+  }
+
+  ExprType type() const override
+  {
+    return ExprType::EVAL;
+  };
+
+  std::string toString(bool show_table, bool show_table_alias = false) const override
+  {
+    std::stringstream ss;
+    ss << "round(" << exprs[0]->toString(show_table, show_table_alias) << ","
+       << exprs[1]->toString(show_table, show_table_alias) << ")";
+    return ss.str();
+  }
+
+private:
+  std::vector<std::unique_ptr<Expression>> exprs;
+};
+
+class DateFormatExpression : public Expression {
+public:
+  DateFormatExpression(const FuncExpr &expr)
+  {
+    if (expr.arg_num != 2) {
+      throw std::invalid_argument("date_format expr only accept 2 arg");
+    }
+
+    exprs.emplace_back(create(expr.args[0]));
+    exprs.emplace_back(create(expr.args[1]));
+  }
+
+  RC get_value(const Tuple &tuple, TupleCell &cell) const override
+  {
+    int32_t julian;
+    const char *format;
+
+    {
+      RC rc = RC::SUCCESS;
+      const int32_t *val;
+      if (RC::SUCCESS != (rc = exprs[0]->get_value(tuple, cell))) {
+        LOG_ERROR("date_format(): failed to get cell");
+        return rc;
+      } else if (cell.is_null()) {
+        return RC::SUCCESS;
+      } else if (!cell.try_best_cast(DATE)) {
+        LOG_ERROR("date_format(): only accept date");
+        return RC::INVALID_ARGUMENT;
+      } else if (RC::SUCCESS != (rc = cell.unsafe_get(val, DATE))) {
+        LOG_ERROR("date_format(): failed to get value from cell");
+        return rc;
+      } else {
+        julian = *val;
+      }
+    }
+
+    {
+      RC rc = RC::SUCCESS;
+      const char *val;
+
+      if (RC::SUCCESS != (rc = exprs[1]->get_value(tuple, cell))) {
+        LOG_ERROR("date_format(): failed to get cell");
+        return rc;
+      } else if (cell.is_null()) {
+        return RC::SUCCESS;
+      } else if (!cell.try_best_cast(CHARS)) {
+        LOG_ERROR("date_format(): only accept CHARS");
+        return RC::INVALID_ARGUMENT;
+      } else if (RC::SUCCESS != (rc = cell.safe_get(val))) {
+        LOG_ERROR("date_format(): failed to get value from cell");
+        return rc;
+      } else {
+        format = val;
+      }
+    }
+
+    common::Date date(julian);
+    cell.save(date.format(format));
+    return RC::SUCCESS;
+  }
+
+  ExprType type() const override
+  {
+    return ExprType::EVAL;
+  };
+
+  std::string toString(bool show_table, bool show_table_alias = false) const override
+  {
+    std::stringstream ss;
+    ss << "round(" << exprs[0]->toString(show_table, show_table_alias) << ","
+       << exprs[1]->toString(show_table, show_table_alias) << ")";
+    return ss.str();
+  }
+
+private:
+  std::vector<std::unique_ptr<Expression>> exprs;
+};
+
 std::unique_ptr<Expression> Expression::create(const UnionExpr &union_expr)
 {
   Expression *expr = nullptr;
@@ -258,6 +421,10 @@ std::unique_ptr<Expression> Expression::create(const UnionExpr &union_expr)
         expr = new LengthFuncExpr(union_expr.value.func);
       } else if (strcasecmp(name, "tuple") == 0) {
         expr = new TupleExpr(union_expr.value.func);
+      } else if (strcasecmp(name, "round") == 0) {
+        expr = new RoundExpression(union_expr.value.func);
+      } else if (strcasecmp(name, "date_format") == 0) {
+        expr = new DateFormatExpression(union_expr.value.func);
       } else if (strcasecmp(name, "neg") == 0) {
         expr = new NegExpression(union_expr.value.func);
       } else if (strcasecmp(name, "+") == 0) {

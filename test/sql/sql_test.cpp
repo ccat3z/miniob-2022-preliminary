@@ -2353,6 +2353,70 @@ TEST_F(SQLTest, FuncWithNonTableShouldWork)
       "9 | 9\n");
 }
 
+TEST_F(SQLTest, FuncRoundShouldWork)
+{
+  std::vector<std::pair<std::string, std::string>> cases = {
+      {"round(1.54, 1)", "1.5"},
+      {"round(1.55, 1)", "1.6"},
+      {"round(1.55, 1)", "1.6"},
+      {"round(1.45, 0)", "1"},
+      {"round(1.55, 0)", "2"},
+      {"round(1.65, 0)", "2"},
+      {"round(null, 0)", "NULL"},
+      {"round(2, null)", "NULL"},
+      {"round(-1.54, 1)", "-1.5"},
+      {"round(-1.55, 1)", "-1.6"},
+      {"round(-1.55, 1)", "-1.6"},
+  };
+
+  for (auto &it : cases) {
+    ASSERT_EQ(exec_sql("select "s + it.first + " as v;"), "v\n"s + it.second + "\n");
+  }
+}
+
+TEST_F(SQLTest, FuncInvalidRoundShouldFaiure)
+{
+  std::vector<std::string> cases = {
+      "round()",
+      "round(1.54)",
+      "round(1.54, 2, 3)",
+  };
+
+  for (auto &it : cases) {
+    ASSERT_EQ(exec_sql("select "s + it + " as v;"), "FAILURE\n");
+  }
+}
+
+TEST_F(SQLTest, FuncDateFormatShouldWork)
+{
+  std::vector<std::pair<std::string, std::string>> cases = {
+      {"date_format('2022-10-23', '%Y-%m-%d')", "2022-10-23"},
+      {"date_format('2022-10-23', '%Y')", "2022"},
+      {"date_format('2022-10-23', '%y')", "22"},
+      {"date_format('2022-10-23', '%Y year %m month %d day')", "2022 year 10 month 23 day"},
+      {"date_format('2022-10-23', NULL)", "NULL"},
+      {"date_format(null, '%y')", "NULL"},
+  };
+
+  for (auto &it : cases) {
+    ASSERT_EQ(exec_sql("select "s + it.first + " as v;"), "v\n"s + it.second + "\n");
+  }
+}
+
+TEST_F(SQLTest, FuncInvalidDateFormatShouldFaiure)
+{
+  std::vector<std::string> cases = {
+      "date_format()",
+      "date_format(1.54)",
+      "date_format(1.54, 2)",
+      "date_format(1.54, 2, 3)",
+  };
+
+  for (auto &it : cases) {
+    ASSERT_EQ(exec_sql("select "s + it + " as v;"), "FAILURE\n");
+  }
+}
+
 // ######## ##     ## ########  ########
 // ##        ##   ##  ##     ## ##     ##
 // ##         ## ##   ##     ## ##     ##

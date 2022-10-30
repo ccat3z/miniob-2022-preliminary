@@ -446,6 +446,18 @@ std::string Date::format() const {
   return os.str();
 }
 
+std::string Date::format(const char *format) const
+{
+  int y, m, d;
+  get_ymd(this->m_date, y, m, d);
+
+  try {
+    return date::format(format, date::year{y} / m / d);
+  } catch (...) {
+    return "NULL";
+  }
+}
+
 int Date::julian() const {
   return m_date;
 }

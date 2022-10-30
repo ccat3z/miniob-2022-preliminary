@@ -458,6 +458,7 @@ public:
 
   bool parse(const char *date_str);
   std::string format() const;
+  std::string format(const char *format) const;
   int julian() const;
 };
 
