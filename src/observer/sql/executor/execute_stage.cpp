@@ -44,6 +44,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/operator/project_operator.h"
 #include "sql/operator/decarts_join_operator.h"
 #include "sql/operator/order_operator.h"
+#include "sql/operator/one_row_operator.h"
 
 #include "sql/parser/parse_defs.h"
 #include "sql/stmt/stmt.h"
@@ -449,6 +450,10 @@ std::shared_ptr<ProjectOperator> build_operator(const SelectStmt &select_stmt, s
     scans.emplace_back("", context);
   }
 
+  if (scans.empty()) {
+    scans.emplace_back("", std::make_shared<OneRowOperator>());
+  }
+
   // Join
   if (scans.size() > 1) {
     oper = std::make_shared<JoinOperator>(scans[0].second, scans[1].second);
@@ -472,7 +477,7 @@ std::shared_ptr<ProjectOperator> build_operator(const SelectStmt &select_stmt, s
       oper = pred;
     }
   } else {
-    oper = std::make_shared<TableScanOperator>(select_stmt.tables()[0]);
+    oper = scans[0].second;
   }
 
   // Predicate

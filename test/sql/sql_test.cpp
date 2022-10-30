@@ -2346,6 +2346,13 @@ TEST_F(SQLTest, FuncInvalidArgsShouldFailure)
   ASSERT_EQ(exec_sql("select length(f) from t;"), "FAILURE\n");
 }
 
+TEST_F(SQLTest, FuncWithNonTableShouldWork)
+{
+  ASSERT_EQ(exec_sql("select length('very long') len1, length('very long') len2;"),
+      "len1 | len2\n"
+      "9 | 9\n");
+}
+
 // ######## ##     ## ########  ########
 // ##        ##   ##  ##     ## ##     ##
 // ##         ## ##   ##     ## ##     ##

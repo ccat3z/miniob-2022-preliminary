@@ -450,7 +450,17 @@ select:
 	;
 
 select_stmt:				/*  select 语句的语法解析树*/
-    SELECT attr_list FROM ID rel_as rel_list where group_by having order_by
+    SELECT attr_list
+	{
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, (AttrExpr *) $2->values, $2->len);
+		list_free($2);
+
+		$$ = CONTEXT->ssql->sstr.selection;
+  		CONTEXT->ssql->sstr.selection.relation_join_num = 0;
+  		CONTEXT->ssql->sstr.selection.relation_num = 0;     
+  		CONTEXT->ssql->sstr.selection.join_condition_num = 0;
+	}
+    | SELECT attr_list FROM ID rel_as rel_list where group_by having order_by
 		{
 			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4, $5);
 

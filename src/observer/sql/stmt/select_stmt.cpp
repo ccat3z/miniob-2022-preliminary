@@ -325,6 +325,11 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::share
     table_map[display_table_name] = table;
   }
 
+  Table *default_table = nullptr;
+  if (tables.size() == 1) {
+    default_table = tables[0];
+  }
+
   // collect query fields in `select` statement
   std::vector<AttrExpr> attrs;
   RC rc = RC::SUCCESS;
@@ -336,7 +341,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::share
         rc = expand_attr(tables, table_map, attr_expr, attrs);
         break;
       default:
-        rc = fill_expr(tables[0], table_map, attr_expr.expr, false, db);
+        rc = fill_expr(default_table, table_map, attr_expr.expr, false, db);
         attrs.emplace_back(attr_expr);
         break;
     }
@@ -363,11 +368,6 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::share
   }
 
   LOG_INFO("got %d tables in from stmt and %d fields in query stmt", tables.size(), attrs.size());
-
-  Table *default_table = nullptr;
-  if (tables.size() == 1) {
-    default_table = tables[0];
-  }
 
   // create filter statement in `where` statement
   FilterStmt *filter_stmt = nullptr;
