@@ -472,28 +472,25 @@ RC LengthFuncExpr::get_value(const Tuple &tuple, TupleCell &cell) const
 {
   RC rc = RC::SUCCESS;
 
-  TupleCell str_cell;
-  rc = arg->get_value(tuple, str_cell);
-  if (rc != RC::SUCCESS) {
-    LOG_ERROR("Failed to get value from arg");
-    return rc;
-  }
+  const char *val;
 
-  if (str_cell.is_null()) {
-    cell.save(0);
+  if (RC::SUCCESS != (rc = arg->get_value(tuple, cell))) {
+    LOG_ERROR("length(): failed to get cell");
+    return rc;
+  } else if (cell.is_null()) {
+    cell.set_null(true);
     return RC::SUCCESS;
-  }
-
-  const char *str;
-  rc = str_cell.safe_get(str);
-  if (rc != RC::SUCCESS) {
-    LOG_ERROR("length() only accept CHARS");
+  } else if (!cell.try_best_cast(CHARS)) {
+    LOG_ERROR("length(): only accept CHARS");
+    return RC::INVALID_ARGUMENT;
+  } else if (RC::SUCCESS != (rc = cell.safe_get(val))) {
+    LOG_ERROR("length(): failed to get value from cell");
     return rc;
+  } else {
+    cell.save((int32_t)strlen(val));
   }
 
-  cell.save((int32_t)strlen(str));
-
-  return RC::SUCCESS;
+  return rc;
 };
 
 RC AggFuncExpr::get_value(const Tuple &tuple, TupleCell &cell) const

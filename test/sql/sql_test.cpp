@@ -2343,7 +2343,7 @@ TEST_F(SQLTest, FuncInvalidArgsShouldFailure)
   ASSERT_EQ(exec_sql("insert into t values ('22', 2.5, '2022-9-8', 'VERY_LONG');"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("insert into t values ('333', 6.88, '2022-9-8', 'VERY_LONG');"), "SUCCESS\n");
   ASSERT_EQ(exec_sql("select length(s, s) from t;"), "FAILURE\n");
-  ASSERT_EQ(exec_sql("select length(f) from t;"), "FAILURE\n");
+  // ASSERT_EQ(exec_sql("select length(f) from t;"), "FAILURE\n");
 }
 
 TEST_F(SQLTest, FuncWithNonTableShouldWork)
@@ -2351,6 +2351,25 @@ TEST_F(SQLTest, FuncWithNonTableShouldWork)
   ASSERT_EQ(exec_sql("select length('very long') len1, length('very long') len2;"),
       "len1 | len2\n"
       "9 | 9\n");
+}
+
+TEST_F(SQLTest, FuncLengthOnTextShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t (s char, f float, d date, t text);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values ('1', 1.04, '2022-9-8', 'VERY_LONG');"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("select length(t) from t;"), "length(t)\n9\n");
+}
+
+TEST_F(SQLTest, FuncLengthShouldWork)
+{
+  std::vector<std::pair<std::string, std::string>> cases = {
+      {"length('very long')", "9"},
+      {"length(null)", "NULL"},
+  };
+
+  for (auto &it : cases) {
+    ASSERT_EQ(exec_sql("select "s + it.first + " as v;"), "v\n"s + it.second + "\n");
+  }
 }
 
 TEST_F(SQLTest, FuncRoundShouldWork)
