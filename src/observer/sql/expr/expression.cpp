@@ -19,6 +19,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/expr/tuple_cell.h"
 #include "sql/operator/operator.h"
 #include "sql/parser/parse_defs.h"
+#include <cmath>
 #include <cstring>
 #include <functional>
 #include <memory>
@@ -190,6 +191,10 @@ public:
         return rc;
       }
 
+      if (cell.is_null()) {
+        return RC::SUCCESS;
+      }
+
       if (!cell.try_best_cast(FLOATS)) {
         LOG_ERROR("%s: only accept number", op.c_str());
         return rc;
@@ -204,7 +209,16 @@ public:
       f[i] = *num;
     }
 
-    cell.save(calc(f[0], f[1]));
+    float res = calc(f[0], f[1]);
+    switch (std::fpclassify(res)) {
+      case FP_INFINITE:
+      case FP_NAN:
+        cell.set_null(true);
+        break;
+      default:
+        cell.save(res);
+        break;
+    }
     return RC::SUCCESS;
   }
 

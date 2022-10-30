@@ -2415,6 +2415,19 @@ TEST_F(SQLTest, ExpressionInSelectTablesShouldWork)
       "3 | 5\n");
 }
 
+TEST_F(SQLTest, ExpressionNonShouldWork)
+{
+  ASSERT_EQ(exec_sql("create table t (a int, b int nullable);"), "SUCCESS\n");
+  ASSERT_EQ(exec_sql("insert into t values (2, null);"), "SUCCESS\n");
+
+  ASSERT_EQ(exec_sql("select b from t;"), "b\nNULL\n");
+  ASSERT_EQ(exec_sql("select b+1 from t;"), "b+1\nNULL\n");
+  ASSERT_EQ(exec_sql("select a/0 from t;"), "a/0\nNULL\n");
+  ASSERT_EQ(exec_sql("select 1/b from t;"), "1/b\nNULL\n");
+  ASSERT_EQ(exec_sql("select a from t where b + 1 >= 1;"), "a\n");
+  ASSERT_EQ(exec_sql("select a from t where 1/0 >= 1;"), "a\n");
+}
+
 //    ###     ######    ######      ######## ##     ## ##    ##  ######
 //   ## ##   ##    ##  ##    ##     ##       ##     ## ###   ## ##    ##
 //  ##   ##  ##        ##           ##       ##     ## ####  ## ##
