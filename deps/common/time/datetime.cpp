@@ -484,7 +484,7 @@ std::string Date::format(const char *format) const
           ss << std::setw(2) << std::setfill('0') << m;
           break;
         case 'D':
-          ss << std::setw(2) << std::setfill('0') << d;
+          ss << d;
           switch (d % 10) {
             case 1:
               ss << "st";
@@ -507,7 +507,7 @@ std::string Date::format(const char *format) const
           ss << '%';
           break;
         default:
-          ss << '%' << *format;
+          ss << *format;
           break;
       }
 
