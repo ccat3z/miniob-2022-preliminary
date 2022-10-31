@@ -485,8 +485,11 @@ RC LengthFuncExpr::get_value(const Tuple &tuple, TupleCell &cell) const
   } else if (cell.is_null()) {
     cell.set_null(true);
     return RC::SUCCESS;
-  } else if (!cell.try_best_cast(CHARS)) {
+  } else if (cell.attr_type() != CHARS && cell.attr_type() != TEXT) {
     LOG_ERROR("length(): only accept CHARS");
+    return RC::INVALID_ARGUMENT;
+  } else if (!cell.try_best_cast(CHARS)) {
+    LOG_ERROR("length(): failed to cast to CHARS");
     return RC::INVALID_ARGUMENT;
   } else if (RC::SUCCESS != (rc = cell.safe_get(val))) {
     LOG_ERROR("length(): failed to get value from cell");

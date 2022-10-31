@@ -2385,6 +2385,18 @@ TEST_F(SQLTest, FuncLengthShouldWork)
   }
 }
 
+TEST_F(SQLTest, FuncInvalidLengthShouldWork)
+{
+  std::vector<std::string> cases = {
+      "length(1)",
+      "lenght(1.5)",
+  };
+
+  for (auto &it : cases) {
+    ASSERT_EQ(exec_sql("select "s + it + " as v;"), "FAILURE\n");
+  }
+}
+
 TEST_F(SQLTest, FuncRoundShouldWork)
 {
   std::vector<std::pair<std::string, std::string>> cases = {
@@ -2402,6 +2414,9 @@ TEST_F(SQLTest, FuncRoundShouldWork)
       {"round(1.45)", "1"},
       {"round(1.55)", "2"},
       {"round(1.65)", "2"},
+      {"round('1.45')", "1"},
+      {"round('1.55')", "2"},
+      {"round('1.65')", "2"},
   };
 
   for (auto &it : cases) {
@@ -2467,6 +2482,7 @@ TEST_F(SQLTest, FuncInvalidDateFormatShouldFaiure)
 {
   std::vector<std::string> cases = {
       "date_format()",
+      "date_format(1)",
       "date_format(1.54)",
       "date_format(1.54, 2)",
       "date_format(1.54, 2, 3)",
