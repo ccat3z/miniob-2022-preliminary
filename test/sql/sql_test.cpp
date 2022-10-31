@@ -2453,6 +2453,7 @@ TEST_F(SQLTest, FuncDateFormatShouldWork)
       {"date_format('2022-10-23', '%d')", "23"},
       {"date_format('2022-10-23', NULL)", "NULL"},
       {"date_format(null, '%y')", "NULL"},
+      {"date_format('2020-1-21', '%D,%M,%Y')", "21st,January,2020"},
   };
 
   for (auto &it : cases) {
