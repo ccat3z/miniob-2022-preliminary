@@ -569,7 +569,8 @@ public:
 
 RC SelectExpr::get_values(const Tuple &tuple, std::function<RC(TupleCell &cell)> on_cell) const
 {
-  if (oper == nullptr) {
+  // HACK: Some operator cannot be closed and create again, so we just recreate operators every time
+  if (oper == nullptr || true) {
     ctx_oper = std::make_shared<ContextOperator>();
     oper = build_operator(*select, ctx_oper);
     if (!oper) {
