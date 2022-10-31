@@ -448,14 +448,82 @@ std::string Date::format() const {
 
 std::string Date::format(const char *format) const
 {
+  static std::string month_names[] = {
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+  };
+
   int y, m, d;
   get_ymd(this->m_date, y, m, d);
 
-  try {
-    return date::format(format, date::year{y} / m / d);
-  } catch (...) {
-    return "NULL";
+  std::stringstream ss;
+  bool replace = false;
+  for (; *format != '\0'; format++) {
+    if (replace) {
+      switch (*format) {
+        case 'Y':
+          ss << y;
+          break;
+        case 'y':
+          ss << y % 100;
+          break;
+        case 'M':
+          ss << month_names[m - 1];
+          break;
+        case 'm':
+          ss << std::setw(2) << std::setfill('0') << m;
+          break;
+        case 'D':
+          ss << std::setw(2) << std::setfill('0') << d;
+          switch (d % 10) {
+            case 1:
+              ss << "st";
+              break;
+            case 2:
+              ss << "nd";
+              break;
+            case 3:
+              ss << "rd";
+              break;
+            default:
+              ss << "th";
+              break;
+          }
+          break;
+        case 'd':
+          ss << std::setw(2) << std::setfill('0') << d;
+          break;
+        case '%':
+          ss << '%';
+          break;
+        default:
+          ss << '%' << *format;
+          break;
+      }
+
+      replace = false;
+      continue;
+    }
+
+    if (*format == '%') {
+      replace = true;
+      continue;
+    }
+
+    ss << *format;
   }
+
+  return ss.str();
 }
 
 int Date::julian() const {
