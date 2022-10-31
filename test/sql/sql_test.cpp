@@ -2414,9 +2414,9 @@ TEST_F(SQLTest, FuncRoundShouldWork)
       {"round(1.45)", "1"},
       {"round(1.55)", "2"},
       {"round(1.65)", "2"},
-      {"round('1.45')", "1"},
-      {"round('1.55')", "2"},
-      {"round('1.65')", "2"},
+      // {"round('1.45')", "1"},
+      // {"round('1.55')", "2"},
+      // {"round('1.65')", "2"},
   };
 
   for (auto &it : cases) {
@@ -2429,6 +2429,7 @@ TEST_F(SQLTest, FuncInvalidRoundShouldFaiure)
   std::vector<std::string> cases = {
       "round()",
       "round(1.54, 2, 3)",
+      "round('1.54')",
   };
 
   for (auto &it : cases) {
@@ -2486,6 +2487,8 @@ TEST_F(SQLTest, FuncInvalidDateFormatShouldFaiure)
       "date_format(1.54)",
       "date_format(1.54, 2)",
       "date_format(1.54, 2, 3)",
+      "date_format('2022-10-23', 2)",
+      "date_format('2022-10-23', 5.1)",
   };
 
   for (auto &it : cases) {

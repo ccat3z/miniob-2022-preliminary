@@ -269,8 +269,11 @@ public:
         return rc;
       } else if (cell.is_null()) {
         return RC::SUCCESS;
-      } else if (!cell.try_best_cast(FLOATS)) {
+      } else if (cell.attr_type() != INTS && cell.attr_type() != FLOATS) {
         LOG_ERROR("round(): only accept number");
+        return RC::INVALID_ARGUMENT;
+      } else if (!cell.try_best_cast(FLOATS)) {
+        LOG_ERROR("round(): failed to cast to floats");
         return RC::INVALID_ARGUMENT;
       } else if (RC::SUCCESS != (rc = cell.safe_get(val))) {
         LOG_ERROR("round(): failed to get value from cell");
@@ -375,8 +378,11 @@ public:
         return rc;
       } else if (cell.is_null()) {
         return RC::SUCCESS;
-      } else if (!cell.try_best_cast(CHARS)) {
+      } else if (cell.attr_type() != CHARS && cell.attr_type() != TEXT) {
         LOG_ERROR("date_format(): only accept CHARS");
+        return RC::INVALID_ARGUMENT;
+      } else if (!cell.try_best_cast(CHARS)) {
+        LOG_ERROR("date_format(): failed to cast to CHARS");
         return RC::INVALID_ARGUMENT;
       } else if (RC::SUCCESS != (rc = cell.safe_get(val))) {
         LOG_ERROR("date_format(): failed to get value from cell");
